@@ -1,0 +1,21 @@
+{
+    "name": "WgerLens",
+    "short_name": "WgerLens",
+    "description": "AI-powered calorie tracker for Wger",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#000000",
+    "theme_color": "#6366f1",
+    "icons": [
+        {
+            "src": "/icon-192x192.svg",
+            "sizes": "192x192",
+            "type": "image/svg+xml"
+        },
+        {
+            "src": "/icon-512x512.svg",
+            "sizes": "512x512",
+            "type": "image/svg+xml"
+        }
+    ]
+}
