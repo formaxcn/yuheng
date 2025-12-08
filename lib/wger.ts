@@ -26,10 +26,12 @@ export class WgerClient {
             const response = await axios.get(url, {
                 headers: this.headers,
             });
-            logger.debug('Fetched plans successfully', { count: response.data.results.length });
+            logger.debug({ count: response.data.results.length }, 'Fetched plans successfully');
             return response.data.results;
         } catch (error: any) {
-            logger.error('Error fetching plans', error.response?.data || error.message);
+            // Pass error object first for stack trace
+            logger.error(error as Error, 'Error fetching plans');
+            if (error.response?.data) logger.debug({ data: error.response.data }, 'Error response data');
             throw error;
         }
     }
@@ -41,10 +43,11 @@ export class WgerClient {
             const response = await axios.get(url, {
                 headers: this.headers,
             });
-            logger.debug('Fetched meals successfully', { count: response.data.results.length });
+            logger.debug({ count: response.data.results.length }, 'Fetched meals successfully');
             return response.data.results;
         } catch (error: any) {
-            logger.error(`Error fetching meals for plan ${planId}`, error.response?.data || error.message);
+            logger.error(error as Error, `Error fetching meals for plan ${planId}`);
+            if (error.response?.data) logger.debug({ data: error.response.data }, 'Error response data');
             throw error;
         }
     }
@@ -54,7 +57,7 @@ export class WgerClient {
         // We might need to handle existing meals to avoid duplicates if logic requires,
         // but here we just create.
         const url = `${this.baseUrl}/api/v2/meal/`;
-        logger.debug(`Creating meal for plan ${planId} at ${time}`, { url });
+        logger.debug({ url }, `Creating meal for plan ${planId} at ${time}`);
         try {
             const response = await axios.post(url, {
                 plan: planId,
@@ -65,14 +68,15 @@ export class WgerClient {
             logger.debug('Meal created successfully', response.data);
             return response.data;
         } catch (error: any) {
-            logger.error(`Error creating meal for plan ${planId}`, error.response?.data || error.message);
+            logger.error(error as Error, `Error creating meal for plan ${planId}`);
+            if (error.response?.data) logger.debug({ data: error.response.data }, 'Error response data');
             throw error;
         }
     }
 
     async searchIngredient(name: string): Promise<WgerIngredient[]> {
         const url = `${this.baseUrl}/api/v2/ingredient/?name=${encodeURIComponent(name)}`;
-        logger.debug(`Searching ingredient: ${name}`, { url });
+        logger.debug({ url }, `Searching ingredient: ${name}`);
         try {
             const response = await axios.get(url, {
                 headers: this.headers,
@@ -80,14 +84,15 @@ export class WgerClient {
             logger.debug(`Found ${response.data.results.length} ingredients for "${name}"`);
             return response.data.results;
         } catch (error: any) {
-            logger.error(`Error searching ingredient "${name}"`, error.response?.data || error.message);
+            logger.error(error as Error, `Error searching ingredient "${name}"`);
+            if (error.response?.data) logger.debug({ data: error.response.data }, 'Error response data');
             throw error;
         }
     }
 
     async createIngredient(data: Partial<WgerIngredient>): Promise<WgerIngredient> {
         const url = `${this.baseUrl}/api/v2/ingredient/`;
-        logger.debug('Creating ingredient', { url, data });
+        logger.debug({ url, data }, 'Creating ingredient');
         try {
             const response = await axios.post(url, {
                 ...data,
@@ -102,14 +107,15 @@ export class WgerClient {
             logger.debug('Ingredient created successfully', response.data);
             return response.data;
         } catch (error: any) {
-            logger.error('Error creating ingredient', error.response?.data || error.message);
+            logger.error(error as Error, 'Error creating ingredient');
+            if (error.response?.data) logger.debug({ data: error.response.data }, 'Error response data');
             throw error;
         }
     }
 
     async addMealItem(mealId: number, ingredientId: number, amount: number): Promise<WgerMealItem> {
         const url = `${this.baseUrl}/api/v2/mealitem/`;
-        logger.debug(`Adding meal item to meal ${mealId}`, { ingredientId, amount, url });
+        logger.debug({ ingredientId, amount, url }, `Adding meal item to meal ${mealId}`);
         try {
             const response = await axios.post(url, {
                 meal: mealId,
@@ -121,7 +127,8 @@ export class WgerClient {
             logger.debug('Meal item added successfully', response.data);
             return response.data;
         } catch (error: any) {
-            logger.error(`Error adding meal item to meal ${mealId}`, error.response?.data || error.message);
+            logger.error(error as Error, `Error adding meal item to meal ${mealId}`);
+            if (error.response?.data) logger.debug({ data: error.response.data }, 'Error response data');
             throw error;
         }
     }

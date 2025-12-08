@@ -13,6 +13,7 @@ import { Loader2, Plus, Camera, Upload, Trash2, Check, Edit2 } from 'lucide-reac
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { logger } from '@/lib/logger';
 
 export default function AddPage() {
     const { token, baseUrl, planId } = useApp();
@@ -52,7 +53,7 @@ export default function AddPage() {
             if (data.error) throw new Error(data.error);
             setDishes(data);
         } catch (error) {
-            console.error(error);
+            logger.error(error as Error, "Failed to analyze image");
             toast.error("Failed to analyze image");
         } finally {
             setLoading(false);
@@ -83,7 +84,7 @@ export default function AddPage() {
             setEditPrompt('');
             toast.success("Dish updated!");
         } catch (error) {
-            console.error(error);
+            logger.error(error as Error, "Failed to update dish");
             toast.error("Failed to update dish");
         } finally {
             setLoading(false);
@@ -115,7 +116,7 @@ export default function AddPage() {
             toast.success("All dishes added successfully!");
             router.push('/');
         } catch (error) {
-            console.error(error);
+            logger.error(error as Error, "Failed to add dishes to Wger");
             toast.error("Failed to add dishes to Wger");
         } finally {
             setProcessing(false);
