@@ -60,6 +60,59 @@ Access the app at `http://localhost:3000`.
 | `MODEL` | Gemini Model Name | `gemini-1.5-flash` |
 | `WGER_BASE_URL` | Default Wger Instance URL | `https://wger.de` |
 
+## Architecture Design
+
+### Overview
+WgerLens is a specialized client for Wger, designed to simplify food logging using AI. It acts as a bridge between the user, the Gemini AI API, and the Wger API.
+
+### Core Components
+1.  **Frontend (Next.js App Router)**:
+    -   Built with React and Tailwind CSS.
+    -   Handles user UI, camera interactions, and state management.
+    -   communicates with Next.js API Routes.
+
+2.  **API Layer (Next.js API Routes)**:
+    -   `/api/wger/*`: Proxies requests to the Wger API. This avoids CORS issues and allows for secure handling of tokens if needed (though currently tokens are passed from client).
+    -   `/api/gemini`: Handles interaction with Google Gemini. It sends image data and prompts to Gemini and processes the JSON response.
+
+3.  **Services**:
+    -   `lib/wger.ts`: A typed client for interacting with Wger endpoints (plans, meals, ingredients).
+    -   `lib/gemini.ts`: Handles prompt construction and response parsing for Gemini.
+
+### Data Flow
+1.  User takes a photo -> Frontend.
+2.  Frontend -> `/api/gemini` -> Google Gemini API.
+3.  Gemini returns JSON analysis -> Frontend displays draft.
+4.  User confirms -> Frontend -> `/api/wger/*` -> Wger API (creates ingredients/meals).
+
+## Development & Debugging
+
+### Local Setup
+1.  Clone the repository.
+2.  Install dependencies: `npm install`.
+3.  Set up environment variables in `.env.local` (see below).
+4.  Run the development server: `npm run dev`.
+
+### Debugging & Logging
+We use a custom logging utility that supports different log levels.
+
+-   **Enable Debug Logs**: Set `LOG_LEVEL=debug` in your `.env.local` file.
+    ```env
+    LOG_LEVEL=debug
+    ```
+    This will output detailed logs to the console, including:
+    -   Full Wger API request URLs and methods.
+    -   Response status and data summaries.
+    -   Gemini prompts and raw response text.
+
+-   **Production**: Ensure `LOG_LEVEL` is set to `info` (default) or unset to avoid leaking sensitive data in logs.
+
+### VSCode Debugging
+A `launch.json` is provided for VSCode.
+1.  Go to the "Run and Debug" side bar.
+2.  Select "Next.js: debug (server-side)" or "Next.js: debug (client-side)".
+3.  Press F5 to start debugging.
+
 ## Development
 
 ```bash
