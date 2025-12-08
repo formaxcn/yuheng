@@ -92,23 +92,21 @@ export class WgerClient {
 
     async createIngredient(data: Partial<WgerIngredient>): Promise<WgerIngredient> {
         const url = `${this.baseUrl}/api/v2/ingredient/`;
-        logger.debug({ url, data }, 'Creating ingredient');
+        logger.debug({ url, ingredientName: data.name }, 'Creating ingredient');
         try {
             const response = await axios.post(url, {
                 ...data,
-                language: 2, // 2 is usually English, need to check for Chinese. Wger default might vary.
-                // Let's assume 2 or just omit if it defaults correctly.
-                // Actually, for Chinese, we might want to check language ID.
-                // But for now, we'll just send the data.
-                // Wger requires code, name, energy, etc.
+                language: 2,
             }, {
                 headers: this.headers,
             });
-            logger.debug('Ingredient created successfully', response.data);
+            logger.debug({ id: response.data.id, name: response.data.name }, 'Ingredient created successfully');
             return response.data;
         } catch (error: any) {
             logger.error(error as Error, 'Error creating ingredient');
-            if (error.response?.data) logger.debug({ data: error.response.data }, 'Error response data');
+            if (error.response?.data) {
+                logger.debug({ data: error.response.data }, 'Error response data');
+            }
             throw error;
         }
     }

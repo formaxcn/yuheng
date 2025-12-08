@@ -142,28 +142,26 @@ export async function POST(req: NextRequest) {
             if (exactMatch) {
                 ingredientId = exactMatch.id;
             } else {
-                // Create new ingredient
-                // Wger needs: name, energy, protein, carbohydrates, fat, etc.
-                // Unit: Wger usually uses per 100g or per unit.
-                // Our Gemini prompt returns per 100g.
-                // Wger energy is kcal.
+                // Create new ingredient if not found
+                // Wger requires: name, energy, protein, carbohydrates, fat, etc.
                 const newIngredient = await client.createIngredient({
                     name: dish.name,
-                    energy: dish.calories,
+                    energy: dish.calories, // Wger uses kcal
                     protein: dish.protein,
                     carbohydrates: dish.carbs,
                     fat: dish.fat,
-                    // fibres, sodium if available
                 });
                 ingredientId = newIngredient.id;
             }
 
+            if (!ingredientId) {
+                // Should not happen if create succeeds, but safety check
+                console.error(`Failed to get ingredient ID for dish: ${dish.name}`);
+                continue;
+            }
+
             // 2. Add to Meal
-            // Amount in Wger MealItem is usually in grams?
-            // Wger API: amount is in grams if the unit is not specified?
-            // Actually Wger MealItem links to a "WeightUnit" optionally.
-            // If no unit, it's usually grams or the base unit.
-            // Let's assume grams.
+            // Wger MealItem amount is in grams. The dish.weight is usually provided by the AI in grams.
             const mealItem = await client.addMealItem(targetMeal.id, ingredientId, dish.weight);
             results.push(mealItem);
         }
