@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
 
             const response = await fetch(`${baseUrl}/api/v2/mealitem/?meal=${meal.id}`, {
                 headers: {
-                    'Authorization': `Token ${token}`,
+                    'Authorization': token,
                     'Accept': 'application/json'
                 }
             });
@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
             if (!ingredient) {
                 const ingRes = await fetch(`${baseUrl}/api/v2/ingredient/${item.ingredient}/`, {
                     headers: {
-                        'Authorization': `Token ${token}`,
+                        'Authorization': token,
                         'Accept': 'application/json'
                     }
                 });

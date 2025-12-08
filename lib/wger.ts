@@ -19,7 +19,7 @@ export class WgerClient {
     }
 
     async getPlans(): Promise<WgerPlan[]> {
-        const response = await axios.get(`${this.baseUrl}/api/v2/nutritionalplan/`, {
+        const response = await axios.get(`${this.baseUrl}/api/v2/nutritionplan/`, {
             headers: this.headers,
         });
         return response.data.results;
