@@ -2,7 +2,6 @@ import { createSwaggerSpec } from 'next-swagger-doc';
 
 export const getApiDocs = async () => {
     const spec = createSwaggerSpec({
-        apiFolder: 'app/api', // define api folder
         definition: {
             openapi: '3.0.0',
             info: {
@@ -10,6 +9,7 @@ export const getApiDocs = async () => {
                 version: '1.0',
             },
         },
+        apis: ['./app/api/**/route.ts', './app/api/**/page.tsx'], // Explicitly target route files
     });
     return spec;
 };
