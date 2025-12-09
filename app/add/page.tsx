@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from 'react';
-import { useApp } from '@/components/app-provider';
+// import { useApp } from '@/components/app-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,7 @@ import Image from 'next/image';
 import { logger } from '@/lib/logger';
 
 export default function AddPage() {
-    const { token, baseUrl, planId } = useApp();
+    // const { token, baseUrl, planId } = useApp(); // Removed
     const [image, setImage] = useState<string | null>(null);
     const [dishes, setDishes] = useState<Dish[]>([]);
     const [loading, setLoading] = useState(false);
@@ -92,22 +92,15 @@ export default function AddPage() {
     };
 
     const handleAddAll = async () => {
-        if (!planId) {
-            toast.error("No plan selected. Go to settings.");
-            return;
-        }
         setProcessing(true);
         try {
-            const res = await fetch('/api/wger/smart-add', {
+            const res = await fetch('/api/nutrition/smart-add', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-wger-token': token,
-                    'x-wger-base-url': baseUrl,
                 },
                 body: JSON.stringify({
                     dishes,
-                    planId,
                     date: new Date().toISOString().split('T')[0],
                 }),
             });
@@ -116,8 +109,8 @@ export default function AddPage() {
             toast.success("All dishes added successfully!");
             router.push('/');
         } catch (error) {
-            logger.error(error as Error, "Failed to add dishes to Wger");
-            toast.error("Failed to add dishes to Wger");
+            logger.error(error as Error, "Failed to add dishes");
+            toast.error("Failed to add dishes");
         } finally {
             setProcessing(false);
         }

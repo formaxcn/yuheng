@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useApp } from '@/components/app-provider';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Plus, Settings, RefreshCw, Loader2 } from 'lucide-react';
@@ -9,8 +8,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 export default function HomePage() {
-  const { token, baseUrl, planId, fetchPlans } = useApp();
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const [stats, setStats] = useState({
@@ -22,28 +19,13 @@ export default function HomePage() {
   });
 
   useEffect(() => {
-    if (!token) {
-      router.push('/settings');
-      return;
-    }
-    if (!planId) {
-      fetchPlans();
-      router.push('/settings');
-      return;
-    }
-    loadPlanStats();
-  }, [token, planId]);
+    loadStats();
+  }, []);
 
-  const loadPlanStats = async () => {
-    if (!planId || !token || !baseUrl) return;
+  const loadStats = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/wger/stats?planId=${planId}`, {
-        headers: {
-          'x-wger-token': token,
-          'x-wger-base-url': baseUrl,
-        },
-      });
+      const res = await fetch(`/api/nutrition/stats`);
       const data = await res.json();
       if (!data.error) {
         setStats(prev => ({
@@ -52,6 +34,7 @@ export default function HomePage() {
           protein: data.protein || 0,
           fat: data.fat || 0,
           carbs: data.carbs || 0,
+          targetCalories: data.targetCalories || 2500,
         }));
       }
     } catch (error) {
@@ -70,14 +53,10 @@ export default function HomePage() {
           WgerLens
         </h1>
         <div className="flex gap-2">
-          <Button variant="ghost" size="icon" onClick={loadPlanStats} disabled={loading}>
+          <Button variant="ghost" size="icon" onClick={loadStats} disabled={loading}>
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
           </Button>
-          <Link href="/settings">
-            <Button variant="ghost" size="icon">
-              <Settings className="w-6 h-6" />
-            </Button>
-          </Link>
+
         </div>
       </div>
 
