@@ -3,8 +3,23 @@ import path from 'path';
 import fs from 'fs';
 import { logger } from './logger';
 
-const dbPath = path.join(process.cwd(), 'nutrition.db');
+const dbPath = process.env.DB_PATH || path.join(process.cwd(), 'nutrition.db');
+// Ensure directory exists if custom path provided
+if (process.env.DB_PATH) {
+    const dir = path.dirname(dbPath);
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+}
+
 const db = new Database(dbPath, { verbose: (msg) => logger.debug(msg) });
+
+const DEFAULT_MEAL_CONFIG = {
+    Breakfast: { start: 6, end: 10, default: "08:00" },
+    Lunch: { start: 10, end: 14, default: "12:00" },
+    Dinner: { start: 17, end: 19, default: "18:00" },
+    Snack: { default: "21:00" }
+};
 
 export function initDB() {
     // Enable WAL mode for better concurrency
@@ -52,10 +67,22 @@ export function initDB() {
             carbs_target REAL,
             fat_target REAL
         );
+
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        );
     `;
 
     db.exec(schema);
-    logger.info('Database initialized');
+
+    // Initialize default settings if not exists
+    const existingConfig = getSetting('meal_times');
+    if (!existingConfig) {
+        saveSetting('meal_times', JSON.stringify(DEFAULT_MEAL_CONFIG));
+    }
+
+    logger.info('Database initialized at ' + dbPath);
 }
 
 // Initialize on load
@@ -111,6 +138,31 @@ export interface Target {
 }
 
 // Repositories
+
+// --- Settings ---
+export function getSetting(key: string): string | undefined {
+    const stmt = db.prepare('SELECT value FROM settings WHERE key = ?');
+    const result = stmt.get(key) as { value: string } | undefined;
+    return result?.value;
+}
+
+export function saveSetting(key: string, value: string) {
+    const stmt = db.prepare(`
+        INSERT INTO settings (key, value) VALUES (@key, @value)
+        ON CONFLICT(key) DO UPDATE SET value = @value
+    `);
+    stmt.run({ key, value });
+}
+
+export function getMealConfig() {
+    const configStr = getSetting('meal_times');
+    try {
+        return configStr ? JSON.parse(configStr) : DEFAULT_MEAL_CONFIG;
+    } catch (e) {
+        logger.error(e as Error, "Failed to parse meal config");
+        return DEFAULT_MEAL_CONFIG;
+    }
+}
 
 // --- Recipes ---
 export function getRecipe(name: string): Recipe | undefined {
@@ -202,9 +254,9 @@ export function saveTarget(target: Omit<Target, 'id'>): Target {
         const stmt = db.prepare(`
             UPDATE targets 
             SET energy_target = @energy_target, 
-                protein_target = @protein_target, 
-                carbs_target = @carbs_target, 
-                fat_target = @fat_target
+            protein_target = @protein_target, 
+            carbs_target = @carbs_target, 
+            fat_target = @fat_target
             WHERE id = @id
         `);
         stmt.run({ ...target, id: existing.id });
@@ -231,7 +283,7 @@ export function getHistory(startDate: string, endDate: string): { date: string; 
         GROUP BY e.date
         ORDER BY e.date ASC
     `);
-    
+
     // Perform query
     const result = stmt.all(startDate, endDate) as { date: string; calories: number }[];
 

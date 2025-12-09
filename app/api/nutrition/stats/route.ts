@@ -2,6 +2,48 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getEntries, getDishesForEntry, getTarget, getHistory } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
+/**
+ * @swagger
+ * /api/nutrition/stats:
+ *   get:
+ *     summary: Get nutrition stats for a specific date
+ *     description: Returns daily nutrition statistics including calories, protein, carbs, fat, and meal breakdowns. Also returns history for the last 7 days.
+ *     parameters:
+ *       - in: query
+ *         name: date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Date to fetch stats for (YYYY-MM-DD). Defaults to today.
+ *     responses:
+ *       200:
+ *         description: Nutrition stats
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 calories:
+ *                   type: number
+ *                 protein:
+ *                   type: number
+ *                 carbs:
+ *                   type: number
+ *                 fat:
+ *                   type: number
+ *                 targetCalories:
+ *                   type: number
+ *                 meals:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 history:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       500:
+ *         description: Server error
+ */
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const date = searchParams.get('date') || new Date().toISOString().split('T')[0];

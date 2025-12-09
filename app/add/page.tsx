@@ -32,7 +32,8 @@ export default function AddPage() {
     // Backfill State
     const [isBackfill, setIsBackfill] = useState(false);
     const [backfillDate, setBackfillDate] = useState(new Date().toISOString().split('T')[0]);
-    const [backfillTime, setBackfillTime] = useState(new Date().toTimeString().slice(0, 5));
+    // const [backfillTime, setBackfillTime] = useState(new Date().toTimeString().slice(0, 5)); // Use Meal Type instead
+    const [backfillType, setBackfillType] = useState('Breakfast');
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -107,7 +108,8 @@ export default function AddPage() {
                 body: JSON.stringify({
                     dishes,
                     date: isBackfill ? backfillDate : new Date().toISOString().split('T')[0],
-                    time: isBackfill ? backfillTime : undefined,
+                    // Time is inferred by backend if not provided. logic handles type -> time mapping
+                    type: isBackfill ? backfillType : undefined,
                 }),
             });
             const data = await res.json();
@@ -174,12 +176,17 @@ export default function AddPage() {
                             />
                         </div>
                         <div className="space-y-1">
-                            <Label className="text-xs">Time</Label>
-                            <Input
-                                type="time"
-                                value={backfillTime}
-                                onChange={(e) => setBackfillTime(e.target.value)}
-                            />
+                            <Label className="text-xs">Meal</Label>
+                            <select
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                value={backfillType}
+                                onChange={(e) => setBackfillType(e.target.value)}
+                            >
+                                <option value="Breakfast">Breakfast</option>
+                                <option value="Lunch">Lunch</option>
+                                <option value="Dinner">Dinner</option>
+                                <option value="Snack">Snack</option>
+                            </select>
                         </div>
                     </div>
                 )}
