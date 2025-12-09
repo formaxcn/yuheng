@@ -51,3 +51,9 @@ Meal times can be configured in the database `settings` table. Defaults:
 - Lunch: 10:00 - 14:00 (Default 12:00)
 - Dinner: 17:00 - 19:00 (Default 18:00)
 - Snack: All other times (Default 21:00)
+
+## Roadmap
+
+- [ ] Support for multiple users
+- [ ] Migrate database to Postgres
+
