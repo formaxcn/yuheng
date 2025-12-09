@@ -29,6 +29,11 @@ export default function AddPage() {
     const [editPrompt, setEditPrompt] = useState('');
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
+    // Backfill State
+    const [isBackfill, setIsBackfill] = useState(false);
+    const [backfillDate, setBackfillDate] = useState(new Date().toISOString().split('T')[0]);
+    const [backfillTime, setBackfillTime] = useState(new Date().toTimeString().slice(0, 5));
+
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -101,7 +106,8 @@ export default function AddPage() {
                 },
                 body: JSON.stringify({
                     dishes,
-                    date: new Date().toISOString().split('T')[0],
+                    date: isBackfill ? backfillDate : new Date().toISOString().split('T')[0],
+                    time: isBackfill ? backfillTime : undefined,
                 }),
             });
             const data = await res.json();
@@ -143,6 +149,41 @@ export default function AddPage() {
                     </Button>
                 </div>
             )}
+
+            {/* Backfill Options */}
+            <div className="bg-muted/30 p-3 rounded-lg space-y-3">
+                <div className="flex items-center space-x-2">
+                    <input
+                        type="checkbox"
+                        id="backfill"
+                        checked={isBackfill}
+                        onChange={(e) => setIsBackfill(e.target.checked)}
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                    <Label htmlFor="backfill" className="font-medium cursor-pointer">Backfill (log for past time)</Label>
+                </div>
+
+                {isBackfill && (
+                    <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2">
+                        <div className="space-y-1">
+                            <Label className="text-xs">Date</Label>
+                            <Input
+                                type="date"
+                                value={backfillDate}
+                                onChange={(e) => setBackfillDate(e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <Label className="text-xs">Time</Label>
+                            <Input
+                                type="time"
+                                value={backfillTime}
+                                onChange={(e) => setBackfillTime(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {loading && (
                 <div className="flex justify-center p-8">

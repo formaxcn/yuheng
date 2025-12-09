@@ -15,7 +15,9 @@ export default function HomePage() {
     protein: 0,
     fat: 0,
     carbs: 0,
-    targetCalories: 2500
+    targetCalories: 2500,
+    meals: [] as { type: string, calories: number }[],
+    history: [] as { date: string, calories: number }[]
   });
 
   useEffect(() => {
@@ -35,6 +37,8 @@ export default function HomePage() {
           fat: data.fat || 0,
           carbs: data.carbs || 0,
           targetCalories: data.targetCalories || 2500,
+          meals: data.meals || [],
+          history: data.history || []
         }));
       }
     } catch (error) {
@@ -50,7 +54,7 @@ export default function HomePage() {
     <div className="min-h-screen p-4 pb-24 flex flex-col gap-6 bg-gradient-to-b from-background to-background/80">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
-          WgerLens
+          YuHeng
         </h1>
         <div className="flex gap-2">
           <Button variant="ghost" size="icon" onClick={loadStats} disabled={loading}>
@@ -148,12 +152,60 @@ export default function HomePage() {
         </div>
       </div>
 
+
+
+      {/* Meals Breakdown */}
+      <div className="grid grid-cols-2 gap-3 px-2">
+        {stats.meals.filter(m => m.calories > 0).map((meal) => {
+          const colors: { [key: string]: string } = {
+            'Breakfast': 'bg-emerald-500/10 border-emerald-500/50 text-emerald-700',
+            'Lunch': 'bg-blue-500/10 border-blue-500/50 text-blue-700',
+            'Dinner': 'bg-purple-500/10 border-purple-500/50 text-purple-700',
+            'Snack': 'bg-orange-500/10 border-orange-500/50 text-orange-700',
+          };
+          const colorClass = colors[meal.type] || colors['Snack'];
+
+          return (
+            <div key={meal.type} className={`p-3 rounded-xl border ${colorClass} flex flex-col items-center justify-center`}>
+              <span className="text-xs font-semibold uppercase opacity-70">{meal.type}</span>
+              <span className="text-xl font-bold">{Math.round(meal.calories)}</span>
+              <span className="text-xs opacity-60">kcal</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* History Chart */}
+      <div className="px-2 pt-4 pb-20">
+        <h3 className="text-lg font-semibold mb-4 text-foreground/80">Last 7 Days</h3>
+        <div className="flex items-end justify-between h-40 gap-2">
+          {stats.history.map((day) => {
+            const height = Math.min((day.calories / stats.targetCalories) * 100, 100);
+            const isToday = new Date().toISOString().split('T')[0] === day.date;
+
+            return (
+              <div key={day.date} className="flex flex-col items-center flex-1 gap-2 group">
+                <div className="w-full relative flex items-end justify-center h-32 bg-muted/20 rounded-t-md overflow-hidden">
+                  <div
+                    className={`w-full transition-all duration-1000 ${isToday ? 'bg-primary' : 'bg-primary/40 group-hover:bg-primary/60'}`}
+                    style={{ height: `${height}%` }}
+                  />
+                </div>
+                <span className="text-[10px] text-muted-foreground font-medium">
+                  {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Floating Action Button */}
       <Link href="/add" className="fixed bottom-8 right-8 z-50">
         <Button size="icon" className="w-16 h-16 rounded-full shadow-2xl text-white bg-gradient-to-br from-primary to-purple-600 hover:from-primary/90 hover:to-purple-500 transition-all duration-300 hover:scale-110">
           <Plus className="w-8 h-8" />
         </Button>
       </Link>
-    </div>
+    </div >
   );
 }

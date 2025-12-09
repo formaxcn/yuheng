@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getEntries, getDishesForEntry, getTarget } from '@/lib/db';
+import { getEntries, getDishesForEntry, getTarget, getHistory } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
@@ -13,13 +13,44 @@ export async function GET(req: NextRequest) {
         let totalCarbs = 0;
         let totalFat = 0;
 
+        const historyStartDate = new Date(date);
+        historyStartDate.setDate(historyStartDate.getDate() - 6);
+        const historyStartDateStr = historyStartDate.toISOString().split('T')[0];
+        const history = await getHistory(historyStartDateStr, date);
+
+        interface MealStats {
+            type: string;
+            calories: number;
+        }
+
+        const meals: { [key: string]: MealStats } = {
+            Breakfast: { type: 'Breakfast', calories: 0 },
+            Lunch: { type: 'Lunch', calories: 0 },
+            Dinner: { type: 'Dinner', calories: 0 },
+            Snack: { type: 'Snack', calories: 0 },
+        };
+
         for (const entry of entries) {
             const dishes = getDishesForEntry(entry.id);
+            let entryCalories = 0;
             for (const dish of dishes) {
-                totalCalories += dish.total_energy || 0;
+                const cals = dish.total_energy || 0;
+                totalCalories += cals;
                 totalProtein += dish.total_protein || 0;
                 totalCarbs += dish.total_carbs || 0;
                 totalFat += dish.total_fat || 0;
+                entryCalories += cals;
+            }
+
+            // Aggregate by meal type (or time if type not explicitly set correctly everywhere, but we try to rely on type)
+            // If type is missing, infer it? smart-add infers it.
+            const type = entry.type || 'Snack';
+            if (meals[type]) {
+                meals[type].calories += entryCalories;
+            } else {
+                // Fallback for unknown types
+                if (!meals['Snack']) meals['Snack'] = { type: 'Snack', calories: 0 };
+                meals['Snack'].calories += entryCalories;
             }
         }
 
@@ -34,6 +65,8 @@ export async function GET(req: NextRequest) {
             targetProtein: target?.protein_target || 150,
             targetCarbs: target?.carbs_target || 250,
             targetFat: target?.fat_target || 80,
+            meals: Object.values(meals),
+            history
         });
 
     } catch (error) {

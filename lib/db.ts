@@ -218,3 +218,34 @@ export function saveTarget(target: Omit<Target, 'id'>): Target {
         return { ...target, id: Number(info.lastInsertRowid) };
     }
 }
+
+// --- History ---
+export function getHistory(startDate: string, endDate: string): { date: string; calories: number; }[] {
+    const stmt = db.prepare(`
+        SELECT 
+            e.date, 
+            SUM(d.amount * d.energy / 100) as calories
+        FROM entries e
+        JOIN dishes d ON e.id = d.entry_id
+        WHERE e.date >= ? AND e.date <= ?
+        GROUP BY e.date
+        ORDER BY e.date ASC
+    `);
+    
+    // Perform query
+    const result = stmt.all(startDate, endDate) as { date: string; calories: number }[];
+
+    // Fill in missing dates with 0
+    const history: { date: string; calories: number }[] = [];
+    const current = new Date(startDate);
+    const end = new Date(endDate);
+
+    while (current <= end) {
+        const dateStr = current.toISOString().split('T')[0];
+        const found = result.find(r => r.date === dateStr);
+        history.push({ date: dateStr, calories: found ? (found.calories || 0) : 0 });
+        current.setDate(current.getDate() + 1);
+    }
+
+    return history;
+}

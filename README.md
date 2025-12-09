@@ -1,31 +1,17 @@
-# WgerLens
+# YuHeng (玉衡)
 
-AI-powered calorie tracker for Wger (wger.de), built with Next.js 14, Tailwind CSS, and Google Gemini.
+AI-powered calorie tracker, built with Next.js 14, Tailwind CSS, and Google Gemini.
 
 ## Features
 
 - **Smart Add**: Snap a photo of your meal (1-6 dishes), and AI will identify dishes, estimate calories/macros, and weight.
-- **One-Click Log**: Automatically find or create ingredients in Wger and log them to your nutritional plan.
+- **Local Database**: All data is stored locally in a SQLite database (`nutrition.db`). No external account required.
 - **PWA Ready**: Install on your phone for a native app-like experience.
-- **Privacy Focused**: Your API keys and tokens are stored locally or in your own server env.
+- **Privacy Focused**: Your API keys and tokens are stored locally.
 
 ## Prerequisites
 
-1. **Wger Account**: You need an account on [wger.de](https://wger.de) or your self-hosted instance.
-2. **Gemini API Key**: Get one from [Google AI Studio](https://aistudio.google.com/).
-
-### How to get Wger Application Token
-1. Go to [wger.de](https://wger.de) and log in.
-2. Navigate to **Settings** -> **API Keys** (or visit `/en/user/api-key`).
-3. Generate a new API key (Token).
-
-### How to find Nutritional Plan ID
-WgerLens automatically fetches your plans.
-1. Open WgerLens.
-2. Go to **Settings**.
-3. Enter your Token and Base URL.
-4. Click "Load Plans".
-5. Select your desired plan from the dropdown.
+1.  **Gemini API Key**: Get one from [Google AI Studio](https://aistudio.google.com/).
 
 ## Deployment
 
@@ -37,14 +23,12 @@ You can deploy this on any server with Docker installed (Synology, TrueNAS, VPS)
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/yourusername/WgerLens.git
-cd WgerLens
+git clone https://github.com/yourusername/YuHeng.git
+cd YuHeng
 
 # 2. Create .env.local (Optional if passing env in run command)
 echo "GEMINI_API_KEY=your_key_here" > .env.local
 echo "MODEL=gemini-1.5-flash" >> .env.local
-# WGER_BASE_URL is optional here as it can be set in UI, but good to have default
-echo "WGER_BASE_URL=https://wger.de" >> .env.local
 
 # 3. Run with Docker Compose
 docker-compose up -d --build
@@ -58,12 +42,11 @@ Access the app at `http://localhost:3000`.
 |String | --- | --- |
 | `GEMINI_API_KEY` | Google Gemini API Key | Required |
 | `MODEL` | Gemini Model Name | `gemini-1.5-flash` |
-| `WGER_BASE_URL` | Default Wger Instance URL | `https://wger.de` |
 
 ## Architecture Design
 
 ### Overview
-WgerLens is a specialized client for Wger, designed to simplify food logging using AI. It acts as a bridge between the user, the Gemini AI API, and the Wger API.
+YuHeng is a specialized food logging application using AI. It acts as a bridge between the user and the Gemini AI API, storing data in a local SQLite database.
 
 ### Core Components
 1.  **Frontend (Next.js App Router)**:
@@ -72,18 +55,18 @@ WgerLens is a specialized client for Wger, designed to simplify food logging usi
     -   communicates with Next.js API Routes.
 
 2.  **API Layer (Next.js API Routes)**:
-    -   `/api/wger/*`: Proxies requests to the Wger API. This avoids CORS issues and allows for secure handling of tokens if needed (though currently tokens are passed from client).
+    -   `/api/nutrition/*`: Handles interaction with local SQLite database.
     -   `/api/gemini`: Handles interaction with Google Gemini. It sends image data and prompts to Gemini and processes the JSON response.
 
 3.  **Services**:
-    -   `lib/wger.ts`: A typed client for interacting with Wger endpoints (plans, meals, ingredients).
+    -   `lib/db.ts`: SQLite database client and repositories.
     -   `lib/gemini.ts`: Handles prompt construction and response parsing for Gemini.
 
 ### Data Flow
 1.  User takes a photo -> Frontend.
 2.  Frontend -> `/api/gemini` -> Google Gemini API.
 3.  Gemini returns JSON analysis -> Frontend displays draft.
-4.  User confirms -> Frontend -> `/api/wger/*` -> Wger API (creates ingredients/meals).
+4.  User confirms -> Frontend -> `/api/nutrition/smart-add` -> SQLite Database (creates recipes/entries/dishes).
 
 ## Development & Debugging
 
@@ -100,10 +83,7 @@ We use a custom logging utility that supports different log levels.
     ```env
     LOG_LEVEL=debug
     ```
-    This will output detailed logs to the console, including:
-    -   Full Wger API request URLs and methods.
-    -   Response status and data summaries.
-    -   Gemini prompts and raw response text.
+    This will output detailed logs to the console.
 
 -   **Production**: Ensure `LOG_LEVEL` is set to `info` (default) or unset to avoid leaking sensitive data in logs.
 
@@ -125,4 +105,5 @@ npm run dev
 - TypeScript
 - Tailwind CSS + shadcn/ui
 - Google Gemini AI
-- Wger API v2
+- SQLite (better-sqlite3)
+
