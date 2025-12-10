@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getEntries, getDishesForEntry, getDailyTargets, getHistory } from '@/lib/db';
+import { getEntries, getDishesForEntry, getDailyTargets, getHistory, getMealConfig } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
 /**
@@ -60,6 +60,9 @@ export async function GET(req: NextRequest) {
         const historyStartDateStr = historyStartDate.toISOString().split('T')[0];
         const history = await getHistory(historyStartDateStr, date);
 
+        const mealConfig = getMealConfig();
+        const otherName = mealConfig.other?.name || "Snack";
+
         interface MealStats {
             type: string;
             calories: number;
@@ -69,7 +72,7 @@ export async function GET(req: NextRequest) {
             Breakfast: { type: 'Breakfast', calories: 0 },
             Lunch: { type: 'Lunch', calories: 0 },
             Dinner: { type: 'Dinner', calories: 0 },
-            Snack: { type: 'Snack', calories: 0 },
+            [otherName]: { type: otherName, calories: 0 },
         };
 
         for (const entry of entries) {
@@ -84,15 +87,16 @@ export async function GET(req: NextRequest) {
                 entryCalories += cals;
             }
 
-            // Aggregate by meal type (or time if type not explicitly set correctly everywhere, but we try to rely on type)
-            // If type is missing, infer it? smart-add infers it.
-            const type = entry.type || 'Snack';
+            // Aggregate by meal type
+            // If type matches one of our keys, use it
+            // Otherwise fall back to the "other" category
+            const type = entry.type || otherName;
+
             if (meals[type]) {
                 meals[type].calories += entryCalories;
             } else {
-                // Fallback for unknown types (e.g. customized types or older data) -> count as Snack
-                if (!meals['Snack']) meals['Snack'] = { type: 'Snack', calories: 0 };
-                meals['Snack'].calories += entryCalories;
+                // Unknown type (e.g. legacy 'Snack' when name changed to 'Treats') -> group into other
+                meals[otherName].calories += entryCalories;
             }
         }
 

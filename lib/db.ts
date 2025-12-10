@@ -18,7 +18,7 @@ const DEFAULT_MEAL_CONFIG = {
     Breakfast: { start: 6, end: 10, default: "08:00" },
     Lunch: { start: 10, end: 14, default: "12:00" },
     Dinner: { start: 17, end: 19, default: "18:00" },
-    Snack: { default: "21:00" } // Fallback for any other time
+    other: { name: "Snack" } // Fallback for any other time
 };
 
 export interface DailyTargets {

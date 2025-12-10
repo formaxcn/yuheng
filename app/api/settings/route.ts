@@ -8,7 +8,7 @@ const settingsSchema = z.object({
         Breakfast: z.object({ start: z.number(), end: z.number(), default: z.string() }),
         Lunch: z.object({ start: z.number(), end: z.number(), default: z.string() }),
         Dinner: z.object({ start: z.number(), end: z.number(), default: z.string() }),
-        Snack: z.object({ default: z.string() }).optional(), // Optional if we just keep default
+        other: z.object({ name: z.string() }).optional(), // Configurable default meal name
     }),
     daily_targets: z.object({
         energy: z.number(),

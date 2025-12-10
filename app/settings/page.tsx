@@ -21,7 +21,7 @@ export default function SettingsPage() {
             Breakfast: { start: 6, end: 10, default: "08:00" },
             Lunch: { start: 10, end: 14, default: "12:00" },
             Dinner: { start: 17, end: 19, default: "18:00" },
-            Snack: { default: "21:00" }
+            other: { name: "Snack" }
         },
         daily_targets: {
             energy: 2000,
@@ -41,6 +41,10 @@ export default function SettingsPage() {
             const res = await fetch('/api/settings');
             const data = await res.json();
             if (res.ok) {
+                // Ensure other exists for backward compatibility during dev
+                if (!data.meal_times.other) {
+                    data.meal_times.other = { name: "Snack" };
+                }
                 setConfig(data);
             } else {
                 toast.error('Failed to load settings');
@@ -90,12 +94,12 @@ export default function SettingsPage() {
         }));
     };
 
-    const updateSnackDefault = (value: string) => {
+    const updateOtherMealName = (value: string) => {
         setConfig(prev => ({
             ...prev,
             meal_times: {
                 ...prev.meal_times,
-                Snack: { default: value }
+                other: { name: value }
             }
         }));
     };
@@ -213,15 +217,19 @@ export default function SettingsPage() {
                         ))}
 
                         <div className="space-y-3">
-                            <div className="font-semibold text-lg">Snack</div>
+                            <div className="font-semibold text-lg">Other Meals</div>
                             <div className="grid grid-cols-1 gap-3">
                                 <div className="space-y-1">
-                                    <Label className="text-xs text-muted-foreground">Default Time</Label>
+                                    <Label className="text-xs text-muted-foreground">Default Meal Name</Label>
                                     <Input
-                                        type="time"
-                                        value={config.meal_times.Snack?.default || "21:00"}
-                                        onChange={(e) => updateSnackDefault(e.target.value)}
+                                        type="text"
+                                        placeholder="Snack"
+                                        value={config.meal_times.other?.name || "Snack"}
+                                        onChange={(e) => updateOtherMealName(e.target.value)}
                                     />
+                                    <p className="text-[10px] text-muted-foreground mt-1">
+                                        Any meal outside standard time ranges will use this name.
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -240,3 +248,4 @@ export default function SettingsPage() {
         </div>
     );
 }
+
