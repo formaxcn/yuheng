@@ -1,7 +1,7 @@
 {
-    "name": "WgerLens",
-    "short_name": "WgerLens",
-    "description": "AI-powered calorie tracker for Wger",
+    "name": "yuheng",
+    "short_name": "yuheng",
+    "description": "AI-powered calorie tracker",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#000000",

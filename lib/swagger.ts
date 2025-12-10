@@ -5,7 +5,7 @@ export const getApiDocs = async () => {
         definition: {
             openapi: '3.0.0',
             info: {
-                title: 'WgerLens API',
+                title: 'yuheng API',
                 version: '1.0',
             },
         },

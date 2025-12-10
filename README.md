@@ -1,4 +1,4 @@
-# WgerLens
+# yuheng
 
 A local nutrition tracking app that uses Gemini for food recognition.
 
@@ -21,7 +21,7 @@ A local nutrition tracking app that uses Gemini for food recognition.
 
 Build the image:
 ```bash
-docker build -t wgerlens .
+docker build -t yuheng .
 ```
 
 Run the container:
@@ -34,7 +34,7 @@ docker run -d \
   -p 3000:3000 \
   -v $(pwd)/data:/app/data \
   -e GEMINI_API_KEY=your_key_here \
-  wgerlens
+  yuheng
 ```
 
 The database will be stored in your local `data` folder.

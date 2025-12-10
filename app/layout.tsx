@@ -7,8 +7,8 @@ import { Toaster } from "@/components/ui/sonner";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "WgerLens",
-  description: "AI-powered calorie tracker for Wger",
+  title: "yuheng",
+  description: "AI-powered calorie tracker",
   manifest: "/manifest.json",
 };
 
