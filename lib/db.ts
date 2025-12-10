@@ -18,7 +18,21 @@ const DEFAULT_MEAL_CONFIG = {
     Breakfast: { start: 6, end: 10, default: "08:00" },
     Lunch: { start: 10, end: 14, default: "12:00" },
     Dinner: { start: 17, end: 19, default: "18:00" },
-    Snack: { default: "21:00" }
+    Snack: { default: "21:00" } // Fallback for any other time
+};
+
+export interface DailyTargets {
+    energy: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+}
+
+const DEFAULT_DAILY_TARGETS: DailyTargets = {
+    energy: 2000,
+    protein: 150,
+    carbs: 200,
+    fat: 65
 };
 
 export function initDB() {
@@ -59,15 +73,6 @@ export function initDB() {
             FOREIGN KEY (recipe_id) REFERENCES recipes(id)
         );
 
-        CREATE TABLE IF NOT EXISTS targets (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date TEXT UNIQUE,
-            energy_target REAL,
-            protein_target REAL,
-            carbs_target REAL,
-            fat_target REAL
-        );
-
         CREATE TABLE IF NOT EXISTS settings (
             key TEXT PRIMARY KEY,
             value TEXT
@@ -76,10 +81,16 @@ export function initDB() {
 
     db.exec(schema);
 
-    // Initialize default settings if not exists
-    const existingConfig = getSetting('meal_times');
-    if (!existingConfig) {
+    // Initialize default meal times if not exists
+    const existingMealConfig = getSetting('meal_times');
+    if (!existingMealConfig) {
         saveSetting('meal_times', JSON.stringify(DEFAULT_MEAL_CONFIG));
+    }
+
+    // Initialize default targets if not exists
+    const existingTargets = getSetting('daily_targets');
+    if (!existingTargets) {
+        saveSetting('daily_targets', JSON.stringify(DEFAULT_DAILY_TARGETS));
     }
 
     logger.info('Database initialized at ' + dbPath);
@@ -128,15 +139,6 @@ export interface Dish {
     total_fat?: number;
 }
 
-export interface Target {
-    id: number;
-    date: string | null;
-    energy_target: number;
-    protein_target: number;
-    carbs_target: number;
-    fat_target: number;
-}
-
 // Repositories
 
 // --- Settings ---
@@ -162,6 +164,20 @@ export function getMealConfig() {
         logger.error(e as Error, "Failed to parse meal config");
         return DEFAULT_MEAL_CONFIG;
     }
+}
+
+export function getDailyTargets(): DailyTargets {
+    const targetStr = getSetting('daily_targets');
+    try {
+        return targetStr ? JSON.parse(targetStr) : DEFAULT_DAILY_TARGETS;
+    } catch (e) {
+        logger.error(e as Error, "Failed to parse daily targets");
+        return DEFAULT_DAILY_TARGETS;
+    }
+}
+
+export function saveDailyTargets(targets: DailyTargets) {
+    saveSetting('daily_targets', JSON.stringify(targets));
 }
 
 // --- Recipes ---
@@ -235,42 +251,6 @@ export function getDishesForEntry(entryId: number): Dish[] {
     return stmt.all(entryId) as Dish[];
 }
 
-// --- Targets ---
-export function getTarget(date?: string): Target | undefined {
-    if (date) {
-        const stmt = db.prepare('SELECT * FROM targets WHERE date = ?');
-        const target = stmt.get(date) as Target | undefined;
-        if (target) return target;
-    }
-    // Fallback to default (NULL date)
-    const stmtDefault = db.prepare('SELECT * FROM targets WHERE date IS NULL');
-    return stmtDefault.get() as Target | undefined;
-}
-
-export function saveTarget(target: Omit<Target, 'id'>): Target {
-    const existing = getTarget(target.date || undefined);
-
-    if (existing && existing.date === target.date) {
-        const stmt = db.prepare(`
-            UPDATE targets 
-            SET energy_target = @energy_target, 
-            protein_target = @protein_target, 
-            carbs_target = @carbs_target, 
-            fat_target = @fat_target
-            WHERE id = @id
-        `);
-        stmt.run({ ...target, id: existing.id });
-        return { ...target, id: existing.id };
-    } else {
-        const stmt = db.prepare(`
-            INSERT INTO targets (date, energy_target, protein_target, carbs_target, fat_target)
-            VALUES (@date, @energy_target, @protein_target, @carbs_target, @fat_target)
-        `);
-        const info = stmt.run(target);
-        return { ...target, id: Number(info.lastInsertRowid) };
-    }
-}
-
 // --- History ---
 export function getHistory(startDate: string, endDate: string): { date: string; calories: number; }[] {
     const stmt = db.prepare(`
@@ -301,3 +281,4 @@ export function getHistory(startDate: string, endDate: string): { date: string; 
 
     return history;
 }
+

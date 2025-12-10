@@ -57,10 +57,14 @@ export default function HomePage() {
           YuHeng
         </h1>
         <div className="flex gap-2">
+          <Link href="/settings">
+            <Button variant="ghost" size="icon">
+              <Settings className="w-5 h-5" />
+            </Button>
+          </Link>
           <Button variant="ghost" size="icon" onClick={loadStats} disabled={loading}>
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
           </Button>
-
         </div>
       </div>
 

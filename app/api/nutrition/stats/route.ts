@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getEntries, getDishesForEntry, getTarget, getHistory } from '@/lib/db';
+import { getEntries, getDishesForEntry, getDailyTargets, getHistory } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
 /**
@@ -90,23 +90,23 @@ export async function GET(req: NextRequest) {
             if (meals[type]) {
                 meals[type].calories += entryCalories;
             } else {
-                // Fallback for unknown types
+                // Fallback for unknown types (e.g. customized types or older data) -> count as Snack
                 if (!meals['Snack']) meals['Snack'] = { type: 'Snack', calories: 0 };
                 meals['Snack'].calories += entryCalories;
             }
         }
 
-        const target = getTarget(date);
+        const targets = getDailyTargets();
 
         return NextResponse.json({
             calories: totalCalories,
             protein: totalProtein,
             carbs: totalCarbs,
             fat: totalFat,
-            targetCalories: target?.energy_target || 2500,
-            targetProtein: target?.protein_target || 150,
-            targetCarbs: target?.carbs_target || 250,
-            targetFat: target?.fat_target || 80,
+            targetCalories: targets.energy,
+            targetProtein: targets.protein,
+            targetCarbs: targets.carbs,
+            targetFat: targets.fat,
             meals: Object.values(meals),
             history
         });
@@ -116,3 +116,4 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 });
     }
 }
+
