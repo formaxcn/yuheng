@@ -12,7 +12,7 @@ A local nutrition tracking app that uses Gemini for food recognition.
 ## Getting Started
 
 1. Clone the repo
-2. Copy `.env.local.example` to `.env.local` and add your Gemini API Key.
+2. Copy `example.env.local` to `.env.local` and add your Gemini API Key.
 3. Run `npm install`
 4. Run `npm run dev`
 5. Open `http://localhost:3000`
