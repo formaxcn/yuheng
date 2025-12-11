@@ -5,14 +5,17 @@ WORKDIR /app
 
 # ============ 依赖安装 ============
 FROM base AS deps
-# Install build dependencies for better-sqlite3
-RUN apk add --no-cache python3 make g++
+# Install build dependencies for better-sqlite3 and multi-arch support
+RUN apk add --no-cache python3 make g++ gcc musl-dev
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+# Use npm install with --arch flag support for multi-arch builds
+RUN npm install --omit=dev && npm cache clean --force
 
 # ============ 构建阶段 ============
 FROM base AS builder
 ENV NEXT_TELEMETRY_DISABLED=1
+# Set up environment for multi-arch builds
+ENV NODE_ENV=production
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

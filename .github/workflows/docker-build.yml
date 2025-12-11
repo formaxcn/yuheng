@@ -30,6 +30,11 @@ jobs:
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
+      with:
+        version: latest
+        driver-opts: |
+          env.BUILDKIT_STEP_LOG_MAX_SIZE=10485760
+          env.BUILDKIT_STEP_LOG_MAX_SPEED=1048576
 
     - name: Extract metadata (tags, labels) for Docker
       id: meta
