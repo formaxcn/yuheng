@@ -1,18 +1,10 @@
-import pino from 'pino';
+// 简单的 console-based 日志记录器
+const logger = {
+    debug: console.debug,
+    info: console.info,
+    warn: console.warn,
+    error: console.error,
+    fatal: console.error,
+};
 
-const logLevel = (process.env.LOG_LEVEL || process.env.NEXT_PUBLIC_LOG_LEVEL || 'info').toLowerCase();
-
-export const logger = pino({
-    level: logLevel,
-    transport: process.env.NODE_ENV === 'development' ? {
-        target: 'pino-pretty',
-        options: {
-            colorize: true,
-            ignore: 'pid,hostname',
-            translateTime: 'SYS:standard',
-        },
-    } : undefined,
-    browser: {
-        asObject: true,
-    },
-});
+export { logger };
