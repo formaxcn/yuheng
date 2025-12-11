@@ -46,11 +46,15 @@ ENV DB_PATH="/app/data/nutrition.db"
 # Create data directory and set permissions
 RUN mkdir -p /app/data
 RUN chown -R nextjs:nodejs /app/data
-VOLUME ["/app/data"]
 
 # Copy entrypoint script
-COPY entrypoint.sh /app/entrypoint.sh
+COPY --chown=nextjs:nodejs entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
+
+# Mount volume after setting permissions
+VOLUME ["/app/data"]
+
+USER nextjs
 
 EXPOSE 3000
 

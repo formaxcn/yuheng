@@ -7,8 +7,20 @@ const dbPath = process.env.DB_PATH || path.join(process.cwd(), 'nutrition.db');
 // Ensure directory exists if custom path provided
 if (process.env.DB_PATH) {
     const dir = path.dirname(dbPath);
+    logger.info(`Checking if directory exists: ${dir}`);
     if (!fs.existsSync(dir)) {
+        logger.info(`Creating directory: ${dir}`);
         fs.mkdirSync(dir, { recursive: true });
+    } else {
+        logger.info(`Directory already exists: ${dir}`);
+        // Check if we have write permissions
+        try {
+            fs.accessSync(dir, fs.constants.W_OK);
+            logger.info(`Have write permissions for: ${dir}`);
+        } catch (e) {
+            logger.error(`No write permissions for: ${dir}`);
+            throw e;
+        }
     }
 }
 
