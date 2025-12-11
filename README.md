@@ -31,11 +31,21 @@ mkdir data
 
 # Run container
 docker run -d \
+  --name yuheng \
   -p 3000:3000 \
   -v $(pwd)/data:/app/data \
-  -e GEMINI_API_KEY=your_key_here \
+  -e GEMINI_API_KEY=your_api_key \
+  -e MODEL=gemini-1.5-flash \
   yuheng
 ```
+
+### Environment Variables
+
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `GEMINI_API_KEY` | Your Google Gemini API Key | **Yes** | - |
+| `MODEL` | Gemini Model to use | No | `gemini-1.5-flash` |
+| `DB_PATH` | Path to the SQLite database | No | `/app/data/nutrition.db` |
 
 The database will be stored in your local `data` folder.
 
@@ -50,7 +60,7 @@ Meal times can be configured in the database `settings` table. Defaults:
 - Breakfast: 06:00 - 10:00 (Default 08:00)
 - Lunch: 10:00 - 14:00 (Default 12:00)
 - Dinner: 17:00 - 19:00 (Default 18:00)
-- Snack: All other times (Default 21:00)
+- Snack
 
 ## Roadmap
 
