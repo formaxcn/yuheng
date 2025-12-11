@@ -1,65 +1,48 @@
+# ============ 基础镜像 ============
 FROM node:24-alpine AS base
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
 
-# Install dependencies only when needed
+# ============ 依赖安装 ============
 FROM base AS deps
-WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --omit=dev && npm cache clean --force
 
-# Rebuild the source code only when needed
+# ============ 构建阶段 ============
 FROM base AS builder
-WORKDIR /app
+ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-# Next.js collects completely anonymous telemetry data about general usage.
-# Learn more here: https://nextjs.org/telemetry
-# Uncomment the following line in case you want to disable telemetry during the build.
-ENV NEXT_TELEMETRY_DISABLED=1
-
 RUN npm run build
 
-# Production image, copy all the files and run next
-FROM base AS runner
+# ============ 运行镜像（极致精简） ============
+FROM node:24-alpine AS runner
 WORKDIR /app
 
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000 \
+    HOSTNAME="0.0.0.0" \
+    DB_PATH="/app/data/nutrition.db"
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# better-sqlite3 运行时需要 + tini 防止僵尸进程（仅 15KB）
+RUN apk add --no-cache libc6-compat tini
 
-COPY --from=builder /app/public ./public
+# 使用官方推荐的非 root 用户
+RUN adduser -D -H -u 1001 -s /sbin/nologin nextjs
 
-# Set the correct permission for prerender cache
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
+# 数据持久化目录
+RUN mkdir /app/data && chown nextjs /app/data
+VOLUME /app/data
 
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-# Expose volume for database
-ENV DB_PATH="/app/data/nutrition.db"
-
-# Create data directory and set permissions
-RUN mkdir -p /app/data
-RUN chown -R nextjs:nodejs /app/data
-
-# Copy entrypoint script
-COPY --chown=nextjs:nodejs entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
-
-# Mount volume after setting permissions
-VOLUME ["/app/data"]
+# 复制 standalone 运行所需全部文件（已包含精简的 node_modules 和 server.js）
+COPY --from=builder --chown=nextjs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs /app/public ./public
 
 USER nextjs
-
 EXPOSE 3000
 
-ENV PORT=3000
-# set hostname to localhost
-ENV HOSTNAME="0.0.0.0"
-
-CMD ["/app/entrypoint.sh"]
+# tini 做 PID1 + 直接运行 node
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["node", "server.js"]
