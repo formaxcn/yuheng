@@ -38,6 +38,8 @@ docker run -d \
   ghcr.io/formaxcn/yuheng
 ```
 
+When you mount an empty `data` directory, the container will automatically initialize the database with default settings. If you mount a directory that already contains a `nutrition.db` file, the container will use that existing database file instead.
+
 ### Environment Variables
 
 | Variable | Description | Required | Default |

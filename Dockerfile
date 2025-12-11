@@ -41,8 +41,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Expose volume for database
-VOLUME ["/app/data"]
 ENV DB_PATH="/app/data/nutrition.db"
+
+# Create data directory and set permissions
+RUN mkdir -p /app/data
+RUN chown -R nextjs:nodejs /app/data
+VOLUME ["/app/data"]
 
 USER nextjs
 
