@@ -1,6 +1,6 @@
 # yuheng
 
-A local nutrition tracking app that uses Gemini for food recognition.
+玉衡 (Yu Heng) - A local nutrition tracking app named after the fifth and brightest star in the Big Dipper constellation in traditional Chinese astronomy. Just as this star serves as a guiding light in the night sky, this app aims to guide users toward balanced nutrition through intuitive food recognition and tracking using Google Gemini.
 
 ## Features
 - 📸 Photo-based food logging
