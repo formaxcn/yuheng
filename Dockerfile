@@ -48,7 +48,9 @@ RUN mkdir -p /app/data
 RUN chown -R nextjs:nodejs /app/data
 VOLUME ["/app/data"]
 
-USER nextjs
+# Copy entrypoint script
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 3000
 
@@ -56,4 +58,4 @@ ENV PORT=3000
 # set hostname to localhost
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+CMD ["/app/entrypoint.sh"]
