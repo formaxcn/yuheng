@@ -5,6 +5,8 @@ WORKDIR /app
 
 # ============ 依赖安装 ============
 FROM base AS deps
+# Install build dependencies for better-sqlite3
+RUN apk add --no-cache python3 make g++
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
