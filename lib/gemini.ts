@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { logger } from "@/lib/logger";
 
 const apiKey = process.env.GEMINI_API_KEY;
-const modelName = process.env.MODEL || "gemini-1.5-flash";
+const modelName = process.env.MODEL || "gemini-2.5-flash";
 
 if (!apiKey) {
     logger.warn("GEMINI_API_KEY is not set");
