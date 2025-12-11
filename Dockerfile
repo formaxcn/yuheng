@@ -1,12 +1,13 @@
 # ============ 基础镜像 ============
 FROM node:24-alpine AS base
-RUN apk add --no-cache libc6-compat
+# 禁用APK触发器执行以提高多架构兼容性
+RUN apk add --no-cache --no-scripts libc6-compat
 WORKDIR /app
 
 # ============ 依赖安装 ============
 FROM base AS deps
 # Install build dependencies for better-sqlite3 and multi-arch support
-RUN apk add --no-cache python3 make g++ gcc musl-dev
+RUN apk add --no-cache --no-scripts python3 make g++ gcc musl-dev
 COPY package.json package-lock.json ./
 # Use npm install with --arch flag support for multi-arch builds
 RUN npm install --omit=dev && npm cache clean --force
@@ -31,7 +32,9 @@ ENV NODE_ENV=production \
     DB_PATH="/app/data/nutrition.db"
 
 # better-sqlite3 运行时需要 + tini 防止僵尸进程（仅 15KB）
-RUN apk add --no-cache libc6-compat tini
+# 禁用APK触发器执行以解决QEMU模拟环境下的兼容性问题
+RUN echo "当前架构: $(uname -m)" && \
+    apk add --no-cache --no-scripts libc6-compat tini
 
 # 使用官方推荐的非 root 用户
 RUN adduser -D -H -u 1001 -s /sbin/nologin nextjs
