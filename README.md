@@ -1,6 +1,6 @@
 # yuheng
 
-YuHeng(玉衡 Jade Balance) - A local nutrition tracking app named after the fifth and brightest star in the Big Dipper constellation in traditional Chinese astronomy. Just as this star serves as a guiding light in the night sky, this app aims to guide users toward balanced nutrition through intuitive food recognition and tracking using Google Gemini.
+YuHeng(玉衡 Jade Balance) - A local nutrition tracking app named after the fifth and brightest star in the Big Dipper constellation in traditional Chinese astronomy. Just as this star serves as a guiding and balancing force, YuHeng aims to help users in tracking their nutrition effectively.
 
 ## Features
 - 📸 Photo-based food logging
@@ -38,7 +38,7 @@ docker run -d \
   ghcr.io/formaxcn/yuheng
 ```
 
-When you mount an empty `data` directory, the container will automatically initialize the database with default settings. If you mount a directory that already contains a `nutrition.db` file, the container will use that existing database file instead.
+When you mount an empty `data` directory, the container will automatically initialize the database with default settings. If you mount a directory that already contains a `nutrition.db` file, the database will remain untouched.
 
 ### Environment Variables
 
@@ -66,4 +66,8 @@ Meal times can be configured in the database `settings` table. Defaults:
 
 - [ ] Support for multiple users
 - [ ] Migrate database to Postgres
-
+- [ ] Add support for Doubao
+- [ ] Implement frontend-backend separation
+- [ ] i18n (internationalization)
+- [ ] Asynchronous recognition queue
+- [ ] Unit conversion support
