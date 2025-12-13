@@ -28,6 +28,10 @@ export default function SettingsPage() {
             protein: 150,
             carbs: 200,
             fat: 65
+        },
+        unit_preferences: {
+            energy: 'kcal' as 'kcal' | 'kj',
+            weight: 'g' as 'g' | 'oz'
         }
     });
 
@@ -41,9 +45,11 @@ export default function SettingsPage() {
             const res = await fetch('/api/settings');
             const data = await res.json();
             if (res.ok) {
-                // Ensure other exists for backward compatibility during dev
                 if (!data.meal_times.other) {
                     data.meal_times.other = { name: "Snack" };
+                }
+                if (!data.unit_preferences) {
+                    data.unit_preferences = { energy: 'kcal', weight: 'g' };
                 }
                 setConfig(data);
             } else {
@@ -171,6 +177,82 @@ export default function SettingsPage() {
                                     value={config.daily_targets.fat}
                                     onChange={(e) => updateTarget('fat', Number(e.target.value))}
                                 />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Unit Preferences</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Energy Unit</Label>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="energyUnit"
+                                            value="kcal"
+                                            checked={config.unit_preferences.energy === 'kcal'}
+                                            onChange={() => setConfig(prev => ({
+                                                ...prev,
+                                                unit_preferences: { ...prev.unit_preferences, energy: 'kcal' }
+                                            }))}
+                                            className="w-4 h-4 text-primary"
+                                        />
+                                        <span>kcal</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="energyUnit"
+                                            value="kj"
+                                            checked={config.unit_preferences.energy === 'kj'}
+                                            onChange={() => setConfig(prev => ({
+                                                ...prev,
+                                                unit_preferences: { ...prev.unit_preferences, energy: 'kj' }
+                                            }))}
+                                            className="w-4 h-4 text-primary"
+                                        />
+                                        <span>kJ</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Weight Unit</Label>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="weightUnit"
+                                            value="g"
+                                            checked={config.unit_preferences.weight === 'g'}
+                                            onChange={() => setConfig(prev => ({
+                                                ...prev,
+                                                unit_preferences: { ...prev.unit_preferences, weight: 'g' }
+                                            }))}
+                                            className="w-4 h-4 text-primary"
+                                        />
+                                        <span>g (grams)</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="weightUnit"
+                                            value="oz"
+                                            checked={config.unit_preferences.weight === 'oz'}
+                                            onChange={() => setConfig(prev => ({
+                                                ...prev,
+                                                unit_preferences: { ...prev.unit_preferences, weight: 'oz' }
+                                            }))}
+                                            className="w-4 h-4 text-primary"
+                                        />
+                                        <span>oz (ounces)</span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
                     </CardContent>

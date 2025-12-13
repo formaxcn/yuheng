@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getMealConfig, saveSetting, getDailyTargets, saveDailyTargets } from '@/lib/db';
+import { getMealConfig, saveSetting, getDailyTargets, saveDailyTargets, getUnitPreferences, saveUnitPreferences } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 
@@ -15,7 +15,11 @@ const settingsSchema = z.object({
         protein: z.number(),
         carbs: z.number(),
         fat: z.number(),
-    })
+    }),
+    unit_preferences: z.object({
+        energy: z.enum(['kcal', 'kj']),
+        weight: z.enum(['g', 'oz']),
+    }).optional()
 });
 
 /**
@@ -46,7 +50,8 @@ export async function GET(req: NextRequest) {
     try {
         const meal_times = getMealConfig();
         const daily_targets = getDailyTargets();
-        return NextResponse.json({ meal_times, daily_targets });
+        const unit_preferences = getUnitPreferences();
+        return NextResponse.json({ meal_times, daily_targets, unit_preferences });
     } catch (error) {
         logger.error(error as Error, 'Failed to fetch settings');
         return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
@@ -62,12 +67,16 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid settings format', details: parsed.error }, { status: 400 });
         }
 
-        const { meal_times, daily_targets } = parsed.data;
+        const { meal_times, daily_targets, unit_preferences } = parsed.data;
 
         saveSetting('meal_times', JSON.stringify(meal_times));
         saveDailyTargets(daily_targets);
+        if (unit_preferences) {
+            saveUnitPreferences(unit_preferences);
+        }
 
-        return NextResponse.json({ success: true, meal_times, daily_targets });
+        const currentUnitPrefs = getUnitPreferences();
+        return NextResponse.json({ success: true, meal_times, daily_targets, unit_preferences: currentUnitPrefs });
     } catch (error) {
         logger.error(error as Error, 'Failed to save settings');
         return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 });

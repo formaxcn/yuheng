@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Plus, Settings, RefreshCw, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { displayEnergy, displayWeight, type EnergyUnit, type WeightUnit } from '@/lib/units';
 
 export default function HomePage() {
   const [loading, setLoading] = useState(false);
@@ -20,6 +21,11 @@ export default function HomePage() {
     history: [] as { date: string, calories: number }[]
   });
 
+  const [unitPrefs, setUnitPrefs] = useState<{ energy: EnergyUnit; weight: WeightUnit }>({
+    energy: 'kcal',
+    weight: 'g'
+  });
+
   useEffect(() => {
     loadStats();
   }, []);
@@ -27,8 +33,14 @@ export default function HomePage() {
   const loadStats = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/nutrition/stats`);
-      const data = await res.json();
+      // Load stats and settings in parallel
+      const [statsRes, settingsRes] = await Promise.all([
+        fetch(`/api/nutrition/stats`),
+        fetch(`/api/settings`)
+      ]);
+      const data = await statsRes.json();
+      const settingsData = await settingsRes.json();
+
       if (!data.error) {
         setStats(prev => ({
           ...prev,
@@ -40,6 +52,10 @@ export default function HomePage() {
           meals: data.meals || [],
           history: data.history || []
         }));
+      }
+
+      if (settingsData.unit_preferences) {
+        setUnitPrefs(settingsData.unit_preferences);
       }
     } catch (error) {
       console.error(error);
@@ -101,8 +117,8 @@ export default function HomePage() {
             />
           </svg>
           <div className="absolute text-center">
-            <div className="text-4xl font-bold">{Math.round(stats.calories)}</div>
-            <div className="text-sm text-muted-foreground">/ {stats.targetCalories} kcal</div>
+            <div className="text-4xl font-bold">{displayEnergy(stats.calories, unitPrefs.energy)}</div>
+            <div className="text-sm text-muted-foreground">/ {displayEnergy(stats.targetCalories, unitPrefs.energy)} {unitPrefs.energy}</div>
           </div>
         </div>
       </div>
@@ -172,8 +188,8 @@ export default function HomePage() {
           return (
             <div key={meal.type} className={`p-3 rounded-xl border ${colorClass} flex flex-col items-center justify-center`}>
               <span className="text-xs font-semibold uppercase opacity-70">{meal.type}</span>
-              <span className="text-xl font-bold">{Math.round(meal.calories)}</span>
-              <span className="text-xs opacity-60">kcal</span>
+              <span className="text-xl font-bold">{displayEnergy(meal.calories, unitPrefs.energy)}</span>
+              <span className="text-xs opacity-60">{unitPrefs.energy}</span>
             </div>
           );
         })}

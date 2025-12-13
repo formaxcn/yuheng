@@ -105,6 +105,12 @@ export function initDB() {
         saveSetting('daily_targets', JSON.stringify(DEFAULT_DAILY_TARGETS));
     }
 
+    // Initialize default unit preferences if not exists
+    const existingUnitPrefs = getSetting('unit_preferences');
+    if (!existingUnitPrefs) {
+        saveSetting('unit_preferences', JSON.stringify({ energy: 'kcal', weight: 'g' }));
+    }
+
     logger.info('Database initialized at ' + dbPath);
 }
 
@@ -190,6 +196,30 @@ export function getDailyTargets(): DailyTargets {
 
 export function saveDailyTargets(targets: DailyTargets) {
     saveSetting('daily_targets', JSON.stringify(targets));
+}
+
+export interface UnitPreferences {
+    energy: 'kcal' | 'kj';
+    weight: 'g' | 'oz';
+}
+
+const DEFAULT_UNIT_PREFS: UnitPreferences = {
+    energy: 'kcal',
+    weight: 'g'
+};
+
+export function getUnitPreferences(): UnitPreferences {
+    const prefStr = getSetting('unit_preferences');
+    try {
+        return prefStr ? JSON.parse(prefStr) : DEFAULT_UNIT_PREFS;
+    } catch (e) {
+        logger.error(e as Error, "Failed to parse unit preferences");
+        return DEFAULT_UNIT_PREFS;
+    }
+}
+
+export function saveUnitPreferences(prefs: UnitPreferences) {
+    saveSetting('unit_preferences', JSON.stringify(prefs));
 }
 
 // --- Recipes ---
