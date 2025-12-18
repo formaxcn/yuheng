@@ -34,7 +34,8 @@ export default function SettingsPage() {
         unit_preferences: {
             energy: 'kcal',
             weight: 'g'
-        }
+        },
+        recognition_language: 'zh'
     });
 
     useEffect(() => {
@@ -50,6 +51,9 @@ export default function SettingsPage() {
             }
             if (!data.unit_preferences) {
                 data.unit_preferences = { energy: 'kcal', weight: 'g' };
+            }
+            if (!data.recognition_language) {
+                data.recognition_language = 'zh';
             }
             setConfig(data);
         } catch (error) {
@@ -134,6 +138,13 @@ export default function SettingsPage() {
                 ...prev.daily_targets,
                 [field]: Number(value)
             }
+        }));
+    };
+
+    const updateRecognitionLanguage = (lang: 'zh' | 'en') => {
+        setConfig(prev => ({
+            ...prev,
+            recognition_language: lang
         }));
     };
 
@@ -259,6 +270,44 @@ export default function SettingsPage() {
                                     </label>
                                 </div>
                             </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>AI Recognition Settings</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Language (for recipe names and descriptions)</Label>
+                            <div className="flex gap-4">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="recognitionLanguage"
+                                        value="zh"
+                                        checked={config.recognition_language === 'zh'}
+                                        onChange={() => updateRecognitionLanguage('zh')}
+                                        className="w-4 h-4 text-primary"
+                                    />
+                                    <span>中文 (Chinese)</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="recognitionLanguage"
+                                        value="en"
+                                        checked={config.recognition_language === 'en'}
+                                        onChange={() => updateRecognitionLanguage('en')}
+                                        className="w-4 h-4 text-primary"
+                                    />
+                                    <span>English</span>
+                                </label>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Changes the language that AI uses to identify dishes. Note: This does not change the app interface language.
+                            </p>
                         </div>
                     </CardContent>
                 </Card>

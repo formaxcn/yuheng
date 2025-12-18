@@ -29,6 +29,7 @@ export interface Settings {
         energy: EnergyUnit;
         weight: WeightUnit;
     };
+    recognition_language: 'zh' | 'en';
 }
 
 export interface NutritionStats {

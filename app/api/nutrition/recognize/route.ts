@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createRecognitionTask, updateRecognitionTask, getUnitPreferences } from '@/lib/db';
+import { createRecognitionTask, updateRecognitionTask, getUnitPreferences, getRecognitionLanguage } from '@/lib/db';
 import { analyzeImage } from '@/lib/gemini';
 import fs from 'fs';
 import path from 'path';
@@ -19,9 +19,15 @@ export async function POST(req: NextRequest) {
 
         // Fetch unit preferences to pass to Gemini
         const unitPrefs = getUnitPreferences();
+        const recognitionLang = getRecognitionLanguage();
+
         const unitInstruction = `\nIMPORTANT: Please provide nutrition values in the following units: 
 - Energy: ${unitPrefs.energy} (per 100g)
 - Weight: ${unitPrefs.weight}`;
+
+        const langInstruction = recognitionLang === 'en'
+            ? `\nIMPORTANT: Please provide the "name" and "description" fields in English.`
+            : `\nIMPORTANT: 请使用中文提供 "name" 和 "description" 字段的值。`;
 
         // Load prompt
         const promptPath = path.join(process.cwd(), 'prompts', 'gemini-dish-init-prompt.txt');
@@ -36,6 +42,7 @@ export async function POST(req: NextRequest) {
         }
 
         promptText += unitInstruction;
+        promptText += langInstruction;
 
         const imagePart = {
             inlineData: {

@@ -125,6 +125,12 @@ export function initDB() {
         saveSetting('unit_preferences', JSON.stringify({ energy: 'kcal', weight: 'g' }));
     }
 
+    // Initialize default recognition language if not exists
+    const existingLang = getSetting('recognition_language');
+    if (!existingLang) {
+        saveSetting('recognition_language', 'zh');
+    }
+
     // Migration for existing tables
     const tables = ['recipes', 'dishes'];
     for (const table of tables) {
@@ -250,6 +256,15 @@ export function getUnitPreferences(): UnitPreferences {
 
 export function saveUnitPreferences(prefs: UnitPreferences) {
     saveSetting('unit_preferences', JSON.stringify(prefs));
+}
+
+export function getRecognitionLanguage(): 'zh' | 'en' {
+    const lang = getSetting('recognition_language');
+    return (lang === 'en' ? 'en' : 'zh');
+}
+
+export function saveRecognitionLanguage(lang: 'zh' | 'en') {
+    saveSetting('recognition_language', lang);
 }
 
 // --- Recipes ---

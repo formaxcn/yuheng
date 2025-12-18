@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getMealConfig, saveSetting, getDailyTargets, saveDailyTargets, getUnitPreferences, saveUnitPreferences } from '@/lib/db';
+import { getMealConfig, saveSetting, getDailyTargets, saveDailyTargets, getUnitPreferences, saveUnitPreferences, getSetting } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 
@@ -19,7 +19,8 @@ const settingsSchema = z.object({
     unit_preferences: z.object({
         energy: z.enum(['kcal', 'kj']),
         weight: z.enum(['g', 'oz']),
-    }).optional()
+    }).optional(),
+    recognition_language: z.enum(['zh', 'en']).optional()
 });
 
 /**
@@ -42,6 +43,8 @@ const settingsSchema = z.object({
  *                 type: object
  *               daily_targets:
  *                 type: object
+ *               recognition_language:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Settings updated
@@ -51,7 +54,8 @@ export async function GET(req: NextRequest) {
         const meal_times = getMealConfig();
         const daily_targets = getDailyTargets();
         const unit_preferences = getUnitPreferences();
-        return NextResponse.json({ meal_times, daily_targets, unit_preferences });
+        const recognition_language = getSetting('recognition_language') || 'zh';
+        return NextResponse.json({ meal_times, daily_targets, unit_preferences, recognition_language });
     } catch (error) {
         logger.error(error as Error, 'Failed to fetch settings');
         return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
@@ -67,16 +71,26 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid settings format', details: parsed.error }, { status: 400 });
         }
 
-        const { meal_times, daily_targets, unit_preferences } = parsed.data;
+        const { meal_times, daily_targets, unit_preferences, recognition_language } = parsed.data;
 
         saveSetting('meal_times', JSON.stringify(meal_times));
         saveDailyTargets(daily_targets);
         if (unit_preferences) {
             saveUnitPreferences(unit_preferences);
         }
+        if (recognition_language) {
+            saveSetting('recognition_language', recognition_language);
+        }
 
         const currentUnitPrefs = getUnitPreferences();
-        return NextResponse.json({ success: true, meal_times, daily_targets, unit_preferences: currentUnitPrefs });
+        const currentLang = getSetting('recognition_language') || 'zh';
+        return NextResponse.json({
+            success: true,
+            meal_times,
+            daily_targets,
+            unit_preferences: currentUnitPrefs,
+            recognition_language: currentLang
+        });
     } catch (error) {
         logger.error(error as Error, 'Failed to save settings');
         return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 });
