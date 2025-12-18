@@ -315,10 +315,11 @@ export function addDish(entryId: number, recipe: Recipe, amount: number): Dish {
 export function getDishesForEntry(entryId: number): Dish[] {
     const stmt = db.prepare(`
         SELECT *,
-               (energy * amount / 100) as total_energy,
-               (protein * amount / 100) as total_protein,
-               (carbs * amount / 100) as total_carbs,
-               (fat * amount / 100) as total_fat
+               ((CASE WHEN energy_unit = 'kj' THEN energy / 4.184 ELSE energy END) * 
+                (CASE WHEN weight_unit = 'oz' THEN amount * 28.3495 ELSE amount END) / 100) as total_energy,
+               (protein * (CASE WHEN weight_unit = 'oz' THEN amount * 28.3495 ELSE amount END) / 100) as total_protein,
+               (carbs * (CASE WHEN weight_unit = 'oz' THEN amount * 28.3495 ELSE amount END) / 100) as total_carbs,
+               (fat * (CASE WHEN weight_unit = 'oz' THEN amount * 28.3495 ELSE amount END) / 100) as total_fat
         FROM dishes
         WHERE entry_id = ?
     `);
@@ -330,7 +331,10 @@ export function getHistory(startDate: string, endDate: string): { date: string; 
     const stmt = db.prepare(`
         SELECT 
             e.date, 
-            SUM(d.amount * d.energy / 100) as calories
+            SUM(
+                (CASE WHEN d.energy_unit = 'kj' THEN d.energy / 4.184 ELSE d.energy END) * 
+                (CASE WHEN d.weight_unit = 'oz' THEN d.amount * 28.3495 ELSE d.amount END) / 100
+            ) as calories
         FROM entries e
         JOIN dishes d ON e.id = d.entry_id
         WHERE e.date >= ? AND e.date <= ?

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Plus, Settings, RefreshCw, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { api } from '@/lib/api-client';
 import { displayEnergy, displayWeight, type EnergyUnit, type WeightUnit } from '@/lib/units';
 
 export default function HomePage() {
@@ -17,6 +17,9 @@ export default function HomePage() {
     fat: 0,
     carbs: 0,
     targetCalories: 2500,
+    targetProtein: 150,
+    targetCarbs: 250,
+    targetFat: 80,
     meals: [] as { type: string, calories: number }[],
     history: [] as { date: string, calories: number }[]
   });
@@ -34,25 +37,24 @@ export default function HomePage() {
     setLoading(true);
     try {
       // Load stats and settings in parallel
-      const [statsRes, settingsRes] = await Promise.all([
-        fetch(`/api/nutrition/stats`),
-        fetch(`/api/settings`)
+      const [data, settingsData] = await Promise.all([
+        api.getStats(),
+        api.getSettings()
       ]);
-      const data = await statsRes.json();
-      const settingsData = await settingsRes.json();
 
-      if (!data.error) {
-        setStats(prev => ({
-          ...prev,
-          calories: data.calories || 0,
-          protein: data.protein || 0,
-          fat: data.fat || 0,
-          carbs: data.carbs || 0,
-          targetCalories: data.targetCalories || 2500,
-          meals: data.meals || [],
-          history: data.history || []
-        }));
-      }
+      setStats(prev => ({
+        ...prev,
+        calories: data.calories || 0,
+        protein: data.protein || 0,
+        fat: data.fat || 0,
+        carbs: data.carbs || 0,
+        targetCalories: data.targetCalories || 2500,
+        targetProtein: data.targetProtein || 150,
+        targetCarbs: data.targetCarbs || 250,
+        targetFat: data.targetFat || 80,
+        meals: data.meals || [],
+        history: data.history || []
+      }));
 
       if (settingsData.unit_preferences) {
         setUnitPrefs(settingsData.unit_preferences);
@@ -131,12 +133,12 @@ export default function HomePage() {
               <span className="w-3 h-3 rounded-full bg-blue-500"></span>
               Protein
             </span>
-            <span>{Math.round(stats.protein)}g / 150g</span>
+            <span>{displayWeight(stats.protein, unitPrefs.weight)}{unitPrefs.weight} / {displayWeight(stats.targetProtein, unitPrefs.weight)}{unitPrefs.weight}</span>
           </div>
           <div className="h-3 bg-muted/30 rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-700"
-              style={{ width: `${Math.min((stats.protein / 150) * 100, 100)}%` }}
+              style={{ width: `${Math.min((stats.protein / stats.targetProtein) * 100, 100)}%` }}
             />
           </div>
         </div>
@@ -146,12 +148,12 @@ export default function HomePage() {
               <span className="w-3 h-3 rounded-full bg-green-500"></span>
               Carbs
             </span>
-            <span>{Math.round(stats.carbs)}g / 250g</span>
+            <span>{displayWeight(stats.carbs, unitPrefs.weight)}{unitPrefs.weight} / {displayWeight(stats.targetCarbs, unitPrefs.weight)}{unitPrefs.weight}</span>
           </div>
           <div className="h-3 bg-muted/30 rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full transition-all duration-700"
-              style={{ width: `${Math.min((stats.carbs / 250) * 100, 100)}%` }}
+              style={{ width: `${Math.min((stats.carbs / stats.targetCarbs) * 100, 100)}%` }}
             />
           </div>
         </div>
@@ -161,12 +163,12 @@ export default function HomePage() {
               <span className="w-3 h-3 rounded-full bg-amber-500"></span>
               Fat
             </span>
-            <span>{Math.round(stats.fat)}g / 80g</span>
+            <span>{displayWeight(stats.fat, unitPrefs.weight)}{unitPrefs.weight} / {displayWeight(stats.targetFat, unitPrefs.weight)}{unitPrefs.weight}</span>
           </div>
           <div className="h-3 bg-muted/30 rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full transition-all duration-700"
-              style={{ width: `${Math.min((stats.fat / 80) * 100, 100)}%` }}
+              style={{ width: `${Math.min((stats.fat / stats.targetFat) * 100, 100)}%` }}
             />
           </div>
         </div>
@@ -207,11 +209,12 @@ export default function HomePage() {
               <div key={day.date} className="flex flex-col items-center flex-1 gap-2 group">
                 <div className="w-full relative flex items-end justify-center h-32 bg-muted/20 rounded-t-md overflow-hidden">
                   <div
+                    suppressHydrationWarning
                     className={`w-full transition-all duration-1000 ${isToday ? 'bg-primary' : 'bg-primary/40 group-hover:bg-primary/60'}`}
                     style={{ height: `${height}%` }}
                   />
                 </div>
-                <span className="text-[10px] text-muted-foreground font-medium">
+                <span suppressHydrationWarning className="text-[10px] text-muted-foreground font-medium">
                   {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}
                 </span>
               </div>

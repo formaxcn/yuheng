@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getEntries, getDishesForEntry, getDailyTargets, getHistory, getMealConfig } from '@/lib/db';
+import { getEntries, getDishesForEntry, getDailyTargets, getHistory, getMealConfig, getUnitPreferences } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
 /**
@@ -101,16 +101,21 @@ export async function GET(req: NextRequest) {
         }
 
         const targets = getDailyTargets();
+        const unitPrefs = getUnitPreferences();
+
+        // Normalize targets to base units (kcal, g) if they were saved in others
+        const normalizedTargetCalories = unitPrefs.energy === 'kj' ? targets.energy / 4.184 : targets.energy;
+        const normalizeWeight = (val: number) => unitPrefs.weight === 'oz' ? val / 0.035274 : val;
 
         return NextResponse.json({
             calories: totalCalories,
             protein: totalProtein,
             carbs: totalCarbs,
             fat: totalFat,
-            targetCalories: targets.energy,
-            targetProtein: targets.protein,
-            targetCarbs: targets.carbs,
-            targetFat: targets.fat,
+            targetCalories: normalizedTargetCalories,
+            targetProtein: normalizeWeight(targets.protein),
+            targetCarbs: normalizeWeight(targets.carbs),
+            targetFat: normalizeWeight(targets.fat),
             meals: Object.values(meals),
             history
         });

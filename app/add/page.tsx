@@ -8,12 +8,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Dish } from '@/types';
-import { Loader2, Camera, Trash2, Check, Edit2, Clock, Users } from 'lucide-react';
+import { Loader2, Camera, Trash2, Check, Edit2, Clock, Users, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { logger } from '@/lib/logger';
 import { UnitPreferences } from '@/lib/db';
+import { api } from '@/lib/api-client';
 
 export default function AddPage() {
     const [image, setImage] = useState<string | null>(null);
@@ -34,8 +35,8 @@ export default function AddPage() {
 
     // Backfill State
     const [isBackfill, setIsBackfill] = useState(false);
-    const [backfillDate, setBackfillDate] = useState(new Date().toISOString().split('T')[0]);
-    const [backfillTime, setBackfillTime] = useState(new Date().toTimeString().slice(0, 5));
+    const [backfillDate, setBackfillDate] = useState('');
+    const [backfillTime, setBackfillTime] = useState('');
     const [backfillType, setBackfillType] = useState('Breakfast');
 
     // Split State
@@ -43,12 +44,16 @@ export default function AddPage() {
     const [personalPortion, setPersonalPortion] = useState(100);
 
     useEffect(() => {
+        // Initialize dates on client to avoid hydration mismatch
+        setBackfillDate(new Date().toISOString().split('T')[0]);
+        setBackfillTime(new Date().toTimeString().slice(0, 5));
+
         // Fetch unit preferences on mount
-        fetch('/api/settings')
-            .then(res => res.json())
+        api.getSettings()
             .then(data => {
                 if (data.unit_preferences) setUnitPrefs(data.unit_preferences);
-            });
+            })
+            .catch(err => console.error('Failed to load settings:', err));
     }, []);
 
     useEffect(() => {
@@ -56,11 +61,10 @@ export default function AddPage() {
         if (taskId && (taskStatus === 'pending' || taskStatus === 'processing')) {
             interval = setInterval(async () => {
                 try {
-                    const res = await fetch(`/api/nutrition/tasks/${taskId}`);
-                    const data = await res.json();
+                    const data = await api.getRecognitionTask(taskId);
                     setTaskStatus(data.status);
                     if (data.status === 'completed') {
-                        setDishes(data.result);
+                        setDishes(data.result || []);
                         setLoading(false);
                         clearInterval(interval);
                         toast.success("Recognition complete!");
@@ -103,13 +107,7 @@ export default function AddPage() {
         setTaskId(null);
         setTaskStatus('pending');
         try {
-            const res = await fetch('/api/nutrition/recognize', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: imgData }),
-            });
-            const data = await res.json();
-            if (data.error) throw new Error(data.error);
+            const data = await api.startRecognition(imgData);
             setTaskId(data.taskId);
             toast.info("Image uploaded! Processing in background...");
         } catch (error) {
@@ -123,18 +121,12 @@ export default function AddPage() {
         if (!editingDish) return;
         setLoading(true);
         try {
-            const res = await fetch('/api/gemini', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    mode: 'fix',
-                    prompt: editPrompt,
-                    dish: editingDish,
-                    image: image // Optional, but good for context
-                }),
+            const data = await api.geminiFix({
+                mode: 'fix',
+                userPrompt: editPrompt,
+                dish: editingDish,
+                image: image || undefined
             });
-            const data = await res.json();
-            if (data.error) throw new Error(data.error);
 
             // Update dish in list
             setDishes(prev => prev.map(d => d === editingDish ? data : d));
@@ -153,23 +145,15 @@ export default function AddPage() {
     const handleAddAll = async () => {
         setProcessing(true);
         try {
-            const res = await fetch('/api/nutrition/smart-add', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    dishes: dishes.map(d => ({
-                        ...d,
-                        weight: Math.round(d.weight * personalPortion / 100)
-                    })),
-                    date: isBackfill ? backfillDate : new Date().toISOString().split('T')[0],
-                    time: isBackfill ? backfillTime : undefined,
-                    type: isBackfill ? backfillType : undefined,
-                }),
+            const data = await api.smartAdd({
+                dishes: dishes.map(d => ({
+                    ...d,
+                    weight: Math.round(d.weight * personalPortion / 100)
+                })),
+                date: isBackfill ? backfillDate : new Date().toISOString().split('T')[0],
+                time: isBackfill ? backfillTime : undefined,
+                type: isBackfill ? backfillType : undefined,
             });
-            const data = await res.json();
-            if (data.error) throw new Error(data.error);
             toast.success("All dishes added successfully!");
             router.push('/');
         } catch (error) {
@@ -202,9 +186,20 @@ export default function AddPage() {
             ) : (
                 <div className="relative h-64 w-full rounded-lg overflow-hidden">
                     <Image src={image} alt="Food" fill className="object-cover" />
-                    <Button size="icon" variant="destructive" className="absolute top-2 right-2" onClick={() => { setImage(null); setDishes([]); }}>
-                        <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="absolute top-2 right-2 flex gap-2">
+                        <Button
+                            size="icon"
+                            variant="secondary"
+                            className="bg-background/80 backdrop-blur-sm"
+                            onClick={() => image && analyzeImage(image)}
+                            disabled={loading}
+                        >
+                            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                        </Button>
+                        <Button size="icon" variant="destructive" onClick={() => { setImage(null); setDishes([]); setTaskId(null); setTaskStatus(null); }}>
+                            <Trash2 className="w-4 h-4" />
+                        </Button>
+                    </div>
                 </div>
             )}
 
@@ -215,7 +210,6 @@ export default function AddPage() {
                         <p className="font-medium">Recognizing food...</p>
                         <p className="text-sm text-muted-foreground">You can leave this page, we'll keep working</p>
                     </div>
-                    <Button variant="outline" onClick={() => router.push('/')}>Return Home</Button>
                 </div>
             )}
 

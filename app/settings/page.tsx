@@ -10,13 +10,15 @@ import { ArrowLeft, Save, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { api, Settings } from '@/lib/api-client';
+import { kcalToKj, kjToKcal, gramsToOz, ozToGrams, EnergyUnit, WeightUnit } from '@/lib/units';
 
 export default function SettingsPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
 
-    const [config, setConfig] = useState({
+    const [config, setConfig] = useState<Settings>({
         meal_times: {
             Breakfast: { start: 6, end: 10, default: "08:00" },
             Lunch: { start: 10, end: 14, default: "12:00" },
@@ -30,8 +32,8 @@ export default function SettingsPage() {
             fat: 65
         },
         unit_preferences: {
-            energy: 'kcal' as 'kcal' | 'kj',
-            weight: 'g' as 'g' | 'oz'
+            energy: 'kcal',
+            weight: 'g'
         }
     });
 
@@ -42,19 +44,14 @@ export default function SettingsPage() {
     const loadSettings = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/settings');
-            const data = await res.json();
-            if (res.ok) {
-                if (!data.meal_times.other) {
-                    data.meal_times.other = { name: "Snack" };
-                }
-                if (!data.unit_preferences) {
-                    data.unit_preferences = { energy: 'kcal', weight: 'g' };
-                }
-                setConfig(data);
-            } else {
-                toast.error('Failed to load settings');
+            const data = await api.getSettings();
+            if (!data.meal_times.other) {
+                data.meal_times.other = { name: "Snack" };
             }
+            if (!data.unit_preferences) {
+                data.unit_preferences = { energy: 'kcal', weight: 'g' };
+            }
+            setConfig(data);
         } catch (error) {
             console.error(error);
             toast.error('Error loading settings');
@@ -66,19 +63,9 @@ export default function SettingsPage() {
     const handleSave = async () => {
         setSaving(true);
         try {
-            const res = await fetch('/api/settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(config)
-            });
-            const data = await res.json();
-
-            if (res.ok) {
-                toast.success('Settings saved successfully');
-                router.refresh();
-            } else {
-                toast.error(data.error || 'Failed to save settings');
-            }
+            await api.saveSettings(config);
+            toast.success('Settings saved successfully');
+            router.refresh();
         } catch (error) {
             console.error(error);
             toast.error('Error saving settings');
@@ -107,6 +94,36 @@ export default function SettingsPage() {
                 ...prev.meal_times,
                 other: { name: value }
             }
+        }));
+    };
+
+    const updateEnergyUnit = (newUnit: EnergyUnit) => {
+        if (config.unit_preferences.energy === newUnit) return;
+
+        const oldVal = config.daily_targets.energy;
+        const newVal = newUnit === 'kj' ? kcalToKj(oldVal) : kjToKcal(oldVal);
+
+        setConfig(prev => ({
+            ...prev,
+            daily_targets: { ...prev.daily_targets, energy: Math.round(newVal) },
+            unit_preferences: { ...prev.unit_preferences, energy: newUnit }
+        }));
+    };
+
+    const updateWeightUnit = (newUnit: WeightUnit) => {
+        if (config.unit_preferences.weight === newUnit) return;
+
+        const convert = (val: number) => Math.round(newUnit === 'oz' ? gramsToOz(val) : ozToGrams(val));
+
+        setConfig(prev => ({
+            ...prev,
+            daily_targets: {
+                ...prev.daily_targets,
+                protein: convert(prev.daily_targets.protein),
+                carbs: convert(prev.daily_targets.carbs),
+                fat: convert(prev.daily_targets.fat),
+            },
+            unit_preferences: { ...prev.unit_preferences, weight: newUnit }
         }));
     };
 
@@ -147,7 +164,7 @@ export default function SettingsPage() {
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>Energy (kcal)</Label>
+                                <Label>Energy ({config.unit_preferences.energy})</Label>
                                 <Input
                                     type="number"
                                     value={config.daily_targets.energy}
@@ -155,7 +172,7 @@ export default function SettingsPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label>Protein (g)</Label>
+                                <Label>Protein ({config.unit_preferences.weight})</Label>
                                 <Input
                                     type="number"
                                     value={config.daily_targets.protein}
@@ -163,7 +180,7 @@ export default function SettingsPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label>Carbs (g)</Label>
+                                <Label>Carbs ({config.unit_preferences.weight})</Label>
                                 <Input
                                     type="number"
                                     value={config.daily_targets.carbs}
@@ -171,7 +188,7 @@ export default function SettingsPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label>Fat (g)</Label>
+                                <Label>Fat ({config.unit_preferences.weight})</Label>
                                 <Input
                                     type="number"
                                     value={config.daily_targets.fat}
@@ -197,10 +214,7 @@ export default function SettingsPage() {
                                             name="energyUnit"
                                             value="kcal"
                                             checked={config.unit_preferences.energy === 'kcal'}
-                                            onChange={() => setConfig(prev => ({
-                                                ...prev,
-                                                unit_preferences: { ...prev.unit_preferences, energy: 'kcal' }
-                                            }))}
+                                            onChange={() => updateEnergyUnit('kcal')}
                                             className="w-4 h-4 text-primary"
                                         />
                                         <span>kcal</span>
@@ -211,10 +225,7 @@ export default function SettingsPage() {
                                             name="energyUnit"
                                             value="kj"
                                             checked={config.unit_preferences.energy === 'kj'}
-                                            onChange={() => setConfig(prev => ({
-                                                ...prev,
-                                                unit_preferences: { ...prev.unit_preferences, energy: 'kj' }
-                                            }))}
+                                            onChange={() => updateEnergyUnit('kj')}
                                             className="w-4 h-4 text-primary"
                                         />
                                         <span>kJ</span>
@@ -230,10 +241,7 @@ export default function SettingsPage() {
                                             name="weightUnit"
                                             value="g"
                                             checked={config.unit_preferences.weight === 'g'}
-                                            onChange={() => setConfig(prev => ({
-                                                ...prev,
-                                                unit_preferences: { ...prev.unit_preferences, weight: 'g' }
-                                            }))}
+                                            onChange={() => updateWeightUnit('g')}
                                             className="w-4 h-4 text-primary"
                                         />
                                         <span>g (grams)</span>
@@ -244,10 +252,7 @@ export default function SettingsPage() {
                                             name="weightUnit"
                                             value="oz"
                                             checked={config.unit_preferences.weight === 'oz'}
-                                            onChange={() => setConfig(prev => ({
-                                                ...prev,
-                                                unit_preferences: { ...prev.unit_preferences, weight: 'oz' }
-                                            }))}
+                                            onChange={() => updateWeightUnit('oz')}
                                             className="w-4 h-4 text-primary"
                                         />
                                         <span>oz (ounces)</span>
