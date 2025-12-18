@@ -1,26 +1,29 @@
 "use client";
 
-import { useState, useRef } from 'react';
-// import { useApp } from '@/components/app-provider';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Dish } from '@/types';
-import { Loader2, Plus, Camera, Upload, Trash2, Check, Edit2 } from 'lucide-react';
+import { Loader2, Camera, Trash2, Check, Edit2, Clock, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { logger } from '@/lib/logger';
+import { UnitPreferences } from '@/lib/db';
 
 export default function AddPage() {
-    // const { token, baseUrl, planId } = useApp(); // Removed
     const [image, setImage] = useState<string | null>(null);
     const [dishes, setDishes] = useState<Dish[]>([]);
     const [loading, setLoading] = useState(false);
     const [processing, setProcessing] = useState(false);
+    const [taskId, setTaskId] = useState<string | null>(null);
+    const [taskStatus, setTaskStatus] = useState<'pending' | 'processing' | 'completed' | 'failed' | null>(null);
+    const [unitPrefs, setUnitPrefs] = useState<UnitPreferences>({ energy: 'kcal', weight: 'g' });
+
     const fileInputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
 
@@ -32,8 +35,56 @@ export default function AddPage() {
     // Backfill State
     const [isBackfill, setIsBackfill] = useState(false);
     const [backfillDate, setBackfillDate] = useState(new Date().toISOString().split('T')[0]);
-    // const [backfillTime, setBackfillTime] = useState(new Date().toTimeString().slice(0, 5)); // Use Meal Type instead
+    const [backfillTime, setBackfillTime] = useState(new Date().toTimeString().slice(0, 5));
     const [backfillType, setBackfillType] = useState('Breakfast');
+
+    // Split State
+    const [numPeople, setNumPeople] = useState(1);
+    const [personalPortion, setPersonalPortion] = useState(100);
+
+    useEffect(() => {
+        // Fetch unit preferences on mount
+        fetch('/api/settings')
+            .then(res => res.json())
+            .then(data => {
+                if (data.unit_preferences) setUnitPrefs(data.unit_preferences);
+            });
+    }, []);
+
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (taskId && (taskStatus === 'pending' || taskStatus === 'processing')) {
+            interval = setInterval(async () => {
+                try {
+                    const res = await fetch(`/api/nutrition/tasks/${taskId}`);
+                    const data = await res.json();
+                    setTaskStatus(data.status);
+                    if (data.status === 'completed') {
+                        setDishes(data.result);
+                        setLoading(false);
+                        clearInterval(interval);
+                        toast.success("Recognition complete!");
+                    } else if (data.status === 'failed') {
+                        setLoading(false);
+                        clearInterval(interval);
+                        toast.error("Recognition failed: " + data.error);
+                    }
+                } catch (error) {
+                    console.error("Polling error:", error);
+                }
+            }, 2000);
+        }
+        return () => clearInterval(interval);
+    }, [taskId, taskStatus]);
+
+    useEffect(() => {
+        // Update personal portion default when numPeople changes
+        if (numPeople > 1) {
+            setPersonalPortion(Math.round(100 / numPeople));
+        } else {
+            setPersonalPortion(100);
+        }
+    }, [numPeople]);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -49,19 +100,21 @@ export default function AddPage() {
 
     const analyzeImage = async (imgData: string) => {
         setLoading(true);
+        setTaskId(null);
+        setTaskStatus('pending');
         try {
-            const res = await fetch('/api/gemini', {
+            const res = await fetch('/api/nutrition/recognize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: imgData, mode: 'init' }),
+                body: JSON.stringify({ image: imgData }),
             });
             const data = await res.json();
             if (data.error) throw new Error(data.error);
-            setDishes(data);
+            setTaskId(data.taskId);
+            toast.info("Image uploaded! Processing in background...");
         } catch (error) {
-            logger.error(error as Error, "Failed to analyze image");
-            toast.error("Failed to analyze image");
-        } finally {
+            logger.error(error as Error, "Failed to start recognition");
+            toast.error("Failed to start recognition");
             setLoading(false);
         }
     };
@@ -106,9 +159,12 @@ export default function AddPage() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    dishes,
+                    dishes: dishes.map(d => ({
+                        ...d,
+                        weight: Math.round(d.weight * personalPortion / 100)
+                    })),
                     date: isBackfill ? backfillDate : new Date().toISOString().split('T')[0],
-                    // Time is inferred by backend if not provided. logic handles type -> time mapping
+                    time: isBackfill ? backfillTime : undefined,
                     type: isBackfill ? backfillType : undefined,
                 }),
             });
@@ -152,85 +208,165 @@ export default function AddPage() {
                 </div>
             )}
 
-            {/* Backfill Options */}
-            <div className="bg-muted/30 p-3 rounded-lg space-y-3">
-                <div className="flex items-center space-x-2">
-                    <input
-                        type="checkbox"
-                        id="backfill"
-                        checked={isBackfill}
-                        onChange={(e) => setIsBackfill(e.target.checked)}
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                    />
-                    <Label htmlFor="backfill" className="font-medium cursor-pointer">Backfill (log for past time)</Label>
-                </div>
-
-                {isBackfill && (
-                    <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2">
-                        <div className="space-y-1">
-                            <Label className="text-xs">Date</Label>
-                            <Input
-                                type="date"
-                                value={backfillDate}
-                                onChange={(e) => setBackfillDate(e.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-1">
-                            <Label className="text-xs">Meal</Label>
-                            <select
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                value={backfillType}
-                                onChange={(e) => setBackfillType(e.target.value)}
-                            >
-                                <option value="Breakfast">Breakfast</option>
-                                <option value="Lunch">Lunch</option>
-                                <option value="Dinner">Dinner</option>
-                                <option value="Snack">Snack</option>
-                            </select>
-                        </div>
-                    </div>
-                )}
-            </div>
-
             {loading && (
-                <div className="flex justify-center p-8">
-                    <Loader2 className="w-8 h-8 animate-spin" />
+                <div className="flex flex-col items-center justify-center p-8 space-y-4">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    <div className="text-center">
+                        <p className="font-medium">Recognizing food...</p>
+                        <p className="text-sm text-muted-foreground">You can leave this page, we'll keep working</p>
+                    </div>
+                    <Button variant="outline" onClick={() => router.push('/')}>Return Home</Button>
                 </div>
             )}
 
-            <div className="space-y-4">
-                {dishes.map((dish, idx) => (
-                    <Card key={idx} className="relative">
+            {dishes.length > 0 && (
+                <>
+                    <div className="space-y-4">
+                        {dishes.map((dish, idx) => (
+                            <Card key={idx} className="relative">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="flex justify-between items-center text-base">
+                                        <span>{dish.name}</span>
+                                        <div className="flex gap-2">
+                                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
+                                                setEditingDish(dish);
+                                                setIsEditDialogOpen(true);
+                                            }}>
+                                                <Edit2 className="w-4 h-4" />
+                                            </Button>
+                                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
+                                                setDishes(prev => prev.filter((_, i) => i !== idx));
+                                            }}>
+                                                <Trash2 className="w-4 h-4 text-destructive" />
+                                            </Button>
+                                        </div>
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1">
+                                            <Label className="text-xs text-muted-foreground">Weight ({unitPrefs.weight})</Label>
+                                            <Input
+                                                type="number"
+                                                value={dish.weight}
+                                                onChange={(e) => {
+                                                    const val = parseFloat(e.target.value) || 0;
+                                                    setDishes(prev => prev.map((d, i) => i === idx ? { ...d, weight: val } : d));
+                                                }}
+                                                className="h-8"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Label className="text-xs text-muted-foreground">Total Energy</Label>
+                                            <div className="h-8 flex items-center font-bold text-primary">
+                                                {Math.round(dish.calories * dish.weight / 100)} {unitPrefs.energy}
+                                            </div>
+                                        </div>
+                                        <div className="text-muted-foreground col-span-2 text-xs pt-2 border-t">
+                                            Per 100g: P: {dish.protein}g | F: {dish.fat}g | C: {dish.carbs}g ({dish.calories}{unitPrefs.energy})
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+
+                    {/* Multi-user Split */}
+                    <Card className="bg-primary/5 border-primary/20">
                         <CardHeader className="pb-2">
-                            <CardTitle className="flex justify-between items-center">
-                                <span>{dish.name}</span>
-                                <div className="flex gap-2">
-                                    <Button size="icon" variant="ghost" onClick={() => {
-                                        setEditingDish(dish);
-                                        setIsEditDialogOpen(true);
-                                    }}>
-                                        <Edit2 className="w-4 h-4" />
-                                    </Button>
-                                    <Button size="icon" variant="ghost" onClick={() => {
-                                        setDishes(prev => prev.filter((_, i) => i !== idx));
-                                    }}>
-                                        <Trash2 className="w-4 h-4 text-destructive" />
-                                    </Button>
-                                </div>
+                            <CardTitle className="text-sm flex items-center gap-2">
+                                <Users className="w-4 h-4" /> Meal Sharing
                             </CardTitle>
                         </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-2 gap-2 text-sm">
-                                <div>Weight: {dish.weight}g</div>
-                                <div>Calories: {Math.round(dish.calories * dish.weight / 100)} kcal</div>
-                                <div className="text-muted-foreground col-span-2 text-xs">
-                                    P: {dish.protein}g | F: {dish.fat}g | C: {dish.carbs}g (per 100g)
+                        <CardContent className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <Label>Number of People</Label>
+                                <div className="flex items-center gap-2">
+                                    {[1, 2, 3, 4].map(n => (
+                                        <Button
+                                            key={n}
+                                            variant={numPeople === n ? "default" : "outline"}
+                                            size="sm"
+                                            className="h-8 w-8 p-0"
+                                            onClick={() => setNumPeople(n)}
+                                        >
+                                            {n}
+                                        </Button>
+                                    ))}
                                 </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-xs">
+                                    <Label>Personal Portion</Label>
+                                    <span className="font-bold">{personalPortion}%</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    value={personalPortion}
+                                    onChange={(e) => setPersonalPortion(parseInt(e.target.value))}
+                                    max={100}
+                                    step={1}
+                                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+                                />
+                                <p className="text-[10px] text-muted-foreground">
+                                    Final log will be {personalPortion}% of the total weight.
+                                </p>
                             </div>
                         </CardContent>
                     </Card>
-                ))}
-            </div>
+
+                    {/* Backfill Options - Now visible after recognition */}
+                    <div className="bg-muted/30 p-4 rounded-xl space-y-4">
+                        <div className="flex items-center justify-between">
+                            <Label htmlFor="backfill" className="font-semibold cursor-pointer flex items-center gap-2">
+                                <Clock className="w-4 h-4" /> Backfill this meal
+                            </Label>
+                            <input
+                                type="checkbox"
+                                id="backfill"
+                                checked={isBackfill}
+                                onChange={(e) => setIsBackfill(e.target.checked)}
+                                className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                        </div>
+
+                        {isBackfill && (
+                            <div className="grid grid-cols-2 gap-4 animate-in fade-in zoom-in-95 duration-200">
+                                <div className="space-y-1">
+                                    <Label className="text-xs">Date</Label>
+                                    <Input
+                                        type="date"
+                                        value={backfillDate}
+                                        onChange={(e) => setBackfillDate(e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-xs">Time</Label>
+                                    <Input
+                                        type="time"
+                                        value={backfillTime}
+                                        onChange={(e) => setBackfillTime(e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-1 col-span-2">
+                                    <Label className="text-xs">Meal Type</Label>
+                                    <select
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                        value={backfillType}
+                                        onChange={(e) => setBackfillType(e.target.value)}
+                                    >
+                                        <option value="Breakfast">Breakfast</option>
+                                        <option value="Lunch">Lunch</option>
+                                        <option value="Dinner">Dinner</option>
+                                        <option value="Snack">Snack</option>
+                                    </select>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </>
+            )}
 
             {dishes.length > 0 && (
                 <Button className="w-full h-12 text-lg" onClick={handleAddAll} disabled={processing}>

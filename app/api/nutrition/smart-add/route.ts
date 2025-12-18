@@ -132,9 +132,11 @@ export async function POST(req: NextRequest) {
                 recipe = createRecipe({
                     name: dish.name,
                     energy: dish.calories,
+                    energy_unit: dish.energy_unit || 'kcal',
                     protein: dish.protein,
                     carbs: dish.carbs,
                     fat: dish.fat,
+                    weight_unit: dish.weight_unit || 'g',
                 });
             }
 

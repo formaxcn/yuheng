@@ -56,9 +56,11 @@ export function initDB() {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT UNIQUE NOT NULL,
             energy REAL,
+            energy_unit TEXT DEFAULT 'kcal',
             protein REAL,
             carbs REAL,
             fat REAL,
+            weight_unit TEXT DEFAULT 'g',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
 
@@ -77,9 +79,11 @@ export function initDB() {
             name TEXT,
             amount REAL,
             energy REAL,
+            energy_unit TEXT DEFAULT 'kcal',
             protein REAL,
             carbs REAL,
             fat REAL,
+            weight_unit TEXT DEFAULT 'g',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (entry_id) REFERENCES entries(id) ON DELETE CASCADE,
             FOREIGN KEY (recipe_id) REFERENCES recipes(id)
@@ -88,6 +92,16 @@ export function initDB() {
         CREATE TABLE IF NOT EXISTS settings (
             key TEXT PRIMARY KEY,
             value TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS recognition_tasks (
+            id TEXT PRIMARY KEY,
+            status TEXT NOT NULL, -- 'pending', 'processing', 'completed', 'failed'
+            result TEXT, -- JSON string of dishes
+            error TEXT,
+            image_path TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
     `;
 
@@ -111,6 +125,18 @@ export function initDB() {
         saveSetting('unit_preferences', JSON.stringify({ energy: 'kcal', weight: 'g' }));
     }
 
+    // Migration for existing tables
+    const tables = ['recipes', 'dishes'];
+    for (const table of tables) {
+        const columns = db.prepare(`PRAGMA table_info(${table})`).all() as any[];
+        if (!columns.some(c => c.name === 'energy_unit')) {
+            db.exec(`ALTER TABLE ${table} ADD COLUMN energy_unit TEXT DEFAULT 'kcal'`);
+        }
+        if (!columns.some(c => c.name === 'weight_unit')) {
+            db.exec(`ALTER TABLE ${table} ADD COLUMN weight_unit TEXT DEFAULT 'g'`);
+        }
+    }
+
     logger.info('Database initialized at ' + dbPath);
 }
 
@@ -124,9 +150,11 @@ export interface Recipe {
     id: number;
     name: string;
     energy: number;
+    energy_unit: 'kcal' | 'kj';
     protein: number;
     carbs: number;
     fat: number;
+    weight_unit: 'g' | 'oz';
     created_at?: string;
 }
 
@@ -146,9 +174,11 @@ export interface Dish {
     amount: number;
     name: string;
     energy: number;
+    energy_unit: 'kcal' | 'kj';
     protein: number;
     carbs: number;
     fat: number;
+    weight_unit: 'g' | 'oz';
     created_at?: string;
     // Calculated values for convenience
     total_energy?: number;
@@ -230,8 +260,8 @@ export function getRecipe(name: string): Recipe | undefined {
 
 export function createRecipe(recipe: Omit<Recipe, 'id' | 'created_at'>): Recipe {
     const stmt = db.prepare(`
-        INSERT INTO recipes (name, energy, protein, carbs, fat)
-        VALUES (@name, @energy, @protein, @carbs, @fat)
+        INSERT INTO recipes (name, energy, energy_unit, protein, carbs, fat, weight_unit)
+        VALUES (@name, @energy, @energy_unit, @protein, @carbs, @fat, @weight_unit)
     `);
     const info = stmt.run(recipe);
     return { ...recipe, id: Number(info.lastInsertRowid) };
@@ -260,8 +290,8 @@ export function getEntryByDateTime(date: string, time: string): Entry | undefine
 // --- Dishes ---
 export function addDish(entryId: number, recipe: Recipe, amount: number): Dish {
     const stmt = db.prepare(`
-        INSERT INTO dishes (entry_id, recipe_id, amount, name, energy, protein, carbs, fat)
-        VALUES (@entry_id, @recipe_id, @amount, @name, @energy, @protein, @carbs, @fat)
+        INSERT INTO dishes (entry_id, recipe_id, amount, name, energy, energy_unit, protein, carbs, fat, weight_unit)
+        VALUES (@entry_id, @recipe_id, @amount, @name, @energy, @energy_unit, @protein, @carbs, @fat, @weight_unit)
     `);
 
     // Snapshot the recipe data
@@ -271,9 +301,11 @@ export function addDish(entryId: number, recipe: Recipe, amount: number): Dish {
         amount,
         name: recipe.name,
         energy: recipe.energy,
+        energy_unit: recipe.energy_unit,
         protein: recipe.protein,
         carbs: recipe.carbs,
-        fat: recipe.fat
+        fat: recipe.fat,
+        weight_unit: recipe.weight_unit
     };
 
     const info = stmt.run(dishData);
@@ -322,5 +354,40 @@ export function getHistory(startDate: string, endDate: string): { date: string; 
     }
 
     return history;
+}
+
+// --- Recognition Tasks ---
+export interface RecognitionTask {
+    id: string;
+    status: 'pending' | 'processing' | 'completed' | 'failed';
+    result?: string;
+    error?: string;
+    image_path?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export function createRecognitionTask(id: string, imagePath?: string): RecognitionTask {
+    const stmt = db.prepare(`
+        INSERT INTO recognition_tasks (id, status, image_path)
+        VALUES (?, 'pending', ?)
+    `);
+    stmt.run(id, imagePath);
+    return getRecognitionTask(id)!;
+}
+
+export function updateRecognitionTask(id: string, updates: Partial<Pick<RecognitionTask, 'status' | 'result' | 'error'>>) {
+    const sets = Object.keys(updates).map(k => `${k} = @${k}`).join(', ');
+    const stmt = db.prepare(`
+        UPDATE recognition_tasks 
+        SET ${sets}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = @id
+    `);
+    stmt.run({ ...updates, id });
+}
+
+export function getRecognitionTask(id: string): RecognitionTask | undefined {
+    const stmt = db.prepare('SELECT * FROM recognition_tasks WHERE id = ?');
+    return stmt.get(id) as RecognitionTask | undefined;
 }
 

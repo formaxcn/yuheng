@@ -1,9 +1,11 @@
 export interface Dish {
   name: string;
-  calories: number; // kcal per 100g
-  protein: number; // g per 100g
-  fat: number; // g per 100g
-  carbs: number; // g per 100g
-  weight: number; // total weight in grams
+  calories: number;
+  energy_unit?: 'kcal' | 'kj';
+  protein: number;
+  fat: number;
+  carbs: number;
+  weight: number;
+  weight_unit?: 'g' | 'oz';
   description?: string;
 }
