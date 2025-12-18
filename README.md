@@ -54,6 +54,15 @@ The database will be stored in your local `data` folder.
 API documentation is available at `/api/docs` (JSON). 
 You can import this into Postman or Swagger UI.
 
+## Project Documentation
+
+Detailed technical documentation for YuHeng can be found in the [docs](./docs/index.md) folder:
+
+- [Architecture](./docs/architecture.md): Overview of the tech stack and project structure.
+- [System Design](./docs/system_design.md): In-depth look at core flows and AI integration.
+- [Database Design](./docs/database_design.md): Schema definitions and relationship diagrams.
+- [Page Implementation](./docs/page_implementations.md): Breakdown of the app's frontend design.
+
 ## Configuration
 
 Meal times can be configured in the database `settings` table. Defaults:
