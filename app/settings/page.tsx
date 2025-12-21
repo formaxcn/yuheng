@@ -476,45 +476,7 @@ export default function SettingsPage() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>AI Recognition Settings</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Label>Language (for recipe names and descriptions)</Label>
-                            <div className="flex gap-4">
-                                <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
-                                    <input
-                                        type="radio"
-                                        name="recognitionLanguage"
-                                        value="zh"
-                                        checked={config.recognition_language === 'zh'}
-                                        onChange={() => updateRecognitionLanguage('zh')}
-                                        className="w-4 h-4 text-primary"
-                                    />
-                                    <span>中文</span>
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
-                                    <input
-                                        type="radio"
-                                        name="recognitionLanguage"
-                                        value="en"
-                                        checked={config.recognition_language === 'en'}
-                                        onChange={() => updateRecognitionLanguage('en')}
-                                        className="w-4 h-4 text-primary"
-                                    />
-                                    <span>English</span>
-                                </label>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Changes the language that AI uses to identify dishes. Note: This does not change the app interface language.
-                            </p>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>LLM Configuration</CardTitle>
+                        <CardTitle>AI Recognition & LLM Setup</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
@@ -525,21 +487,49 @@ export default function SettingsPage() {
                                 value={config.llm_api_key}
                                 onChange={(e) => setConfig(prev => ({ ...prev, llm_api_key: e.target.value }))}
                             />
-                            <p className="text-xs text-muted-foreground">
-                                Your API key is stored locally in the database and used for recognition analysis.
-                            </p>
                         </div>
-                        <div className="space-y-2">
-                            <Label>Model Select</Label>
-                            <select
-                                className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                value={config.llm_model}
-                                onChange={(e) => setConfig(prev => ({ ...prev, llm_model: e.target.value }))}
-                            >
-                                {models.map(m => (
-                                    <option key={m.id} value={m.id}>{m.name}</option>
-                                ))}
-                            </select>
+
+                        <div className="grid grid-cols-2 gap-4 pt-2">
+                            <div className="space-y-2">
+                                <Label>Model Select</Label>
+                                <select
+                                    className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                    value={config.llm_model}
+                                    onChange={(e) => setConfig(prev => ({ ...prev, llm_model: e.target.value }))}
+                                >
+                                    {models.map(m => (
+                                        <option key={m.id} value={m.id}>{m.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Recognition Language</Label>
+                                <div className="flex gap-4 h-10 items-center">
+                                    <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                                        <input
+                                            type="radio"
+                                            name="recognitionLanguage"
+                                            value="zh"
+                                            checked={config.recognition_language === 'zh'}
+                                            onChange={() => updateRecognitionLanguage('zh')}
+                                            className="w-4 h-4 text-primary"
+                                        />
+                                        <span>中文</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                                        <input
+                                            type="radio"
+                                            name="recognitionLanguage"
+                                            value="en"
+                                            checked={config.recognition_language === 'en'}
+                                            onChange={() => updateRecognitionLanguage('en')}
+                                            className="w-4 h-4 text-primary"
+                                        />
+                                        <span>English</span>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
