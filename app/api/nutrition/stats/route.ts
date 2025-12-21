@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getEntries, getDishesForEntry, getDailyTargets, getHistory, getMealConfig, getUnitPreferences } from '@/lib/db';
+import { getEntries, getDishesForEntry, getDailyTargets, getHistory, getMealConfig, getUnitPreferences, getSetting } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
 /**
@@ -61,19 +61,23 @@ export async function GET(req: NextRequest) {
         const history = await getHistory(historyStartDateStr, date);
 
         const mealConfig = getMealConfig();
-        const otherName = mealConfig.other?.name || "Snack";
+        const otherName = getSetting('other_meal_name') || "Snack";
 
         interface MealStats {
             type: string;
             calories: number;
         }
 
-        const meals: { [key: string]: MealStats } = {
-            Breakfast: { type: 'Breakfast', calories: 0 },
-            Lunch: { type: 'Lunch', calories: 0 },
-            Dinner: { type: 'Dinner', calories: 0 },
-            [otherName]: { type: otherName, calories: 0 },
-        };
+        const meals: { [key: string]: MealStats } = {};
+
+        // Initialize with defined meals
+        for (const meal of mealConfig) {
+            meals[meal.name] = { type: meal.name, calories: 0 };
+        }
+        // Ensure "other" category exists
+        if (!meals[otherName]) {
+            meals[otherName] = { type: otherName, calories: 0 };
+        }
 
         for (const entry of entries) {
             const dishes = getDishesForEntry(entry.id);

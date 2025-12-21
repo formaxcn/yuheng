@@ -4,12 +4,14 @@ import { logger } from '@/lib/logger';
 import { z } from 'zod';
 
 const settingsSchema = z.object({
-    meal_times: z.object({
-        Breakfast: z.object({ start: z.number(), end: z.number(), default: z.string() }),
-        Lunch: z.object({ start: z.number(), end: z.number(), default: z.string() }),
-        Dinner: z.object({ start: z.number(), end: z.number(), default: z.string() }),
-        other: z.object({ name: z.string() }).optional(), // Configurable default meal name
-    }),
+    meal_times: z.array(z.object({
+        name: z.string(),
+        start: z.number(),
+        end: z.number(),
+        default: z.string()
+    })),
+    other_meal_name: z.string().optional(),
+    time_format: z.enum(['12h', '24h']).optional(),
     daily_targets: z.object({
         energy: z.number(),
         protein: z.number(),
@@ -61,7 +63,9 @@ export async function GET(req: NextRequest) {
         const region = getSetting('region') || 'CN';
         const llm_api_key = getSetting('llm_api_key') || '';
         const llm_model = getSetting('llm_model') || 'gemini-2.0-flash';
-        return NextResponse.json({ meal_times, daily_targets, unit_preferences, recognition_language, region, llm_api_key, llm_model });
+        const other_meal_name = getSetting('other_meal_name') || 'Snack';
+        const time_format = getSetting('time_format') || '24h';
+        return NextResponse.json({ meal_times, daily_targets, unit_preferences, recognition_language, region, llm_api_key, llm_model, other_meal_name, time_format });
     } catch (error) {
         logger.error(error as Error, 'Failed to fetch settings');
         return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
@@ -77,7 +81,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid settings format', details: parsed.error }, { status: 400 });
         }
 
-        const { meal_times, daily_targets, unit_preferences, recognition_language, llm_api_key, llm_model } = parsed.data;
+        const { meal_times, daily_targets, unit_preferences, recognition_language, llm_api_key, llm_model, other_meal_name, time_format } = parsed.data;
 
         saveSetting('meal_times', JSON.stringify(meal_times));
         saveDailyTargets(daily_targets);
@@ -96,6 +100,12 @@ export async function POST(req: NextRequest) {
         if (llm_model) {
             saveSetting('llm_model', llm_model);
         }
+        if (other_meal_name) {
+            saveSetting('other_meal_name', other_meal_name);
+        }
+        if (time_format) {
+            saveSetting('time_format', time_format);
+        }
 
         const currentUnitPrefs = getUnitPreferences();
         const currentLang = getSetting('recognition_language') || 'zh';
@@ -107,7 +117,9 @@ export async function POST(req: NextRequest) {
             recognition_language: currentLang,
             region: getSetting('region') || 'CN',
             llm_api_key: getSetting('llm_api_key') || '',
-            llm_model: getSetting('llm_model') || 'gemini-2.0-flash'
+            llm_model: getSetting('llm_model') || 'gemini-2.0-flash',
+            other_meal_name: getSetting('other_meal_name') || 'Snack',
+            time_format: getSetting('time_format') || '24h'
         });
     } catch (error) {
         logger.error(error as Error, 'Failed to save settings');

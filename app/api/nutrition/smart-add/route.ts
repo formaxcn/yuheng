@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRecipe, createRecipe, getEntryByDateTime, createEntry, addDish, getMealConfig } from '@/lib/db';
+import { getRecipe, createRecipe, getEntryByDateTime, createEntry, addDish, getMealConfig, getSetting } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
 /**
@@ -82,8 +82,7 @@ export async function POST(req: NextRequest) {
 
         if (targetType && !targetTime) {
             // Case 1: Type provided (Backfill), infer Default Time
-            // @ts-ignore
-            const typeConfig = config[targetType];
+            const typeConfig = config.find((m: any) => m.name === targetType);
             if (typeConfig && typeConfig.default) {
                 targetTime = typeConfig.default;
             } else {
@@ -97,21 +96,15 @@ export async function POST(req: NextRequest) {
             targetTime = `${hours}:${minutes}`;
         }
 
-        // Determine Type if not explicitly set (or verify consistency if time is set)
         if (!targetType && targetTime) {
             const hour = parseInt(targetTime.split(':')[0]);
+            const otherName = getSetting('other_meal_name') || 'Snack';
 
-            // Iterate config to find matching range
-            // Config structure example: { Breakfast: { start: 6, end: 10, ... }, ... }
-            targetType = "Snack"; // Default
-            for (const [key, val] of Object.entries(config)) {
-                // @ts-ignore
-                if (val.start !== undefined && val.end !== undefined) {
-                    // @ts-ignore
-                    if (hour >= val.start && hour < val.end) {
-                        targetType = key;
-                        break;
-                    }
+            targetType = otherName; // Default
+            for (const meal of config) {
+                if (hour >= meal.start && hour < meal.end) {
+                    targetType = meal.name;
+                    break;
                 }
             }
         }

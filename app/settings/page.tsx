@@ -6,12 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Plus, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { api, Settings } from '@/lib/api-client';
 import { kcalToKj, kjToKcal, gramsToOz, ozToGrams, EnergyUnit, WeightUnit } from '@/lib/units';
+import { Slider } from '@/components/ui/slider';
 
 export default function SettingsPage() {
     const router = useRouter();
@@ -19,12 +20,7 @@ export default function SettingsPage() {
     const [saving, setSaving] = useState(false);
 
     const [config, setConfig] = useState<Settings>({
-        meal_times: {
-            Breakfast: { start: 6, end: 10, default: "08:00" },
-            Lunch: { start: 10, end: 14, default: "12:00" },
-            Dinner: { start: 17, end: 19, default: "18:00" },
-            other: { name: "Snack" }
-        },
+        meal_times: [],
         daily_targets: {
             energy: 2000,
             protein: 150,
@@ -38,7 +34,9 @@ export default function SettingsPage() {
         recognition_language: 'zh',
         region: 'CN',
         llm_api_key: '',
-        llm_model: 'gemini-2.0-flash'
+        llm_model: 'gemini-2.0-flash',
+        other_meal_name: 'Snack',
+        time_format: '24h'
     });
 
     const [models, setModels] = useState<{ id: string; name: string }[]>([]);
@@ -51,23 +49,23 @@ export default function SettingsPage() {
         setLoading(true);
         try {
             const data = await api.getSettings();
-            if (!data.meal_times.other) {
-                data.meal_times.other = { name: "Snack" };
-            }
             if (!data.unit_preferences) {
                 data.unit_preferences = { energy: 'kcal', weight: 'g' };
             }
             if (!data.recognition_language) {
                 data.recognition_language = 'zh';
             }
-            if (!data.region) {
-                data.region = 'CN';
-            }
             if (data.llm_api_key === undefined) {
                 data.llm_api_key = '';
             }
             if (!data.llm_model) {
                 data.llm_model = 'gemini-2.0-flash';
+            }
+            if (!data.other_meal_name) {
+                data.other_meal_name = 'Snack';
+            }
+            if (!data.time_format) {
+                data.time_format = '24h';
             }
             setConfig(data);
 
@@ -95,27 +93,110 @@ export default function SettingsPage() {
         }
     };
 
-    const updateMealTime = (meal: 'Breakfast' | 'Lunch' | 'Dinner', field: 'start' | 'end' | 'default', value: string | number) => {
+    const addMeal = () => {
+        const newMeal = { name: "New Meal", start: 12, end: 13, default: "12:30" };
         setConfig(prev => ({
             ...prev,
-            meal_times: {
-                ...prev.meal_times,
-                [meal]: {
-                    ...prev.meal_times[meal],
-                    [field]: field === 'default' ? value : Number(value)
-                }
-            }
+            meal_times: [...prev.meal_times, newMeal]
         }));
     };
 
-    const updateOtherMealName = (value: string) => {
+    const removeMeal = (index: number) => {
         setConfig(prev => ({
             ...prev,
-            meal_times: {
-                ...prev.meal_times,
-                other: { name: value }
-            }
+            meal_times: prev.meal_times.filter((_, i) => i !== index)
         }));
+    };
+
+    const updateMeal = (index: number, field: string, value: any) => {
+        setConfig(prev => {
+            const newMeals = [...prev.meal_times];
+            const oldMeal = newMeals[index];
+            let updatedMeal = { ...oldMeal, [field]: value };
+
+            // Auto-shift range when default time changes
+            if (field === 'default') {
+                const hour = parseInt(value.split(':')[0]);
+                const minute = parseInt(value.split(':')[1]);
+                const floatHour = hour + minute / 60;
+                // Default range is ±1 hour from the default time
+                updatedMeal.start = (Math.floor(floatHour - 1) + 24) % 24;
+                updatedMeal.end = (Math.ceil(floatHour + 1) + 24) % 24;
+            }
+
+            newMeals[index] = updatedMeal;
+            return { ...prev, meal_times: newMeals };
+        });
+    };
+
+    /**
+     * Converts DB values (0-24) to visual slider values (-2 to 26)
+     * based on proximity to the default time.
+     */
+    const getVisualRange = (start: number, end: number, defaultTime: string): [number, number] => {
+        const defaultHour = parseInt(defaultTime.split(':')[0]);
+        let s = start;
+        let e = end;
+
+        // If it's a cross-midnight range (start > end)
+        if (s > e) {
+            if (defaultHour >= 12) {
+                // Closer to end of day, keep start as is, move end to tomorrow
+                e += 24;
+            } else {
+                // Closer to start of day, keep end as is, move start to yesterday
+                s -= 24;
+            }
+        } else {
+            // Normal range, but might need shifting if default is near boundaries
+            if (defaultHour < 2 && s > 20) {
+                s -= 24;
+                e -= 24;
+            } else if (defaultHour > 22 && e < 4) {
+                s += 24;
+                e += 24;
+            }
+        }
+
+        return [s, e];
+    };
+
+    /**
+     * Converts visual slider values (-2 to 26) back to DB values (0-24)
+     * Enforces an 8-hour maximum duration constraint.
+     */
+    const handleSliderChange = (index: number, visualVals: number[]) => {
+        let [vs, ve] = visualVals;
+
+        const currentMeal = config.meal_times[index];
+        const [oldVs, oldVe] = getVisualRange(currentMeal.start, currentMeal.end, currentMeal.default);
+
+        // Enforce 8-hour maximum duration
+        if (ve - vs > 8) {
+            if (Math.abs(vs - oldVs) > 0.01) {
+                // Start handle was dragged
+                vs = ve - 8;
+            } else {
+                // End handle was dragged
+                ve = vs + 8;
+            }
+        }
+
+        const dbStart = (Math.round(vs) + 24) % 24;
+        const dbEnd = (Math.round(ve) + 24) % 24;
+
+        setConfig(prev => {
+            const newMeals = [...prev.meal_times];
+            newMeals[index] = { ...newMeals[index], start: dbStart, end: dbEnd };
+            return { ...prev, meal_times: newMeals };
+        });
+    };
+
+    const formatMarkerHour = (hour: number) => {
+        const formatted = formatHour(hour);
+        if (hour < 0) return `T-1 ${formatted}`;
+        if (hour >= 24) return `T+1 ${formatted}`;
+        return `T ${formatted}`;
     };
 
     const updateEnergyUnit = (newUnit: EnergyUnit) => {
@@ -171,6 +252,7 @@ export default function SettingsPage() {
         // Auto-adapt settings based on region
         const targetWeightUnit = newRegion === 'CN' ? 'g' : 'oz';
         const targetLang = newRegion === 'CN' ? 'zh' : 'en';
+        const targetTimeFormat = newRegion === 'CN' ? '24h' : '12h';
 
         // Update units if they differ
         if (config.unit_preferences.weight !== targetWeightUnit) {
@@ -181,8 +263,17 @@ export default function SettingsPage() {
             ...prev,
             region: newRegion,
             recognition_language: targetLang,
+            time_format: targetTimeFormat,
             // Weight unit is already updated by updateWeightUnit call above if needed
         }));
+    };
+
+    const formatHour = (hour: number) => {
+        const h = (hour + 24) % 24;
+        if (config.time_format === '24h') return `${h}:00`;
+        const period = h >= 12 ? 'PM' : 'AM';
+        const displayH = h % 12 || 12;
+        return `${displayH} ${period}`;
     };
 
     if (loading) {
@@ -226,7 +317,7 @@ export default function SettingsPage() {
                                     />
                                     <div className="flex flex-col">
                                         <span className="font-semibold">China (中国)</span>
-                                        <span className="text-xs text-muted-foreground">g, kcal, 中文</span>
+                                        <span className="text-xs text-muted-foreground">g, kcal, 24h, 中文</span>
                                     </div>
                                 </label>
                                 <label className="flex items-center gap-3 cursor-pointer p-3 border rounded-lg hover:bg-background transition-colors flex-1">
@@ -240,7 +331,7 @@ export default function SettingsPage() {
                                     />
                                     <div className="flex flex-col">
                                         <span className="font-semibold">United States</span>
-                                        <span className="text-xs text-muted-foreground">oz, kcal, English</span>
+                                        <span className="text-xs text-muted-foreground">oz, kcal, 12h, English</span>
                                     </div>
                                 </label>
                             </div>
@@ -352,6 +443,33 @@ export default function SettingsPage() {
                                     </label>
                                 </div>
                             </div>
+                            <div className="space-y-2">
+                                <Label>Time Format</Label>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                                        <input
+                                            type="radio"
+                                            name="timeFormat"
+                                            value="24h"
+                                            checked={config.time_format === '24h'}
+                                            onChange={() => setConfig(prev => ({ ...prev, time_format: '24h' }))}
+                                            className="w-4 h-4 text-primary"
+                                        />
+                                        <span>24h</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                                        <input
+                                            type="radio"
+                                            name="timeFormat"
+                                            value="12h"
+                                            checked={config.time_format === '12h'}
+                                            onChange={() => setConfig(prev => ({ ...prev, time_format: '12h' }))}
+                                            className="w-4 h-4 text-primary"
+                                        />
+                                        <span>12h (AM/PM)</span>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
@@ -427,60 +545,88 @@ export default function SettingsPage() {
                 </Card>
 
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle>Meal Times</CardTitle>
+                        <Button variant="outline" size="sm" onClick={addMeal} className="gap-2">
+                            <Plus className="w-4 h-4" /> Add Meal
+                        </Button>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                        {(['Breakfast', 'Lunch', 'Dinner'] as const).map(meal => (
-                            <div key={meal} className="space-y-3">
-                                <div className="font-semibold text-lg">{meal}</div>
-                                <div className="grid grid-cols-3 gap-3">
-                                    <div className="space-y-1">
-                                        <Label className="text-xs text-muted-foreground">Start Hour (0-23)</Label>
+                    <CardContent className="space-y-8 mt-4">
+                        {config.meal_times.map((meal, index) => (
+                            <div key={index} className="space-y-4 relative p-4 border rounded-xl bg-card/50">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute top-2 right-2 text-muted-foreground hover:text-destructive"
+                                    onClick={() => removeMeal(index)}
+                                >
+                                    <X className="w-4 h-4" />
+                                </Button>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Meal Name</Label>
                                         <Input
-                                            type="number"
-                                            min={0} max={23}
-                                            value={config.meal_times[meal].start}
-                                            onChange={(e) => updateMealTime(meal, 'start', e.target.value)}
+                                            value={meal.name}
+                                            onChange={(e) => updateMeal(index, 'name', e.target.value)}
+                                            placeholder="e.g. Afternoon Tea"
                                         />
                                     </div>
-                                    <div className="space-y-1">
-                                        <Label className="text-xs text-muted-foreground">End Hour (0-23)</Label>
-                                        <Input
-                                            type="number"
-                                            min={0} max={23}
-                                            value={config.meal_times[meal].end}
-                                            onChange={(e) => updateMealTime(meal, 'end', e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label className="text-xs text-muted-foreground">Default Time</Label>
+                                    <div className="space-y-2">
+                                        <Label>Default Time</Label>
                                         <Input
                                             type="time"
-                                            value={config.meal_times[meal].default}
-                                            onChange={(e) => updateMealTime(meal, 'default', e.target.value)}
+                                            value={meal.default}
+                                            onChange={(e) => updateMeal(index, 'default', e.target.value)}
                                         />
                                     </div>
                                 </div>
-                                <Separator />
+
+                                <div className="space-y-4 pt-2">
+                                    <div className="flex justify-between text-xs text-muted-foreground">
+                                        <span>Time Range: {formatHour(meal.start)} - {formatHour(meal.end)}</span>
+                                        <span>{(meal.end - meal.start + 24) % 24}h duration</span>
+                                    </div>
+
+                                    <div className="relative pt-6 pb-2">
+                                        {/* Scale markers */}
+                                        <div className="absolute top-0 left-0 right-0 flex justify-between px-0.5 text-[7px] text-muted-foreground cursor-default select-none pointer-events-none opacity-80">
+                                            <span>{formatMarkerHour(-2)}</span>
+                                            <span>{formatMarkerHour(2)}</span>
+                                            <span>{formatMarkerHour(6)}</span>
+                                            <span>{formatMarkerHour(10)}</span>
+                                            <span>{formatMarkerHour(14)}</span>
+                                            <span>{formatMarkerHour(18)}</span>
+                                            <span>{formatMarkerHour(22)}</span>
+                                            <span>{formatMarkerHour(26)}</span>
+                                        </div>
+
+                                        <Slider
+                                            value={getVisualRange(meal.start, meal.end, meal.default)}
+                                            min={-2}
+                                            max={26}
+                                            step={1}
+                                            onValueChange={(vals) => handleSliderChange(index, vals)}
+                                            className="relative z-10"
+                                        />
+                                    </div>
+
+                                </div>
                             </div>
                         ))}
 
-                        <div className="space-y-3">
-                            <div className="font-semibold text-lg">Other Meals</div>
-                            <div className="grid grid-cols-1 gap-3">
-                                <div className="space-y-1">
-                                    <Label className="text-xs text-muted-foreground">Default Meal Name</Label>
-                                    <Input
-                                        type="text"
-                                        placeholder="Snack"
-                                        value={config.meal_times.other?.name || "Snack"}
-                                        onChange={(e) => updateOtherMealName(e.target.value)}
-                                    />
-                                    <p className="text-[10px] text-muted-foreground mt-1">
-                                        Any meal outside standard time ranges will use this name.
-                                    </p>
-                                </div>
+                        <div className="pt-4 border-t space-y-3">
+                            <Label className="font-semibold px-1">Other Meals Fallback</Label>
+                            <div className="flex gap-4 items-center">
+                                <Input
+                                    placeholder="e.g. Snack"
+                                    value={config.other_meal_name}
+                                    onChange={(e) => setConfig(prev => ({ ...prev, other_meal_name: e.target.value }))}
+                                    className="flex-1"
+                                />
+                                <p className="text-[10px] text-muted-foreground max-w-[200px]">
+                                    Meals recorded outside the ranges above will use this name.
+                                </p>
                             </div>
                         </div>
                     </CardContent>

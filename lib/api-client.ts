@@ -12,13 +12,13 @@ export interface RecognitionTask {
 
 export interface Settings {
     meal_times: {
-        [key: string]: {
-            start?: number;
-            end?: number;
-            default?: string;
-            name?: string;
-        };
-    };
+        name: string;
+        start: number;
+        end: number;
+        default: string;
+    }[];
+    other_meal_name: string;
+    time_format: '12h' | '24h';
     daily_targets: {
         energy: number;
         protein: number;
