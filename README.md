@@ -8,6 +8,10 @@ YuHeng(玉衡 Jade Balance) - A local nutrition tracking app named after the fif
 - 📊 Daily nutrition stats & weekly history
 - 🍽️ Support for backfilling meals (Breakfast, Lunch, Dinner, Snack)
 - 🐳 Docker support with persistent DB
+- ⚡ Asynchronous image recognition queue
+- ⚖️ Unit conversion (kcal/kJ, g/oz)
+- ⏰ Custom meal times configuration
+- 👥 Meal sharing & portion splitting
 
 ## Getting Started
 
@@ -76,7 +80,3 @@ Meal times can be configured in the database `settings` table. Defaults:
 - [ ] Support for multiple users
 - [ ] Migrate database to Postgres
 - [ ] Add support for Doubao
-- [ ] Implement frontend-backend separation
-- [ ] i18n (internationalization)
-- [ ] Asynchronous recognition queue
-- [ ] Unit conversion support
