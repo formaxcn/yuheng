@@ -36,8 +36,12 @@ export default function SettingsPage() {
             weight: 'g'
         },
         recognition_language: 'zh',
-        region: 'CN'
+        region: 'CN',
+        llm_api_key: '',
+        llm_model: 'gemini-2.0-flash'
     });
+
+    const [models, setModels] = useState<{ id: string; name: string }[]>([]);
 
     useEffect(() => {
         loadSettings();
@@ -59,7 +63,16 @@ export default function SettingsPage() {
             if (!data.region) {
                 data.region = 'CN';
             }
+            if (data.llm_api_key === undefined) {
+                data.llm_api_key = '';
+            }
+            if (!data.llm_model) {
+                data.llm_model = 'gemini-2.0-flash';
+            }
             setConfig(data);
+
+            const modelList = await api.getModels();
+            setModels(modelList);
         } catch (error) {
             console.error(error);
             toast.error('Error loading settings');
@@ -377,6 +390,38 @@ export default function SettingsPage() {
                             <p className="text-xs text-muted-foreground mt-1">
                                 Changes the language that AI uses to identify dishes. Note: This does not change the app interface language.
                             </p>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>LLM Configuration</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Gemini API Key</Label>
+                            <Input
+                                type="password"
+                                placeholder="Enter your Gemini API key"
+                                value={config.llm_api_key}
+                                onChange={(e) => setConfig(prev => ({ ...prev, llm_api_key: e.target.value }))}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Your API key is stored locally in the database and used for recognition analysis.
+                            </p>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Model Select</Label>
+                            <select
+                                className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                value={config.llm_model}
+                                onChange={(e) => setConfig(prev => ({ ...prev, llm_model: e.target.value }))}
+                            >
+                                {models.map(m => (
+                                    <option key={m.id} value={m.id}>{m.name}</option>
+                                ))}
+                            </select>
                         </div>
                     </CardContent>
                 </Card>

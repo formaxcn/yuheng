@@ -21,7 +21,9 @@ const settingsSchema = z.object({
         weight: z.enum(['g', 'oz']),
     }).optional(),
     recognition_language: z.enum(['zh', 'en']).optional(),
-    region: z.enum(['CN', 'US']).optional()
+    region: z.enum(['CN', 'US']).optional(),
+    llm_api_key: z.string().optional(),
+    llm_model: z.string().optional()
 });
 
 /**
@@ -57,7 +59,9 @@ export async function GET(req: NextRequest) {
         const unit_preferences = getUnitPreferences();
         const recognition_language = getSetting('recognition_language') || 'zh';
         const region = getSetting('region') || 'CN';
-        return NextResponse.json({ meal_times, daily_targets, unit_preferences, recognition_language, region });
+        const llm_api_key = getSetting('llm_api_key') || '';
+        const llm_model = getSetting('llm_model') || 'gemini-2.0-flash';
+        return NextResponse.json({ meal_times, daily_targets, unit_preferences, recognition_language, region, llm_api_key, llm_model });
     } catch (error) {
         logger.error(error as Error, 'Failed to fetch settings');
         return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
@@ -73,7 +77,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid settings format', details: parsed.error }, { status: 400 });
         }
 
-        const { meal_times, daily_targets, unit_preferences, recognition_language } = parsed.data;
+        const { meal_times, daily_targets, unit_preferences, recognition_language, llm_api_key, llm_model } = parsed.data;
 
         saveSetting('meal_times', JSON.stringify(meal_times));
         saveDailyTargets(daily_targets);
@@ -86,6 +90,12 @@ export async function POST(req: NextRequest) {
         if (parsed.data.region) {
             saveSetting('region', parsed.data.region);
         }
+        if (llm_api_key !== undefined) {
+            saveSetting('llm_api_key', llm_api_key);
+        }
+        if (llm_model) {
+            saveSetting('llm_model', llm_model);
+        }
 
         const currentUnitPrefs = getUnitPreferences();
         const currentLang = getSetting('recognition_language') || 'zh';
@@ -95,7 +105,9 @@ export async function POST(req: NextRequest) {
             daily_targets,
             unit_preferences: currentUnitPrefs,
             recognition_language: currentLang,
-            region: getSetting('region') || 'CN'
+            region: getSetting('region') || 'CN',
+            llm_api_key: getSetting('llm_api_key') || '',
+            llm_model: getSetting('llm_model') || 'gemini-2.0-flash'
         });
     } catch (error) {
         logger.error(error as Error, 'Failed to save settings');

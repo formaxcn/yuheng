@@ -137,6 +137,12 @@ export function initDB() {
         saveSetting('region', 'CN');
     }
 
+    // Initialize default LLM model if not exists
+    const existingModel = getSetting('llm_model');
+    if (!existingModel) {
+        saveSetting('llm_model', 'gemini-2.0-flash');
+    }
+
     // Migration for existing tables
     const tables = ['recipes', 'dishes'];
     for (const table of tables) {

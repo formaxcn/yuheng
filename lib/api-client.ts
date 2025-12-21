@@ -31,6 +31,8 @@ export interface Settings {
     };
     recognition_language: 'zh' | 'en';
     region: 'CN' | 'US';
+    llm_api_key?: string;
+    llm_model?: string;
 }
 
 export interface NutritionStats {
@@ -105,6 +107,12 @@ export const api = {
             body: JSON.stringify(settings)
         });
         if (!res.ok) throw new Error('Failed to save settings');
+        return res.json();
+    },
+
+    async getModels(): Promise<{ id: string; name: string }[]> {
+        const res = await fetch('/api/settings/models');
+        if (!res.ok) throw new Error('Failed to fetch models');
         return res.json();
     }
 };
