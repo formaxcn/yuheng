@@ -26,12 +26,11 @@ if (process.env.DB_PATH) {
 
 const db = new Database(dbPath, { verbose: (msg) => logger.debug(msg) });
 
-const DEFAULT_MEAL_CONFIG = {
-    Breakfast: { start: 6, end: 10, default: "08:00" },
-    Lunch: { start: 10, end: 14, default: "12:00" },
-    Dinner: { start: 17, end: 19, default: "18:00" },
-    other: { name: "Snack" } // Fallback for any other time
-};
+const DEFAULT_MEAL_CONFIG = [
+    { name: "Breakfast", start: 6, end: 10, default: "08:00" },
+    { name: "Lunch", start: 10, end: 14, default: "12:00" },
+    { name: "Dinner", start: 17, end: 19, default: "18:00" }
+];
 
 export interface DailyTargets {
     energy: number;
@@ -131,6 +130,30 @@ export function initDB() {
         saveSetting('recognition_language', 'zh');
     }
 
+    // Initialize default region if not exists
+    const existingRegion = getSetting('region');
+    if (!existingRegion) {
+        saveSetting('region', 'CN');
+    }
+
+    // Initialize default time format if not exists
+    const existingTimeFormat = getSetting('time_format');
+    if (!existingTimeFormat) {
+        saveSetting('time_format', '24h');
+    }
+
+    // Initialize default other meal name if not exists
+    const existingOtherMealName = getSetting('other_meal_name');
+    if (!existingOtherMealName) {
+        saveSetting('other_meal_name', 'Snack');
+    }
+
+    // Initialize default LLM model if not exists
+    const existingModel = getSetting('llm_model');
+    if (!existingModel) {
+        saveSetting('llm_model', 'gemini-2.0-flash');
+    }
+
     // Migration for existing tables
     const tables = ['recipes', 'dishes'];
     for (const table of tables) {
@@ -210,10 +233,19 @@ export function saveSetting(key: string, value: string) {
     stmt.run({ key, value });
 }
 
-export function getMealConfig() {
+export function getMealConfig(): { name: string; start: number; end: number; default: string; }[] {
     const configStr = getSetting('meal_times');
     try {
-        return configStr ? JSON.parse(configStr) : DEFAULT_MEAL_CONFIG;
+        const config = configStr ? JSON.parse(configStr) : DEFAULT_MEAL_CONFIG;
+        // Migration: convert object-based config to array
+        if (config && !Array.isArray(config)) {
+            const arr = [];
+            if (config.Breakfast) arr.push({ name: "Breakfast", ...config.Breakfast });
+            if (config.Lunch) arr.push({ name: "Lunch", ...config.Lunch });
+            if (config.Dinner) arr.push({ name: "Dinner", ...config.Dinner });
+            return arr;
+        }
+        return config;
     } catch (e) {
         logger.error(e as Error, "Failed to parse meal config");
         return DEFAULT_MEAL_CONFIG;

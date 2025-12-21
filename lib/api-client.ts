@@ -12,13 +12,13 @@ export interface RecognitionTask {
 
 export interface Settings {
     meal_times: {
-        [key: string]: {
-            start?: number;
-            end?: number;
-            default?: string;
-            name?: string;
-        };
-    };
+        name: string;
+        start: number;
+        end: number;
+        default: string;
+    }[];
+    other_meal_name: string;
+    time_format: '12h' | '24h';
     daily_targets: {
         energy: number;
         protein: number;
@@ -30,6 +30,9 @@ export interface Settings {
         weight: WeightUnit;
     };
     recognition_language: 'zh' | 'en';
+    region: 'CN' | 'US';
+    llm_api_key?: string;
+    llm_model?: string;
 }
 
 export interface NutritionStats {
@@ -104,6 +107,12 @@ export const api = {
             body: JSON.stringify(settings)
         });
         if (!res.ok) throw new Error('Failed to save settings');
+        return res.json();
+    },
+
+    async getModels(): Promise<{ id: string; name: string }[]> {
+        const res = await fetch('/api/settings/models');
+        if (!res.ok) throw new Error('Failed to fetch models');
         return res.json();
     }
 };
