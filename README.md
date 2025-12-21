@@ -38,7 +38,6 @@ docker run -d \
   --name yuheng \
   -p 3000:3000 \
   -v "$(pwd)/data:/app/data" \
-  -e GEMINI_API_KEY=your_api_key \
   ghcr.io/formaxcn/yuheng
 ```
 
