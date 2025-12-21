@@ -288,7 +288,7 @@ export default function SettingsPage() {
                             <div className="space-y-2">
                                 <Label>Energy Unit</Label>
                                 <div className="flex gap-4">
-                                    <label className="flex items-center gap-2 cursor-pointer">
+                                    <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
                                         <input
                                             type="radio"
                                             name="energyUnit"
@@ -299,7 +299,7 @@ export default function SettingsPage() {
                                         />
                                         <span>kcal</span>
                                     </label>
-                                    <label className="flex items-center gap-2 cursor-pointer">
+                                    <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
                                         <input
                                             type="radio"
                                             name="energyUnit"
@@ -315,7 +315,7 @@ export default function SettingsPage() {
                             <div className="space-y-2">
                                 <Label>Weight Unit</Label>
                                 <div className="flex gap-4">
-                                    <label className="flex items-center gap-2 cursor-pointer">
+                                    <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
                                         <input
                                             type="radio"
                                             name="weightUnit"
@@ -324,9 +324,9 @@ export default function SettingsPage() {
                                             onChange={() => updateWeightUnit('g')}
                                             className="w-4 h-4 text-primary"
                                         />
-                                        <span>g (grams)</span>
+                                        <span>g</span>
                                     </label>
-                                    <label className="flex items-center gap-2 cursor-pointer">
+                                    <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
                                         <input
                                             type="radio"
                                             name="weightUnit"
@@ -335,7 +335,7 @@ export default function SettingsPage() {
                                             onChange={() => updateWeightUnit('oz')}
                                             className="w-4 h-4 text-primary"
                                         />
-                                        <span>oz (ounces)</span>
+                                        <span>oz</span>
                                     </label>
                                 </div>
                             </div>
@@ -351,7 +351,7 @@ export default function SettingsPage() {
                         <div className="space-y-2">
                             <Label>Language (for recipe names and descriptions)</Label>
                             <div className="flex gap-4">
-                                <label className="flex items-center gap-2 cursor-pointer">
+                                <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
                                     <input
                                         type="radio"
                                         name="recognitionLanguage"
@@ -360,9 +360,9 @@ export default function SettingsPage() {
                                         onChange={() => updateRecognitionLanguage('zh')}
                                         className="w-4 h-4 text-primary"
                                     />
-                                    <span>中文 (Chinese)</span>
+                                    <span>中文</span>
                                 </label>
-                                <label className="flex items-center gap-2 cursor-pointer">
+                                <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
                                     <input
                                         type="radio"
                                         name="recognitionLanguage"
