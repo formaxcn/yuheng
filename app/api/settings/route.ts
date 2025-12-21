@@ -20,7 +20,8 @@ const settingsSchema = z.object({
         energy: z.enum(['kcal', 'kj']),
         weight: z.enum(['g', 'oz']),
     }).optional(),
-    recognition_language: z.enum(['zh', 'en']).optional()
+    recognition_language: z.enum(['zh', 'en']).optional(),
+    region: z.enum(['CN', 'US']).optional()
 });
 
 /**
@@ -55,7 +56,8 @@ export async function GET(req: NextRequest) {
         const daily_targets = getDailyTargets();
         const unit_preferences = getUnitPreferences();
         const recognition_language = getSetting('recognition_language') || 'zh';
-        return NextResponse.json({ meal_times, daily_targets, unit_preferences, recognition_language });
+        const region = getSetting('region') || 'CN';
+        return NextResponse.json({ meal_times, daily_targets, unit_preferences, recognition_language, region });
     } catch (error) {
         logger.error(error as Error, 'Failed to fetch settings');
         return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
@@ -81,6 +83,9 @@ export async function POST(req: NextRequest) {
         if (recognition_language) {
             saveSetting('recognition_language', recognition_language);
         }
+        if (parsed.data.region) {
+            saveSetting('region', parsed.data.region);
+        }
 
         const currentUnitPrefs = getUnitPreferences();
         const currentLang = getSetting('recognition_language') || 'zh';
@@ -89,7 +94,8 @@ export async function POST(req: NextRequest) {
             meal_times,
             daily_targets,
             unit_preferences: currentUnitPrefs,
-            recognition_language: currentLang
+            recognition_language: currentLang,
+            region: getSetting('region') || 'CN'
         });
     } catch (error) {
         logger.error(error as Error, 'Failed to save settings');

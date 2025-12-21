@@ -30,6 +30,7 @@ export interface Settings {
         weight: WeightUnit;
     };
     recognition_language: 'zh' | 'en';
+    region: 'CN' | 'US';
 }
 
 export interface NutritionStats {

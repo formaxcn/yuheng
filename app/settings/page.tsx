@@ -35,7 +35,8 @@ export default function SettingsPage() {
             energy: 'kcal',
             weight: 'g'
         },
-        recognition_language: 'zh'
+        recognition_language: 'zh',
+        region: 'CN'
     });
 
     useEffect(() => {
@@ -54,6 +55,9 @@ export default function SettingsPage() {
             }
             if (!data.recognition_language) {
                 data.recognition_language = 'zh';
+            }
+            if (!data.region) {
+                data.region = 'CN';
             }
             setConfig(data);
         } catch (error) {
@@ -148,6 +152,26 @@ export default function SettingsPage() {
         }));
     };
 
+    const updateRegion = (newRegion: 'CN' | 'US') => {
+        if (config.region === newRegion) return;
+
+        // Auto-adapt settings based on region
+        const targetWeightUnit = newRegion === 'CN' ? 'g' : 'oz';
+        const targetLang = newRegion === 'CN' ? 'zh' : 'en';
+
+        // Update units if they differ
+        if (config.unit_preferences.weight !== targetWeightUnit) {
+            updateWeightUnit(targetWeightUnit);
+        }
+
+        setConfig(prev => ({
+            ...prev,
+            region: newRegion,
+            recognition_language: targetLang,
+            // Weight unit is already updated by updateWeightUnit call above if needed
+        }));
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
@@ -168,6 +192,51 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-6 max-w-2xl mx-auto">
+                <Card className="border-primary/50 bg-primary/5">
+                    <CardHeader>
+                        <CardTitle className="text-primary flex items-center gap-2">
+                            Global Region Settings
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Global Region (Quickly adapt units and language)</Label>
+                            <div className="flex gap-6">
+                                <label className="flex items-center gap-3 cursor-pointer p-3 border rounded-lg hover:bg-background transition-colors flex-1">
+                                    <input
+                                        type="radio"
+                                        name="region"
+                                        value="CN"
+                                        checked={config.region === 'CN'}
+                                        onChange={() => updateRegion('CN')}
+                                        className="w-5 h-5 text-primary"
+                                    />
+                                    <div className="flex flex-col">
+                                        <span className="font-semibold">China (中国)</span>
+                                        <span className="text-xs text-muted-foreground">g, kcal, 中文</span>
+                                    </div>
+                                </label>
+                                <label className="flex items-center gap-3 cursor-pointer p-3 border rounded-lg hover:bg-background transition-colors flex-1">
+                                    <input
+                                        type="radio"
+                                        name="region"
+                                        value="US"
+                                        checked={config.region === 'US'}
+                                        onChange={() => updateRegion('US')}
+                                        className="w-5 h-5 text-primary"
+                                    />
+                                    <div className="flex flex-col">
+                                        <span className="font-semibold">United States</span>
+                                        <span className="text-xs text-muted-foreground">oz, kcal, English</span>
+                                    </div>
+                                </label>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2">
+                                Selecting a region will automatically set your preferred units and AI recognition language. You can still customize them individually below.
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
                 <Card>
                     <CardHeader>
                         <CardTitle>Daily Nutrition Targets</CardTitle>

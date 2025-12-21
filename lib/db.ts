@@ -131,6 +131,12 @@ export function initDB() {
         saveSetting('recognition_language', 'zh');
     }
 
+    // Initialize default region if not exists
+    const existingRegion = getSetting('region');
+    if (!existingRegion) {
+        saveSetting('region', 'CN');
+    }
+
     // Migration for existing tables
     const tables = ['recipes', 'dishes'];
     for (const table of tables) {
