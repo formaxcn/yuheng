@@ -32,7 +32,9 @@ export interface Settings {
     recognition_language: 'zh' | 'en';
     region: 'CN' | 'US';
     llm_api_key?: string;
+    llm_provider?: string;
     llm_model?: string;
+    llm_base_url?: string;
 }
 
 export interface NutritionStats {
@@ -82,14 +84,14 @@ export const api = {
         return res.json();
     },
 
-    // Gemini (Direct Fix/Add)
-    async geminiFix(data: { mode: 'fix'; userPrompt: string; dish: Partial<Dish>; image?: string }): Promise<Dish> {
-        const res = await fetch('/api/gemini', {
+    // LLM (Adjustment/Fix)
+    async adjustment(data: { mode: 'fix'; userPrompt: string; dish: Partial<Dish>; image?: string }): Promise<Dish> {
+        const res = await fetch('/api/llm', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        if (!res.ok) throw new Error('Failed to fix dish');
+        if (!res.ok) throw new Error('Failed to adjust dish');
         return res.json();
     },
 

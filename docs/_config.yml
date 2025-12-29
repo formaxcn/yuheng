@@ -1,0 +1,5 @@
+theme: jekyll-theme-minimal
+title: YuHeng (玉衡)
+description: A local nutrition tracking app powered by AI
+google_analytics:
+show_downloads: true

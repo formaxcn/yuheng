@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRecognitionTask, updateRecognitionTask, getUnitPreferences, getSetting } from '@/lib/db';
-import { analyzeImage } from '@/lib/gemini';
-import fs from 'fs';
-import path from 'path';
+import { LLMFactory } from '@/lib/llm/factory';
+import { promptManager } from '@/lib/prompts';
 import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
@@ -30,19 +29,11 @@ export async function POST(req: NextRequest) {
             : `\nIMPORTANT: 请使用中文提供 "name" 和 "description" 字段的值。`;
 
         // Load prompt
-        const promptPath = path.join(process.cwd(), 'prompts', 'gemini-dish-init-prompt.txt');
-        let promptText = fs.readFileSync(promptPath, 'utf-8');
-
-        // Inject units into prompt
-        if (unitPrefs.energy === 'kj') {
-            promptText = promptText.replace('每100克的估算热量（kcal）', '每100克的估算热量（kJ）');
-        }
-        if (unitPrefs.weight === 'oz') {
-            promptText = promptText.replace('估算的分量（克）', '估算的分量（oz）');
-        }
-
-        promptText += unitInstruction;
-        promptText += langInstruction;
+        const promptText = await promptManager.getPrompt('dish-init-prompt', {
+            energy_unit: unitPrefs.energy === 'kj' ? 'kJ' : 'kcal',
+            weight_unit: unitPrefs.weight === 'oz' ? 'oz' : '克',
+            lang_instruction: langInstruction
+        });
 
         const imagePart = {
             inlineData: {
@@ -55,7 +46,8 @@ export async function POST(req: NextRequest) {
         (async () => {
             try {
                 await updateRecognitionTask(taskId, { status: 'processing' });
-                const dishes = await analyzeImage(imagePart, promptText);
+                const provider = await LLMFactory.getProvider();
+                const dishes = await provider.analyzeImage(imagePart, promptText);
                 const dishesWithUnits = dishes.map((d: any) => ({
                     ...d,
                     energy_unit: unitPrefs.energy,

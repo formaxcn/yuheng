@@ -6,13 +6,20 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Save, Loader2, Plus, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Plus, Trash2, X, Sparkles, Bot, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { api, Settings } from '@/lib/api-client';
 import { kcalToKj, kjToKcal, gramsToOz, ozToGrams, EnergyUnit, WeightUnit } from '@/lib/units';
 import { Slider } from '@/components/ui/slider';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
 export default function SettingsPage() {
     const router = useRouter();
@@ -34,7 +41,9 @@ export default function SettingsPage() {
         recognition_language: 'zh',
         region: 'CN',
         llm_api_key: '',
+        llm_provider: 'gemini',
         llm_model: 'gemini-2.5-flash',
+        llm_base_url: '',
         other_meal_name: 'Snack',
         time_format: '24h'
     });
@@ -58,8 +67,14 @@ export default function SettingsPage() {
             if (data.llm_api_key === undefined || data.llm_api_key === null) {
                 data.llm_api_key = '';
             }
+            if (!data.llm_provider) {
+                data.llm_provider = 'gemini';
+            }
             if (!data.llm_model) {
                 data.llm_model = 'gemini-2.5-flash';
+            }
+            if (data.llm_base_url === undefined || data.llm_base_url === null) {
+                data.llm_base_url = '';
             }
             if (!data.other_meal_name) {
                 data.other_meal_name = 'Snack';
@@ -68,15 +83,36 @@ export default function SettingsPage() {
                 data.time_format = '24h';
             }
             setConfig(data);
-
-            const modelList = await api.getModels();
-            setModels(modelList);
         } catch (error) {
             console.error(error);
             toast.error('Error loading settings');
         } finally {
             setLoading(false);
         }
+    };
+
+    useEffect(() => {
+        const fetchModels = async () => {
+            try {
+                const modelList = await api.getModels();
+                setModels(modelList);
+            } catch (error) {
+                console.error(error);
+            }
+        };
+        fetchModels();
+    }, [config.llm_provider]);
+
+    const handleProviderChange = (provider: string) => {
+        let defaultModel = 'gemini-3-flash-preview';
+        if (provider === 'openai') defaultModel = 'gpt-4o';
+        else if (provider === 'openai-compatible') defaultModel = 'mimo-v2-flash';
+
+        setConfig(prev => ({
+            ...prev,
+            llm_provider: provider,
+            llm_model: defaultModel
+        }));
     };
 
     const handleSave = async () => {
@@ -479,37 +515,40 @@ export default function SettingsPage() {
                         <CardTitle>AI Recognition & LLM Setup</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Label>Gemini API Key</Label>
-                            <Input
-                                type="password"
-                                placeholder="Enter your Gemini API key"
-                                value={config.llm_api_key}
-                                onChange={(e) => setConfig(prev => ({ ...prev, llm_api_key: e.target.value }))}
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 pt-2">
+                        <div className="grid grid-cols-2 gap-4 pb-2">
                             <div className="space-y-2">
-                                <Label>Model Select</Label>
-                                <select
-                                    className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                    value={config.llm_model || ''}
-                                    onChange={(e) => setConfig(prev => ({ ...prev, llm_model: e.target.value }))}
-                                >
-                                    <option value="" disabled>Select a model</option>
-                                    {models && models.length > 0 ? models.map(m => (
-                                        <option key={m.id || 'missing-id'} value={m.id || ''}>{m.name || 'Unknown Model'}</option>
-                                    )) : (
-                                        <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                                    )}
-                                </select>
+                                <Label>LLM Provider</Label>
+                                <Select value={config.llm_provider || 'gemini'} onValueChange={handleProviderChange}>
+                                    <SelectTrigger className="w-full h-10">
+                                        <SelectValue placeholder="Select provider" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="gemini">
+                                            <div className="flex items-center gap-2">
+                                                <Sparkles className="w-4 h-4" />
+                                                <span>Gemini</span>
+                                            </div>
+                                        </SelectItem>
+                                        <SelectItem value="openai">
+                                            <div className="flex items-center gap-2">
+                                                <Bot className="w-4 h-4" />
+                                                <span>OpenAI</span>
+                                            </div>
+                                        </SelectItem>
+                                        <SelectItem value="openai-compatible">
+                                            <div className="flex items-center gap-2">
+                                                <Globe className="w-4 h-4" />
+                                                <span>Compatible</span>
+                                            </div>
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
 
                             <div className="space-y-2">
                                 <Label>Recognition Language</Label>
-                                <div className="flex gap-4 h-10 items-center">
-                                    <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                                <div className="flex gap-4 p-3 border rounded-lg h-10 items-center bg-transparent">
+                                    <label className="flex items-center gap-2 cursor-pointer">
                                         <input
                                             type="radio"
                                             name="recognitionLanguage"
@@ -518,9 +557,9 @@ export default function SettingsPage() {
                                             onChange={() => updateRecognitionLanguage('zh')}
                                             className="w-4 h-4 text-primary"
                                         />
-                                        <span>中文</span>
+                                        <span className="text-sm">中文</span>
                                     </label>
-                                    <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                                    <label className="flex items-center gap-2 cursor-pointer">
                                         <input
                                             type="radio"
                                             name="recognitionLanguage"
@@ -529,13 +568,61 @@ export default function SettingsPage() {
                                             onChange={() => updateRecognitionLanguage('en')}
                                             className="w-4 h-4 text-primary"
                                         />
-                                        <span>English</span>
+                                        <span className="text-sm">English</span>
                                     </label>
                                 </div>
                             </div>
                         </div>
+                        <p className="text-[10px] text-muted-foreground -mt-2">
+                            Provider and language settings for AI food recognition.
+                        </p>
+
+
+                        {config.llm_provider === 'openai-compatible' && (
+                            <div className="space-y-2">
+                                <Label>Base URL</Label>
+                                <Input
+                                    placeholder="e.g. https://api.openai.com/v1"
+                                    value={config.llm_base_url}
+                                    onChange={(e) => setConfig(prev => ({ ...prev, llm_base_url: e.target.value }))}
+                                />
+                                <p className="text-xs text-muted-foreground">The endpoint for the OpenAI compatible API.</p>
+                            </div>
+                        )}
+
+                        <div className="space-y-2">
+                            <Label>API Key</Label>
+                            <Input
+                                type="password"
+                                placeholder={`Enter your ${config.llm_provider} API key`}
+                                value={config.llm_api_key}
+                                onChange={(e) => setConfig(prev => ({ ...prev, llm_api_key: e.target.value }))}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Model Name</Label>
+                            <div className="relative">
+                                <Input
+                                    list="llm-models"
+                                    placeholder="e.g. gpt-4o"
+                                    value={config.llm_model}
+                                    onChange={(e) => setConfig(prev => ({ ...prev, llm_model: e.target.value }))}
+                                    className="w-full"
+                                />
+                                <datalist id="llm-models">
+                                    {models && models.length > 0 && models.map(m => (
+                                        <option key={m.id} value={m.id}>{m.name}</option>
+                                    ))}
+                                </datalist>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Select from presets or type a custom model name.
+                                </p>
+                            </div>
+                        </div>
                     </CardContent>
                 </Card>
+
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
