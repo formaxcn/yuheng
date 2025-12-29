@@ -18,6 +18,11 @@ When a user uploads a photo:
 2.  The UI shows a "Refining" state while processing.
 3.  The result is parsed into individual `dishes`.
 
+### 3. Packaged Food Recognition
+YuHeng supports scanning packaged food directly:
+-   **Nutrition Tables**: AI prioritizes "per 100g/ml" data. If total weight is not found, it leaves the weight as 0 for manual input.
+-   **Food Labels**: AI attempts to find the product name and net weight from the package front or labels.
+
 ## Backfilling Logic
 
 YuHeng allows users to add meals for past dates or specific times.

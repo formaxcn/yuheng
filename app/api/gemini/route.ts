@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeImage, fixDish } from '@/lib/gemini';
-import fs from 'fs';
-import path from 'path';
 import { getUnitPreferences, getSetting } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { promptManager } from '@/lib/prompts';
 
 export async function POST(req: NextRequest) {
     try {
@@ -15,26 +14,22 @@ export async function POST(req: NextRequest) {
         const unitPrefs = await getUnitPreferences();
         const recognitionLang = (await getSetting('recognition_language')) || 'zh';
 
-        const unitInstruction = `\nIMPORTANT: Please provide nutrition values in the following units: 
-                                - Energy: ${unitPrefs.energy} (per 100g)
-                                - Weight: ${unitPrefs.weight}`;
-
         const langInstruction = recognitionLang === 'en'
-            ? `\nIMPORTANT: Please provide the "name" and "description" fields in English.`
-            : `\nIMPORTANT: 请使用中文提供 "name" 和 "description" 字段的值。`;
+            ? `IMPORTANT: Please provide the "name" and "description" fields in English.`
+            : `IMPORTANT: 请使用中文提供 "name" 和 "description" 字段的值。`;
+
+        const commonVariables = {
+            energy_unit: unitPrefs.energy === 'kj' ? 'kJ' : 'kcal',
+            weight_unit: unitPrefs.weight === 'oz' ? 'oz' : '克',
+            lang_instruction: langInstruction,
+        };
 
         if (mode === 'fix') {
-            const promptPath = path.join(process.cwd(), 'prompts', 'gemini-dish-fix-prompt.txt');
-            let basePrompt = fs.readFileSync(promptPath, 'utf-8');
-
-            if (unitPrefs.energy === 'kj') {
-                basePrompt = basePrompt.replace('calories": 100', 'calories": 418'); // Example kJ
-            }
-            if (unitPrefs.weight === 'oz') {
-                basePrompt = basePrompt.replace('weight": 200', 'weight": 7.0'); // Example oz
-            }
-
-            const fullPrompt = `${basePrompt}${unitInstruction}${langInstruction}\n\nUser Input: ${userPrompt}\nOriginal Dish: ${JSON.stringify(dish)}`;
+            const fullPrompt = await promptManager.getPrompt('gemini-dish-fix-prompt', {
+                ...commonVariables,
+                user_prompt: userPrompt,
+                original_dish: JSON.stringify(dish),
+            });
 
             let resultData = await fixDish(fullPrompt);
 
@@ -49,12 +44,11 @@ export async function POST(req: NextRequest) {
         }
 
         // Default 'init'
-        const promptPath = path.join(process.cwd(), 'prompts', 'gemini-dish-init-prompt.txt');
-        let promptText = fs.readFileSync(promptPath, 'utf-8');
-
         if (!image) {
             return NextResponse.json({ error: 'Image required' }, { status: 400 });
         }
+
+        const promptText = await promptManager.getPrompt('gemini-dish-init-prompt', commonVariables);
 
         const imagePart = {
             inlineData: {
@@ -63,22 +57,10 @@ export async function POST(req: NextRequest) {
             }
         };
 
-        // Inject units into prompt (similar to recognize/route.ts)
-        if (unitPrefs.energy === 'kj') {
-            promptText = promptText.replace('每100克的估算热量（kcal）', '每100克的估算热量（kJ）');
-        }
-        if (unitPrefs.weight === 'oz') {
-            promptText = promptText.replace('估算的分量（克）', '估算的分量（oz）');
-        }
-
-        promptText += unitInstruction;
-        promptText += langInstruction;
-
         const dishes = await analyzeImage(imagePart, promptText);
         return NextResponse.json(dishes);
 
     } catch (error: any) {
-        console.error('Gemini API Error:', error);
-        return NextResponse.json({ error: 'Failed to process image' }, { status: 500 });
+        logger.error(error, 'Gemini API Route Error');
     }
 }
