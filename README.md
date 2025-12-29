@@ -99,7 +99,15 @@ Settings like meal times, daily targets, and API keys can be configured directly
 ## Roadmap
 
 - [ ] Support for multiple users
-- [x] Migrate database to Postgres (Completed)
+- [x] Migrate database to Postgres (Beta)
 - [ ] Packaged food scanning & recognition
 - [ ] Add support for Doubao
 - [ ] Mobile app version
+ 
+ ## Screenshots
+ 
+ <p align="center">
+   <img src="./docs/screenshots/main.png" alt="Main Page" />
+   <img src="./docs/screenshots/add.png" alt="Add Meal" />
+   <img src="./docs/screenshots/setting.png" alt="Settings" />
+ </p>
