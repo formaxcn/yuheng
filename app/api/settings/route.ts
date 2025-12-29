@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
         const recognition_language = (await getSetting('recognition_language')) || 'zh';
         const region = (await getSetting('region')) || 'CN';
         const llm_api_key = (await getSetting('llm_api_key')) || '';
-        const llm_model = (await getSetting('llm_model')) || 'gemini-2.0-flash';
+        const llm_model = (await getSetting('llm_model')) || 'gemini-2.5-flash';
         const other_meal_name = (await getSetting('other_meal_name')) || 'Snack';
         const time_format = (await getSetting('time_format')) || '24h';
         return NextResponse.json({ meal_times, daily_targets, unit_preferences, recognition_language, region, llm_api_key, llm_model, other_meal_name, time_format });
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
             recognition_language: currentLang,
             region: (await getSetting('region')) || 'CN',
             llm_api_key: (await getSetting('llm_api_key')) || '',
-            llm_model: (await getSetting('llm_model')) || 'gemini-2.0-flash',
+            llm_model: (await getSetting('llm_model')) || 'gemini-2.5-flash',
             other_meal_name: (await getSetting('other_meal_name')) || 'Snack',
             time_format: (await getSetting('time_format')) || '24h'
         });

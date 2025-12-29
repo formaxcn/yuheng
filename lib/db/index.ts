@@ -49,7 +49,7 @@ export async function ensureInit() {
                 { key: 'region', val: 'CN' },
                 { key: 'time_format', val: '24h' },
                 { key: 'other_meal_name', val: 'Snack' },
-                { key: 'llm_model', val: 'gemini-2.0-flash' }
+                { key: 'llm_model', val: 'gemini-2.5-flash' }
             ];
 
             for (const item of defaults) {

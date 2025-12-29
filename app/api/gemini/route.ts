@@ -16,8 +16,8 @@ export async function POST(req: NextRequest) {
         const recognitionLang = (await getSetting('recognition_language')) || 'zh';
 
         const unitInstruction = `\nIMPORTANT: Please provide nutrition values in the following units: 
-- Energy: ${unitPrefs.energy} (per 100g)
-- Weight: ${unitPrefs.weight}`;
+                                - Energy: ${unitPrefs.energy} (per 100g)
+                                - Weight: ${unitPrefs.weight}`;
 
         const langInstruction = recognitionLang === 'en'
             ? `\nIMPORTANT: Please provide the "name" and "description" fields in English.`

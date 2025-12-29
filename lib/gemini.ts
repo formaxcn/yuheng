@@ -13,7 +13,7 @@ async function getGenAI() {
 
 async function getModelName() {
     const dbModel = await getSetting("llm_model");
-    return dbModel || "gemini-2.0-flash";
+    return dbModel || "gemini-2.5-flash";
 }
 
 export async function analyzeImage(imagePart: { inlineData: { data: string; mimeType: string } }, promptText: string) {
