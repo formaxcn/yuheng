@@ -4,17 +4,16 @@ import { logger } from "@/lib/logger";
 import { getSetting } from "@/lib/db";
 
 async function getGenAI() {
-    const dbKey = await getSetting("llm_api_key");
-    const apiKey = dbKey || process.env.GEMINI_API_KEY;
+    const apiKey = await getSetting("llm_api_key");
     if (!apiKey) {
-        logger.warn("GEMINI_API_KEY is not set in DB or process.env");
+        logger.warn("llm_api_key is not set in DB settings");
     }
     return new GoogleGenerativeAI(apiKey || "");
 }
 
 async function getModelName() {
     const dbModel = await getSetting("llm_model");
-    return dbModel || process.env.MODEL || "gemini-2.0-flash";
+    return dbModel || "gemini-2.0-flash";
 }
 
 export async function analyzeImage(imagePart: { inlineData: { data: string; mimeType: string } }, promptText: string) {

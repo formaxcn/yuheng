@@ -16,10 +16,10 @@ YuHeng(玉衡 Jade Balance) - A local nutrition tracking app named after the fif
 ## Getting Started
 
 1. Clone the repo
-2. Copy `example.env.local` to `.env.local` and add your Gemini API Key.
-3. Run `npm install`
-4. Run `npm run dev`
-5. Open `http://localhost:3000`
+2. Run `npm install`
+3. Run `npm run dev`
+4. Open `http://localhost:3000`
+5. Configure your Gemini API Key in the settings page.
 
 ## Docker Usage
 
@@ -47,8 +47,6 @@ When you mount an empty `data` directory, the container will automatically initi
 
 | Variable | Description | Required | Default |
 |----------|-------------|----------|---------|
-| `GEMINI_API_KEY` | Your Google Gemini API Key | **Yes** | - |
-| `MODEL` | Gemini Model to use | No | `gemini-2.0-flash` |
 | `POSTGRES_URL` | PostgreSQL connection string (if using Postgres) | No | SQLite |
 | `DB_PATH` | Path to SQLite database file | No | `./nutrition.db` |
 
@@ -66,7 +64,6 @@ mkdir data
 docker run -d \
   --name yuheng \
   -p 3000:3000 \
-  -e GEMINI_API_KEY=your_key_here \
   -v "$(pwd)/data:/app/data" \
   ghcr.io/formaxcn/yuheng
 ```
@@ -75,8 +72,7 @@ docker run -d \
 
 You can easily start YuHeng with a PostgreSQL database using Docker Compose:
 
-1. Create a `GEMINI_API_KEY` environment variable or edit `docker-compose.yml`.
-2. Run:
+1. Run:
 ```bash
 docker-compose up -d
 ```
