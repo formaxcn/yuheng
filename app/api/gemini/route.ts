@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { analyzeImage, fixDish } from '@/lib/gemini';
 import fs from 'fs';
 import path from 'path';
-import { getUnitPreferences, getRecognitionLanguage } from '@/lib/db';
+import { getUnitPreferences, getSetting } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
@@ -12,12 +12,12 @@ export async function POST(req: NextRequest) {
         // mode: 'init' | 'fix'
         // image: base64 string (without prefix ideally, or handle it)
 
-        const unitPrefs = getUnitPreferences();
-        const recognitionLang = getRecognitionLanguage();
+        const unitPrefs = await getUnitPreferences();
+        const recognitionLang = (await getSetting('recognition_language')) || 'zh';
 
         const unitInstruction = `\nIMPORTANT: Please provide nutrition values in the following units: 
-- Energy: ${unitPrefs.energy} (per 100g)
-- Weight: ${unitPrefs.weight}`;
+                                - Energy: ${unitPrefs.energy} (per 100g)
+                                - Weight: ${unitPrefs.weight}`;
 
         const langInstruction = recognitionLang === 'en'
             ? `\nIMPORTANT: Please provide the "name" and "description" fields in English.`

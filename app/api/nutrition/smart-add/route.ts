@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
         // type: Meal Type string (Optional)
 
         const targetDate = date || new Date().toISOString().split('T')[0];
-        const config = getMealConfig();
+        const config = await getMealConfig();
 
         let targetTime = time;
         let targetType = type;
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
 
         if (!targetType && targetTime) {
             const hour = parseInt(targetTime.split(':')[0]);
-            const otherName = getSetting('other_meal_name') || 'Snack';
+            const otherName = (await getSetting('other_meal_name')) || 'Snack';
 
             targetType = otherName; // Default
             for (const meal of config) {
@@ -111,18 +111,18 @@ export async function POST(req: NextRequest) {
 
         // 1. Find or Create Entry
         // We use the determined targetTime and targetType
-        let entry = getEntryByDateTime(targetDate, targetTime);
+        let entry = await getEntryByDateTime(targetDate, targetTime);
         if (!entry) {
-            entry = createEntry(targetDate, targetTime, targetType);
+            entry = await createEntry(targetDate, targetTime, targetType);
         }
 
         const results = [];
 
         for (const dish of dishes) {
             // 2. Find or Create Recipe
-            let recipe = getRecipe(dish.name);
+            let recipe = await getRecipe(dish.name);
             if (!recipe) {
-                recipe = createRecipe({
+                recipe = await createRecipe({
                     name: dish.name,
                     energy: dish.calories,
                     energy_unit: dish.energy_unit || 'kcal',
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
             }
 
             // 3. Add Dish to Entry
-            const newDish = addDish(entry.id, recipe, dish.weight);
+            const newDish = await addDish(entry.id, recipe, dish.weight);
             results.push(newDish);
         }
 

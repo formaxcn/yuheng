@@ -56,15 +56,15 @@ const settingsSchema = z.object({
  */
 export async function GET(req: NextRequest) {
     try {
-        const meal_times = getMealConfig();
-        const daily_targets = getDailyTargets();
-        const unit_preferences = getUnitPreferences();
-        const recognition_language = getSetting('recognition_language') || 'zh';
-        const region = getSetting('region') || 'CN';
-        const llm_api_key = getSetting('llm_api_key') || '';
-        const llm_model = getSetting('llm_model') || 'gemini-2.0-flash';
-        const other_meal_name = getSetting('other_meal_name') || 'Snack';
-        const time_format = getSetting('time_format') || '24h';
+        const meal_times = await getMealConfig();
+        const daily_targets = await getDailyTargets();
+        const unit_preferences = await getUnitPreferences();
+        const recognition_language = (await getSetting('recognition_language')) || 'zh';
+        const region = (await getSetting('region')) || 'CN';
+        const llm_api_key = (await getSetting('llm_api_key')) || '';
+        const llm_model = (await getSetting('llm_model')) || 'gemini-2.5-flash';
+        const other_meal_name = (await getSetting('other_meal_name')) || 'Snack';
+        const time_format = (await getSetting('time_format')) || '24h';
         return NextResponse.json({ meal_times, daily_targets, unit_preferences, recognition_language, region, llm_api_key, llm_model, other_meal_name, time_format });
     } catch (error) {
         logger.error(error as Error, 'Failed to fetch settings');
@@ -83,43 +83,43 @@ export async function POST(req: NextRequest) {
 
         const { meal_times, daily_targets, unit_preferences, recognition_language, llm_api_key, llm_model, other_meal_name, time_format } = parsed.data;
 
-        saveSetting('meal_times', JSON.stringify(meal_times));
-        saveDailyTargets(daily_targets);
+        await saveSetting('meal_times', JSON.stringify(meal_times));
+        await saveDailyTargets(daily_targets);
         if (unit_preferences) {
-            saveUnitPreferences(unit_preferences);
+            await saveUnitPreferences(unit_preferences);
         }
         if (recognition_language) {
-            saveSetting('recognition_language', recognition_language);
+            await saveSetting('recognition_language', recognition_language);
         }
         if (parsed.data.region) {
-            saveSetting('region', parsed.data.region);
+            await saveSetting('region', parsed.data.region);
         }
         if (llm_api_key !== undefined) {
-            saveSetting('llm_api_key', llm_api_key);
+            await saveSetting('llm_api_key', llm_api_key);
         }
         if (llm_model) {
-            saveSetting('llm_model', llm_model);
+            await saveSetting('llm_model', llm_model);
         }
         if (other_meal_name) {
-            saveSetting('other_meal_name', other_meal_name);
+            await saveSetting('other_meal_name', other_meal_name);
         }
         if (time_format) {
-            saveSetting('time_format', time_format);
+            await saveSetting('time_format', time_format);
         }
 
-        const currentUnitPrefs = getUnitPreferences();
-        const currentLang = getSetting('recognition_language') || 'zh';
+        const currentUnitPrefs = await getUnitPreferences();
+        const currentLang = (await getSetting('recognition_language')) || 'zh';
         return NextResponse.json({
             success: true,
             meal_times,
             daily_targets,
             unit_preferences: currentUnitPrefs,
             recognition_language: currentLang,
-            region: getSetting('region') || 'CN',
-            llm_api_key: getSetting('llm_api_key') || '',
-            llm_model: getSetting('llm_model') || 'gemini-2.0-flash',
-            other_meal_name: getSetting('other_meal_name') || 'Snack',
-            time_format: getSetting('time_format') || '24h'
+            region: (await getSetting('region')) || 'CN',
+            llm_api_key: (await getSetting('llm_api_key')) || '',
+            llm_model: (await getSetting('llm_model')) || 'gemini-2.5-flash',
+            other_meal_name: (await getSetting('other_meal_name')) || 'Snack',
+            time_format: (await getSetting('time_format')) || '24h'
         });
     } catch (error) {
         logger.error(error as Error, 'Failed to save settings');

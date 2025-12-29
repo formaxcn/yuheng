@@ -34,7 +34,7 @@ export default function SettingsPage() {
         recognition_language: 'zh',
         region: 'CN',
         llm_api_key: '',
-        llm_model: 'gemini-2.0-flash',
+        llm_model: 'gemini-2.5-flash',
         other_meal_name: 'Snack',
         time_format: '24h'
     });
@@ -55,11 +55,11 @@ export default function SettingsPage() {
             if (!data.recognition_language) {
                 data.recognition_language = 'zh';
             }
-            if (data.llm_api_key === undefined) {
+            if (data.llm_api_key === undefined || data.llm_api_key === null) {
                 data.llm_api_key = '';
             }
             if (!data.llm_model) {
-                data.llm_model = 'gemini-2.0-flash';
+                data.llm_model = 'gemini-2.5-flash';
             }
             if (!data.other_meal_name) {
                 data.other_meal_name = 'Snack';
@@ -494,12 +494,15 @@ export default function SettingsPage() {
                                 <Label>Model Select</Label>
                                 <select
                                     className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                    value={config.llm_model}
+                                    value={config.llm_model || ''}
                                     onChange={(e) => setConfig(prev => ({ ...prev, llm_model: e.target.value }))}
                                 >
-                                    {models.map(m => (
-                                        <option key={m.id} value={m.id}>{m.name}</option>
-                                    ))}
+                                    <option value="" disabled>Select a model</option>
+                                    {models && models.length > 0 ? models.map(m => (
+                                        <option key={m.id || 'missing-id'} value={m.id || ''}>{m.name || 'Unknown Model'}</option>
+                                    )) : (
+                                        <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                                    )}
                                 </select>
                             </div>
 

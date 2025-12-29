@@ -3,23 +3,22 @@ import { logger } from "@/lib/logger";
 
 import { getSetting } from "@/lib/db";
 
-function getGenAI() {
-    const dbKey = getSetting("llm_api_key");
-    const apiKey = dbKey || process.env.GEMINI_API_KEY;
+async function getGenAI() {
+    const apiKey = await getSetting("llm_api_key");
     if (!apiKey) {
-        logger.warn("GEMINI_API_KEY is not set in DB or process.env");
+        logger.warn("llm_api_key is not set in DB settings");
     }
     return new GoogleGenerativeAI(apiKey || "");
 }
 
-function getModelName() {
-    const dbModel = getSetting("llm_model");
-    return dbModel || process.env.MODEL || "gemini-2.0-flash";
+async function getModelName() {
+    const dbModel = await getSetting("llm_model");
+    return dbModel || "gemini-2.5-flash";
 }
 
 export async function analyzeImage(imagePart: { inlineData: { data: string; mimeType: string } }, promptText: string) {
-    const genAI = getGenAI();
-    const modelName = getModelName();
+    const genAI = await getGenAI();
+    const modelName = await getModelName();
     const model = genAI.getGenerativeModel({ model: modelName });
 
     logger.debug({ modelName, promptLength: promptText.length }, "Sending image to Gemini for analysis");
@@ -48,8 +47,8 @@ export async function analyzeImage(imagePart: { inlineData: { data: string; mime
 }
 
 export async function fixDish(promptText: string, imagePart?: { inlineData: { data: string; mimeType: string } }) {
-    const genAI = getGenAI();
-    const modelName = getModelName();
+    const genAI = await getGenAI();
+    const modelName = await getModelName();
     const model = genAI.getGenerativeModel({ model: modelName });
 
     logger.debug({ modelName, promptLength: promptText.length, hasImage: !!imagePart }, "Sending fix request to Gemini");
