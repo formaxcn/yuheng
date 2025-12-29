@@ -32,7 +32,9 @@ export interface Settings {
     recognition_language: 'zh' | 'en';
     region: 'CN' | 'US';
     llm_api_key?: string;
+    llm_provider?: string;
     llm_model?: string;
+    llm_base_url?: string;
 }
 
 export interface NutritionStats {

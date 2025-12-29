@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { analyzeImage, fixDish } from '@/lib/gemini';
 import { getUnitPreferences, getSetting } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { promptManager } from '@/lib/prompts';
+import { LLMFactory } from '@/lib/llm/factory';
 
 export async function POST(req: NextRequest) {
     try {
@@ -24,6 +24,8 @@ export async function POST(req: NextRequest) {
             lang_instruction: langInstruction,
         };
 
+        const provider = await LLMFactory.getProvider();
+
         if (mode === 'fix') {
             const fullPrompt = await promptManager.getPrompt('gemini-dish-fix-prompt', {
                 ...commonVariables,
@@ -31,7 +33,9 @@ export async function POST(req: NextRequest) {
                 original_dish: JSON.stringify(dish),
             });
 
-            let resultData = await fixDish(fullPrompt);
+            const text = await provider.generateContent(fullPrompt);
+            const jsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
+            let resultData = JSON.parse(jsonStr);
 
             // Ensure units are attached to the result
             resultData = {
@@ -57,10 +61,11 @@ export async function POST(req: NextRequest) {
             }
         };
 
-        const dishes = await analyzeImage(imagePart, promptText);
+        const dishes = await provider.analyzeImage(imagePart, promptText);
         return NextResponse.json(dishes);
 
     } catch (error: any) {
-        logger.error(error, 'Gemini API Route Error');
+        logger.error(error, 'LLM API Route Error');
+        return NextResponse.json({ error: (error as Error).message }, { status: 500 });
     }
 }

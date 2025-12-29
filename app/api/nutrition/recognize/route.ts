@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRecognitionTask, updateRecognitionTask, getUnitPreferences, getSetting } from '@/lib/db';
-import { analyzeImage } from '@/lib/gemini';
+import { LLMFactory } from '@/lib/llm/factory';
 import fs from 'fs';
 import path from 'path';
 import { logger } from '@/lib/logger';
@@ -55,7 +55,8 @@ export async function POST(req: NextRequest) {
         (async () => {
             try {
                 await updateRecognitionTask(taskId, { status: 'processing' });
-                const dishes = await analyzeImage(imagePart, promptText);
+                const provider = await LLMFactory.getProvider();
+                const dishes = await provider.analyzeImage(imagePart, promptText);
                 const dishesWithUnits = dishes.map((d: any) => ({
                     ...d,
                     energy_unit: unitPrefs.energy,

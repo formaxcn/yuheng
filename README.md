@@ -101,7 +101,7 @@ Settings like meal times, daily targets, and API keys can be configured directly
 - [ ] Support for multiple users
 - [x] Migrate database to Postgres (Beta)
 - [x] Packaged food scanning & recognition
-- [ ] Add support for Doubao
+- [ ] Add support for Doubao/Qwen
 - [ ] Mobile app version
  
  ## Screenshots
