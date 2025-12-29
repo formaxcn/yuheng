@@ -39,6 +39,4 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-nutrition.db
-nutrition.db-shm
-nutrition.db-wal
+nutrition.db*
