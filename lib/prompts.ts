@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { logger } from './logger';
 
-export type PromptName = 'gemini-dish-init-prompt' | 'gemini-dish-fix-prompt';
+export type PromptName = 'dish-init-prompt' | 'dish-fix-prompt';
 
 export interface PromptVariables {
     [key: string]: string | number | undefined;

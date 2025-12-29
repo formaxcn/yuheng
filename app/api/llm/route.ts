@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
         const provider = await LLMFactory.getProvider();
 
         if (mode === 'fix') {
-            const fullPrompt = await promptManager.getPrompt('gemini-dish-fix-prompt', {
+            const fullPrompt = await promptManager.getPrompt('dish-fix-prompt', {
                 ...commonVariables,
                 user_prompt: userPrompt,
                 original_dish: JSON.stringify(dish),
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Image required' }, { status: 400 });
         }
 
-        const promptText = await promptManager.getPrompt('gemini-dish-init-prompt', commonVariables);
+        const promptText = await promptManager.getPrompt('dish-init-prompt', commonVariables);
 
         const imagePart = {
             inlineData: {

@@ -16,7 +16,7 @@ YuHeng is a modern nutrition tracking application built with a focus on speed, e
 ```text
 yuheng/
 ├── app/                # Next.js App Router (Pages and API Routes)
-│   ├── api/            # Backend API endpoints (Nutrition, Gemini/LLM, Settings)
+│   ├── api/            # Backend API endpoints (Nutrition, LLM, Settings)
 │   ├── add/            # Meal entry page with async recognition
 │   ├── settings/       # User preferences, meal times, and LLM configuration
 │   └── page.tsx        # Homepage (Dashboard)

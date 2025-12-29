@@ -122,7 +122,7 @@ export default function AddPage() {
         if (!editingDish) return;
         setLoading(true);
         try {
-            const data = await api.geminiFix({
+            const data = await api.adjustment({
                 mode: 'fix',
                 userPrompt: editPrompt,
                 dish: editingDish,
