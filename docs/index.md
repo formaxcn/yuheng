@@ -1,18 +1,123 @@
-# YuHeng Documentation Index
+# yuheng
 
-Welcome to the YuHeng project documentation. This guide provides a comprehensive overview of the system, from high-level architecture to detailed implementation specifics.
+YuHeng(玉衡 Jade Balance) - A local nutrition tracking app named after the fifth and brightest star in the Big Dipper constellation in traditional Chinese astronomy. Just as this star serves as a guiding and balancing force, YuHeng aims to help users in tracking their nutrition effectively.
 
-## Contents
+## Features
+- 📸 Photo-based food logging
+- 🤖 Auto-recognition of dishes using Gemini/OpenAI/Compatible LLMs
+- 📊 Daily nutrition stats & weekly history
+- 🍽️ Support for backfilling meals (Breakfast, Lunch, Dinner, Snack)
+- 🐳 Docker support with persistent DB (SQLite & PostgreSQL)
+- ⚡ Asynchronous image recognition queue
+- ⚖️ Unit conversion (kcal/kJ, g/oz)
+- ⏰ Custom meal times configuration
+- 👥 Meal sharing & portion splitting
+- 🔍 Packaged food scanning & recognition
 
--   **[Architecture](architecture.md)**
-    -   High-level technology stack and project structure.
--   **[System Design & Flows](system_design.md)**
-    -   Detailed explanation of meal recognition, backfilling, and stat calculations.
--   **[Database Design](database_design.md)**
-    -   Schema overview, ER diagrams, and table descriptions.
--   **[Page Implementations](page_implementations.md)**
-    -   Breakdown of the design and roles of each frontend page.
+## Supported LLM Providers
+
+YuHeng supports a wide range of LLM providers for food recognition:
+- **Google Gemini**: Optimized for vision tasks (Gemini 2.5 Flash, Gemini 3 Flash/Pro).
+- **OpenAI**: GPT-4o and GPT-4o mini.
+- **OpenAI Compatible**: Support for various providers like DeepSeek, Qwen-VL, GLM-4V, Doubao, etc.
+
+Detailed model lists can be configured in the settings page.
 
 ## Getting Started
 
-If you are new to the project, start with the **[Architecture](architecture.md)** to understand how the different pieces fit together. For information on how to run the project locally, please refer to the main **[README.md](../README.md)**.
+1. Clone the repo
+2. Run `npm install`
+3. Run `npm run dev`
+4. Open `http://localhost:3000`
+5. Configure your LLM Provider and API Key in the settings page.
+
+## Docker Usage
+
+Build the image:
+```bash
+docker build -t yuheng .
+```
+
+Run the container:
+```bash
+# Create a data directory
+mkdir data
+
+# Run container
+docker run -d \
+  --name yuheng \
+  -p 3000:3000 \
+  -v "$(pwd)/data:/app/data" \
+  ghcr.io/formaxcn/yuheng
+```
+
+When you mount an empty `data` directory, the container will automatically initialize the database with default settings. If you mount a directory that already contains a `nutrition.db` file, the database will remain untouched.
+
+## Environment Variables
+
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `POSTGRES_URL` | PostgreSQL connection string (if using Postgres) | No | SQLite |
+| `DB_PATH` | Path to SQLite database file | No | `./nutrition.db` |
+
+The app will automatically use PostgreSQL if `POSTGRES_URL` is provided. Otherwise, it defaults to SQLite.
+
+## Docker Usage
+
+### Docker Run (SQLite)
+
+```bash
+# Create a data directory for SQLite
+mkdir data
+
+# Run container
+docker run -d \
+  --name yuheng \
+  -p 3000:3000 \
+  -v "$(pwd)/data:/app/data" \
+  ghcr.io/formaxcn/yuheng
+```
+
+### Docker Compose (PostgreSQL)
+
+You can easily start YuHeng with a PostgreSQL database using Docker Compose:
+
+1. Run:
+```bash
+docker-compose up -d
+```
+This will start both the YuHeng app and a PostgreSQL database.
+
+## API Documentation
+
+API documentation is available at `/api/docs` (JSON) or `/api/openapi.json`. 
+You can import this into Postman or explore via Swagger UI.
+
+## Project Documentation
+
+Detailed technical documentation for YuHeng:
+
+- [Architecture](architecture.md): Overview of the tech stack and project structure.
+- [System Design](system_design.md): In-depth look at core flows and AI integration.
+- [Database Design](database_design.md): Schema definitions and relationship diagrams.
+- [Page Implementation](page_implementations.md): Breakdown of the app's frontend design.
+
+## Configuration
+
+Settings like meal times, daily targets, and API keys can be configured directly in the app's settings page.
+
+## Roadmap
+
+- [ ] Support for multiple users
+- [x] Migrate database to Postgres (Stable)
+- [x] Packaged food scanning & recognition
+- [x] Multi-provider LLM support (Gemini, OpenAI, Compatible)
+- [ ] Mobile app version
+ 
+ ## Screenshots
+ 
+ <p align="center">
+   <img src="./screenshots/main.png" alt="Main Page" />
+   <img src="./screenshots/add.png" alt="Add Meal" />
+   <img src="./screenshots/setting.png" alt="Settings" />
+ </p>

@@ -5,8 +5,9 @@ YuHeng is a modern nutrition tracking application built with a focus on speed, e
 ## Technology Stack
 
 -   **Framework**: [Next.js](https://nextjs.org/) (App Router)
--   **Database**: [SQLite](https://www.sqlite.org/) (via `better-sqlite3`)
--   **AI Engine**: [Google Gemini AI](https://deepmind.google/technologies/gemini/) (for image recognition and food analysis)
+-   **Framework**: [Next.js](https://nextjs.org/) (App Router)
+-   **Database**: [SQLite](https://www.sqlite.org/) (via `better-sqlite3`) & [PostgreSQL](https://www.postgresql.org/) (via `pg`)
+-   **AI Providers**: [Google Gemini](https://deepmind.google/technologies/gemini/), [OpenAI](https://openai.com/), and OpenAI-compatible APIs (DeepSeek, Qwen-VL, GLM-4V, Doubao, etc.)
 -   **Styling**: [Tailwind CSS](https://tailwindcss.com/) + [Radix UI](https://www.radix-ui.com/)
 -   **Icons**: [Lucide React](https://lucide.dev/)
 
@@ -15,26 +16,38 @@ YuHeng is a modern nutrition tracking application built with a focus on speed, e
 ```text
 yuheng/
 ├── app/                # Next.js App Router (Pages and API Routes)
-│   ├── api/            # Backend API endpoints
-│   ├── add/            # Meal entry page
-│   ├── settings/       # User preferences and targets
+│   ├── api/            # Backend API endpoints (Nutrition, Gemini/LLM, Settings)
+│   ├── add/            # Meal entry page with async recognition
+│   ├── settings/       # User preferences, meal times, and LLM configuration
 │   └── page.tsx        # Homepage (Dashboard)
-├── components/         # Reusable UI components
-├── lib/                # Core logic, DB helpers, and AI integration
-│   ├── db.ts           # SQLite schema and repository functions
-│   ├── gemini.ts       # Gemini AI client and analysis logic
-│   ├── prompts.ts      # Dynamic prompt management
+├── components/         # Reusable UI components (Shadcn UI)
+├── lib/                # Core logic and shared utilities
+│   ├── db/             # Database abstraction layer (Adapters for SQLite/Postgres)
+│   ├── llm/            # LLM provider factory and implementations
+│   ├── db.ts           # Unified database access functions
+│   ├── prompts.ts      # Prompt management system with variable injection
 │   ├── api-client.ts   # Frontend API client
-│   └── units.ts        # Unit conversion and display logic
+│   ├── units.ts        # Unit conversion (kcal/kJ, g/oz)
+│   └── logger.ts       # Unified logging (Pino)
 ├── prompts/            # AI instruction templates (.txt files)
 ├── public/             # Static assets
-├── types/              # TypeScript definitions
-└── nutrition.db        # SQLite database file (generated)
+└── types/              # TypeScript definitions
 ```
+
+## Core Design Patterns
+
+### Database Adapter Pattern
+YuHeng uses an adapter pattern to support multiple databases. The system automatically detects the environment (e.g., `POSTGRES_URL`) and selects the appropriate adapter (`SQLiteAdapter` or `PostgresAdapter`) while maintaining a unified interface.
+
+### LLM Provider Factory
+A factory pattern is used to instantiate the correct LLM provider (Gemini, OpenAI, or OpenAI-compatible) based on user settings. This allows the application to stay provider-agnostic for its core recognition logic.
+
+### Prompt Management
+Prompts are decoupled from the code and stored in the `prompts/` directory. The `PromptManager` handles loading these templates and injecting runtime variables (such as units and language preferences).
 
 ## Data Flow
 
 1.  **Input**: User enters food description or uploads an image.
-2.  **Analysis**: The `lib/gemini.ts` sends data to Gemini AI to identify food items and estimate nutritional values.
-3.  **Storage**: Validated food data is stored in the `dishes` table, linked to an `entries` record.
-4.  **Display**: The frontend fetches data via `/api/nutrition/stats` and displays daily progress against targets.
+2.  **Analysis**: The `app/api/nutrition/recognize` creates a background `RecognitionTask` and triggers the LLM analysis via the `LLMFactory`.
+3.  **Storage**: Validated food data is stored in the `dishes` table, which snapshots the recipe information at the time of entry.
+4.  **Display**: The dashboard fetches aggregate data via `/api/nutrition/stats` and displays daily progress against targets.
