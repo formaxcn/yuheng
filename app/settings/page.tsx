@@ -13,6 +13,13 @@ import { toast } from 'sonner';
 import { api, Settings } from '@/lib/api-client';
 import { kcalToKj, kjToKcal, gramsToOz, ozToGrams, EnergyUnit, WeightUnit } from '@/lib/units';
 import { Slider } from '@/components/ui/slider';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
 export default function SettingsPage() {
     const router = useRouter();
@@ -97,9 +104,9 @@ export default function SettingsPage() {
     }, [config.llm_provider]);
 
     const handleProviderChange = (provider: string) => {
-        let defaultModel = 'gemini-2.5-flash';
+        let defaultModel = 'gemini-3-flash-preview';
         if (provider === 'openai') defaultModel = 'gpt-4o';
-        else if (provider === 'openai-compatible') defaultModel = 'qwen-max';
+        else if (provider === 'openai-compatible') defaultModel = 'mimo-v2-flash';
 
         setConfig(prev => ({
             ...prev,
@@ -508,65 +515,68 @@ export default function SettingsPage() {
                         <CardTitle>AI Recognition & LLM Setup</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-2">
+                        <div className="grid grid-cols-2 gap-4 pb-2">
                             <div className="space-y-2">
                                 <Label>LLM Provider</Label>
-                                <div className="grid grid-cols-1 gap-2">
-                                    {[
-                                        { id: 'gemini', name: 'Gemini', icon: Sparkles },
-                                        { id: 'openai', name: 'OpenAI', icon: Bot },
-                                        { id: 'openai-compatible', name: 'Compatible', icon: Globe }
-                                    ].map((p) => (
-                                        <label
-                                            key={p.id}
-                                            className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${config.llm_provider === p.id ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-accent'}`}
-                                        >
-                                            <input
-                                                type="radio"
-                                                name="llm_provider"
-                                                value={p.id}
-                                                checked={config.llm_provider === p.id}
-                                                onChange={() => handleProviderChange(p.id)}
-                                                className="hidden"
-                                            />
-                                            <p.icon className={`w-5 h-5 ${config.llm_provider === p.id ? 'text-primary' : 'text-muted-foreground'}`} />
-                                            <span className="font-medium">{p.name}</span>
-                                        </label>
-                                    ))}
-                                </div>
+                                <Select value={config.llm_provider || 'gemini'} onValueChange={handleProviderChange}>
+                                    <SelectTrigger className="w-full h-10">
+                                        <SelectValue placeholder="Select provider" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="gemini">
+                                            <div className="flex items-center gap-2">
+                                                <Sparkles className="w-4 h-4" />
+                                                <span>Gemini</span>
+                                            </div>
+                                        </SelectItem>
+                                        <SelectItem value="openai">
+                                            <div className="flex items-center gap-2">
+                                                <Bot className="w-4 h-4" />
+                                                <span>OpenAI</span>
+                                            </div>
+                                        </SelectItem>
+                                        <SelectItem value="openai-compatible">
+                                            <div className="flex items-center gap-2">
+                                                <Globe className="w-4 h-4" />
+                                                <span>Compatible</span>
+                                            </div>
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
 
                             <div className="space-y-2">
                                 <Label>Recognition Language</Label>
-                                <div className="flex flex-col gap-2 h-full">
-                                    <div className="flex gap-4 p-3 border rounded-lg h-[52px] items-center">
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="recognitionLanguage"
-                                                value="zh"
-                                                checked={config.recognition_language === 'zh'}
-                                                onChange={() => updateRecognitionLanguage('zh')}
-                                                className="w-4 h-4 text-primary"
-                                            />
-                                            <span>中文</span>
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="recognitionLanguage"
-                                                value="en"
-                                                checked={config.recognition_language === 'en'}
-                                                onChange={() => updateRecognitionLanguage('en')}
-                                                className="w-4 h-4 text-primary"
-                                            />
-                                            <span>English</span>
-                                        </label>
-                                    </div>
-                                    <p className="text-[10px] text-muted-foreground px-1">Language for name/description.</p>
+                                <div className="flex gap-4 p-3 border rounded-lg h-10 items-center bg-transparent">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="recognitionLanguage"
+                                            value="zh"
+                                            checked={config.recognition_language === 'zh'}
+                                            onChange={() => updateRecognitionLanguage('zh')}
+                                            className="w-4 h-4 text-primary"
+                                        />
+                                        <span className="text-sm">中文</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="recognitionLanguage"
+                                            value="en"
+                                            checked={config.recognition_language === 'en'}
+                                            onChange={() => updateRecognitionLanguage('en')}
+                                            className="w-4 h-4 text-primary"
+                                        />
+                                        <span className="text-sm">English</span>
+                                    </label>
                                 </div>
                             </div>
                         </div>
+                        <p className="text-[10px] text-muted-foreground -mt-2">
+                            Provider and language settings for AI food recognition.
+                        </p>
+
 
                         {config.llm_provider === 'openai-compatible' && (
                             <div className="space-y-2">
