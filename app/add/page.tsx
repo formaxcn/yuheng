@@ -40,6 +40,7 @@ export default function AddPage() {
     const [backfillType, setBackfillType] = useState('Breakfast');
 
     // Split State
+    const [isSharing, setIsSharing] = useState(false);
     const [numPeople, setNumPeople] = useState(1);
     const [personalPortion, setPersonalPortion] = useState(100);
 
@@ -148,7 +149,7 @@ export default function AddPage() {
             const data = await api.smartAdd({
                 dishes: dishes.map(d => ({
                     ...d,
-                    weight: Math.round(d.weight * personalPortion / 100)
+                    weight: isSharing ? Math.round(d.weight * personalPortion / 100) : d.weight
                 })),
                 date: isBackfill ? backfillDate : new Date().toISOString().split('T')[0],
                 time: isBackfill ? backfillTime : undefined,
@@ -266,49 +267,59 @@ export default function AddPage() {
                     </div>
 
                     {/* Multi-user Split */}
-                    <Card className="bg-primary/5 border-primary/20">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm flex items-center gap-2">
+                    <div className="bg-primary/5 border border-primary/20 p-4 rounded-xl space-y-4">
+                        <div className="flex items-center justify-between">
+                            <Label htmlFor="sharing" className="font-semibold cursor-pointer flex items-center gap-2">
                                 <Users className="w-4 h-4" /> Meal Sharing
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <Label>Number of People</Label>
-                                <div className="flex items-center gap-2">
-                                    {[1, 2, 3, 4].map(n => (
-                                        <Button
-                                            key={n}
-                                            variant={numPeople === n ? "default" : "outline"}
-                                            size="sm"
-                                            className="h-8 w-8 p-0"
-                                            onClick={() => setNumPeople(n)}
-                                        >
-                                            {n}
-                                        </Button>
-                                    ))}
-                                </div>
-                            </div>
+                            </Label>
+                            <input
+                                type="checkbox"
+                                id="sharing"
+                                checked={isSharing}
+                                onChange={(e) => setIsSharing(e.target.checked)}
+                                className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                        </div>
 
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-xs">
-                                    <Label>Personal Portion</Label>
-                                    <span className="font-bold">{personalPortion}%</span>
+                        {isSharing && (
+                            <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-sm">Number of People</Label>
+                                    <div className="flex items-center gap-2">
+                                        {[1, 2, 3, 4].map(n => (
+                                            <Button
+                                                key={n}
+                                                variant={numPeople === n ? "default" : "outline"}
+                                                size="sm"
+                                                className="h-8 w-8 p-0"
+                                                onClick={() => setNumPeople(n)}
+                                            >
+                                                {n}
+                                            </Button>
+                                        ))}
+                                    </div>
                                 </div>
-                                <input
-                                    type="range"
-                                    value={personalPortion}
-                                    onChange={(e) => setPersonalPortion(parseInt(e.target.value))}
-                                    max={100}
-                                    step={1}
-                                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
-                                />
-                                <p className="text-[10px] text-muted-foreground">
-                                    Final log will be {personalPortion}% of the total weight.
-                                </p>
+
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-xs">
+                                        <Label>Personal Portion</Label>
+                                        <span className="font-bold">{personalPortion}%</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        value={personalPortion}
+                                        onChange={(e) => setPersonalPortion(parseInt(e.target.value))}
+                                        max={100}
+                                        step={1}
+                                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+                                    />
+                                    <p className="text-[10px] text-muted-foreground">
+                                        Final log will be {personalPortion}% of the total weight.
+                                    </p>
+                                </div>
                             </div>
-                        </CardContent>
-                    </Card>
+                        )}
+                    </div>
 
                     {/* Backfill Options - Now visible after recognition */}
                     <div className="bg-muted/30 p-4 rounded-xl space-y-4">
