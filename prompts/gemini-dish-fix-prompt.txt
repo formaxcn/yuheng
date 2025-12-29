@@ -18,3 +18,15 @@
   "weight": 200,
   "description": "描述"
 }
+
+**单位要求：**
+- 热量单位: {{energy_unit}} (每100g)
+- 重量单位: {{weight_unit}}
+
+{{lang_instruction}}
+
+**用户输入反馈：**
+{{user_prompt}}
+
+**原始菜品信息：**
+{{original_dish}}

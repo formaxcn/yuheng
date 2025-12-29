@@ -23,8 +23,10 @@ yuheng/
 ├── lib/                # Core logic, DB helpers, and AI integration
 │   ├── db.ts           # SQLite schema and repository functions
 │   ├── gemini.ts       # Gemini AI client and analysis logic
+│   ├── prompts.ts      # Dynamic prompt management
 │   ├── api-client.ts   # Frontend API client
 │   └── units.ts        # Unit conversion and display logic
+├── prompts/            # AI instruction templates (.txt files)
 ├── public/             # Static assets
 ├── types/              # TypeScript definitions
 └── nutrition.db        # SQLite database file (generated)
