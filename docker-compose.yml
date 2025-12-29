@@ -1,0 +1,33 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - POSTGRES_URL=postgres://yuheng:yuheng@db:5432/yuheng
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - MODEL=${MODEL:-gemini-2.0-flash}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=yuheng
+      - POSTGRES_PASSWORD=yuheng
+      - POSTGRES_DB=yuheng
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yuheng"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:

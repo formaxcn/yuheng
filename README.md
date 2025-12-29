@@ -43,14 +43,44 @@ docker run -d \
 
 When you mount an empty `data` directory, the container will automatically initialize the database with default settings. If you mount a directory that already contains a `nutrition.db` file, the database will remain untouched.
 
-### Environment Variables
+## Environment Variables
 
 | Variable | Description | Required | Default |
 |----------|-------------|----------|---------|
 | `GEMINI_API_KEY` | Your Google Gemini API Key | **Yes** | - |
-| `MODEL` | Gemini Model to use | No | `gemini-2.5-flash` |
+| `MODEL` | Gemini Model to use | No | `gemini-2.0-flash` |
+| `POSTGRES_URL` | PostgreSQL connection string (if using Postgres) | No | SQLite |
+| `DB_PATH` | Path to SQLite database file | No | `./nutrition.db` |
 
-The database will be stored in your local `data` folder.
+The app will automatically use PostgreSQL if `POSTGRES_URL` is provided. Otherwise, it defaults to SQLite.
+
+## Docker Usage
+
+### Docker Run (SQLite)
+
+```bash
+# Create a data directory for SQLite
+mkdir data
+
+# Run container
+docker run -d \
+  --name yuheng \
+  -p 3000:3000 \
+  -e GEMINI_API_KEY=your_key_here \
+  -v "$(pwd)/data:/app/data" \
+  ghcr.io/formaxcn/yuheng
+```
+
+### Docker Compose (PostgreSQL)
+
+You can easily start YuHeng with a PostgreSQL database using Docker Compose:
+
+1. Create a `GEMINI_API_KEY` environment variable or edit `docker-compose.yml`.
+2. Run:
+```bash
+docker-compose up -d
+```
+This will start both the YuHeng app and a PostgreSQL database.
 
 ## API Documentation
 
@@ -68,14 +98,11 @@ Detailed technical documentation for YuHeng can be found in the [docs](./docs/in
 
 ## Configuration
 
-Meal times can be configured in the database `settings` table. Defaults:
-- Breakfast: 06:00 - 10:00 (Default 08:00)
-- Lunch: 10:00 - 14:00 (Default 12:00)
-- Dinner: 17:00 - 19:00 (Default 18:00)
-- Snack
+Settings like meal times, daily targets, and API keys can be configured directly in the app's settings page or via environment variables.
 
 ## Roadmap
 
 - [ ] Support for multiple users
-- [ ] Migrate database to Postgres
+- [x] Migrate database to Postgres (Completed)
 - [ ] Add support for Doubao
+- [ ] Mobile app version

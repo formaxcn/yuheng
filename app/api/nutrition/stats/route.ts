@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
     const date = searchParams.get('date') || new Date().toISOString().split('T')[0];
 
     try {
-        const entries = getEntries(date);
+        const entries = await getEntries(date);
         let totalCalories = 0;
         let totalProtein = 0;
         let totalCarbs = 0;
@@ -60,8 +60,8 @@ export async function GET(req: NextRequest) {
         const historyStartDateStr = historyStartDate.toISOString().split('T')[0];
         const history = await getHistory(historyStartDateStr, date);
 
-        const mealConfig = getMealConfig();
-        const otherName = getSetting('other_meal_name') || "Snack";
+        const mealConfig = await getMealConfig();
+        const otherName = (await getSetting('other_meal_name')) || "Snack";
 
         interface MealStats {
             type: string;
@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
         }
 
         for (const entry of entries) {
-            const dishes = getDishesForEntry(entry.id);
+            const dishes = await getDishesForEntry(entry.id);
             let entryCalories = 0;
             for (const dish of dishes) {
                 const cals = dish.total_energy || 0;
@@ -104,8 +104,8 @@ export async function GET(req: NextRequest) {
             }
         }
 
-        const targets = getDailyTargets();
-        const unitPrefs = getUnitPreferences();
+        const targets = await getDailyTargets();
+        const unitPrefs = await getUnitPreferences();
 
         // Normalize targets to base units (kcal, g) if they were saved in others
         const normalizedTargetCalories = unitPrefs.energy === 'kj' ? targets.energy / 4.184 : targets.energy;

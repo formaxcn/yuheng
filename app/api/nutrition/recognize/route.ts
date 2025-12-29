@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createRecognitionTask, updateRecognitionTask, getUnitPreferences, getRecognitionLanguage } from '@/lib/db';
+import { createRecognitionTask, updateRecognitionTask, getUnitPreferences, getSetting } from '@/lib/db';
 import { analyzeImage } from '@/lib/gemini';
 import fs from 'fs';
 import path from 'path';
@@ -15,11 +15,11 @@ export async function POST(req: NextRequest) {
         }
 
         const taskId = crypto.randomUUID();
-        createRecognitionTask(taskId);
+        await createRecognitionTask(taskId);
 
         // Fetch unit preferences to pass to Gemini
-        const unitPrefs = getUnitPreferences();
-        const recognitionLang = getRecognitionLanguage();
+        const unitPrefs = await getUnitPreferences();
+        const recognitionLang = (await getSetting('recognition_language')) || 'zh';
 
         const unitInstruction = `\nIMPORTANT: Please provide nutrition values in the following units: 
 - Energy: ${unitPrefs.energy} (per 100g)
@@ -54,17 +54,17 @@ export async function POST(req: NextRequest) {
         // Run analysis in background
         (async () => {
             try {
-                updateRecognitionTask(taskId, { status: 'processing' });
+                await updateRecognitionTask(taskId, { status: 'processing' });
                 const dishes = await analyzeImage(imagePart, promptText);
                 const dishesWithUnits = dishes.map((d: any) => ({
                     ...d,
                     energy_unit: unitPrefs.energy,
                     weight_unit: unitPrefs.weight
                 }));
-                updateRecognitionTask(taskId, { status: 'completed', result: JSON.stringify(dishesWithUnits) });
+                await updateRecognitionTask(taskId, { status: 'completed', result: JSON.stringify(dishesWithUnits) });
             } catch (error) {
                 logger.error(error as Error, `Failed to process task ${taskId}`);
-                updateRecognitionTask(taskId, { status: 'failed', error: (error as Error).message });
+                await updateRecognitionTask(taskId, { status: 'failed', error: (error as Error).message });
             }
         })();
 
