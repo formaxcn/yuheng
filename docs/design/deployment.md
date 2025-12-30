@@ -25,45 +25,31 @@ This ensures your database schema is always up-to-date without manual interventi
 
 ## Deployment Options
 
-### Using Docker Compose (Recommended)
+### Using Docker Compose (Pre-built Image)
 
-Use `docker-compose` to run the app with a dedicated PostgreSQL database. This is the recommended approach for production deployments.
-
-```yaml
-# docker-compose.yml
-services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports: ["3000:3000"]
-    environment:
-      - DATABASE_URL=postgresql://yuheng:yuheng@postgres:5432/yuheng
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes: ["./data:/app/data"]
-
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      - POSTGRES_USER=yuheng
-      - POSTGRES_PASSWORD=yuheng
-      - POSTGRES_DB=yuheng
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U yuheng"]
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-volumes:
-  postgres_data:
-```
-
-To start the application:
+The default `docker-compose.yml` uses the pre-built image from GitHub Container Registry for quick deployment:
 
 ```bash
 docker-compose up -d
 ```
+
+This will:
+- Pull the latest `ghcr.io/formaxcn/yuheng:latest` image
+- Start a PostgreSQL database
+- Automatically run migrations and start the application
+
+### Using Docker Compose (Local Build)
+
+For development or custom builds, use `docker-compose.local.yml` to build the image locally:
+
+```bash
+docker-compose -f docker-compose.local.yml up -d
+```
+
+This will:
+- Build the Docker image from source
+- Start a PostgreSQL database
+- Automatically run migrations and start the application
 
 ### Using Docker Run
 
