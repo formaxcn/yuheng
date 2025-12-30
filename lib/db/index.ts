@@ -58,6 +58,10 @@ export async function ensureInit() {
                 const existing = await activeAdapter.getSetting(item.key);
                 if (!existing) await activeAdapter.saveSetting(item.key, item.val);
             }
+        }).catch((error) => {
+            logger.error(error, 'Database initialization failed');
+            initPromise = null;
+            throw error;
         });
     }
     await initPromise;

@@ -65,7 +65,12 @@ export class PostgresAdapter implements IDatabaseAdapter {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
-        `);
+        `).then(() => {
+            logger.info("PostgreSQL tables initialized");
+        }).catch((error) => {
+            logger.error(error, "PostgreSQL initialization failed");
+            throw error;
+        });
     }
 
     async getSetting(key: string): Promise<string | undefined> {

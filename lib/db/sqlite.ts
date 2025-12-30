@@ -24,70 +24,77 @@ export class SQLiteAdapter implements IDatabaseAdapter {
     }
 
     async init(): Promise<void> {
-        this.db.exec(`
-            CREATE TABLE IF NOT EXISTS recipes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT UNIQUE NOT NULL,
-                energy REAL,
-                energy_unit TEXT DEFAULT 'kcal',
-                protein REAL,
-                carbs REAL,
-                fat REAL,
-                weight_unit TEXT DEFAULT 'g',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
+        try {
+            this.db.exec(`
+                CREATE TABLE IF NOT EXISTS recipes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT UNIQUE NOT NULL,
+                    energy REAL,
+                    energy_unit TEXT DEFAULT 'kcal',
+                    protein REAL,
+                    carbs REAL,
+                    fat REAL,
+                    weight_unit TEXT DEFAULT 'g',
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
 
-            CREATE TABLE IF NOT EXISTS entries (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                date TEXT NOT NULL,
-                time TEXT NOT NULL,
-                type TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
+                CREATE TABLE IF NOT EXISTS entries (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    date TEXT NOT NULL,
+                    time TEXT NOT NULL,
+                    type TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
 
-            CREATE TABLE IF NOT EXISTS dishes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                entry_id INTEGER NOT NULL,
-                recipe_id INTEGER NOT NULL,
-                name TEXT,
-                amount REAL,
-                energy REAL,
-                energy_unit TEXT DEFAULT 'kcal',
-                protein REAL,
-                carbs REAL,
-                fat REAL,
-                weight_unit TEXT DEFAULT 'g',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (entry_id) REFERENCES entries(id) ON DELETE CASCADE,
-                FOREIGN KEY (recipe_id) REFERENCES recipes(id)
-            );
+                CREATE TABLE IF NOT EXISTS dishes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    entry_id INTEGER NOT NULL,
+                    recipe_id INTEGER NOT NULL,
+                    name TEXT,
+                    amount REAL,
+                    energy REAL,
+                    energy_unit TEXT DEFAULT 'kcal',
+                    protein REAL,
+                    carbs REAL,
+                    fat REAL,
+                    weight_unit TEXT DEFAULT 'g',
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (entry_id) REFERENCES entries(id) ON DELETE CASCADE,
+                    FOREIGN KEY (recipe_id) REFERENCES recipes(id)
+                );
 
-            CREATE TABLE IF NOT EXISTS settings (
-                key TEXT PRIMARY KEY,
-                value TEXT
-            );
+                CREATE TABLE IF NOT EXISTS settings (
+                    key TEXT PRIMARY KEY,
+                    value TEXT
+                );
 
-            CREATE TABLE IF NOT EXISTS recognition_tasks (
-                id TEXT PRIMARY KEY,
-                status TEXT NOT NULL,
-                result TEXT,
-                error TEXT,
-                image_path TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
-        `);
+                CREATE TABLE IF NOT EXISTS recognition_tasks (
+                    id TEXT PRIMARY KEY,
+                    status TEXT NOT NULL,
+                    result TEXT,
+                    error TEXT,
+                    image_path TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+            `);
 
-        // Migration
-        const tables = ['recipes', 'dishes'];
-        for (const table of tables) {
-            const columns = this.db.prepare(`PRAGMA table_info(${table})`).all() as any[];
-            if (!columns.some(c => c.name === 'energy_unit')) {
-                this.db.exec(`ALTER TABLE ${table} ADD COLUMN energy_unit TEXT DEFAULT 'kcal'`);
+            // Migration
+            const tables = ['recipes', 'dishes'];
+            for (const table of tables) {
+                const columns = this.db.prepare(`PRAGMA table_info(${table})`).all() as any[];
+                if (!columns.some(c => c.name === 'energy_unit')) {
+                    this.db.exec(`ALTER TABLE ${table} ADD COLUMN energy_unit TEXT DEFAULT 'kcal'`);
+                }
+                if (!columns.some(c => c.name === 'weight_unit')) {
+                    this.db.exec(`ALTER TABLE ${table} ADD COLUMN weight_unit TEXT DEFAULT 'g'`);
+                }
             }
-            if (!columns.some(c => c.name === 'weight_unit')) {
-                this.db.exec(`ALTER TABLE ${table} ADD COLUMN weight_unit TEXT DEFAULT 'g'`);
-            }
+
+            logger.info("SQLite tables initialized");
+        } catch (error) {
+            logger.error(error, "SQLite initialization failed");
+            throw error;
         }
     }
 
