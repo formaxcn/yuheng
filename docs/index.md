@@ -95,12 +95,32 @@ You can import this into Postman or explore via Swagger UI.
 
 ## Project Documentation
 
-Detailed technical documentation for YuHeng:
+Detailed technical and user-facing documentation for YuHeng:
 
-- [Architecture](architecture.md): Overview of the tech stack and project structure.
-- [System Design](system_design.md): In-depth look at core flows and AI integration.
-- [Database Design](database_design.md): Schema definitions and relationship diagrams.
-- [Page Implementation](page_implementations.md): Breakdown of the app's frontend design.
+### ✨ Features
+User-centric guides on what YuHeng can do and how it works.
+
+- [**Smart Food Logging**](features/smart_logging.md): AI-powered dish and text recognition.
+- [**Packaged Food (OCR)**](features/packaged_food.md): Specialized recognition for nutrition labels.
+- [**Portion Management**](features/portion_sharing.md): Sharing meals and smart weight scaling.
+- [**Dashboard & History**](features/dashboard_history.md): Tracking daily progress and weekly trends.
+- [**Backfilling Logic**](features/backfilling.md): Manual entries and automatic classification.
+- [**Recipe Library**](features/meal_library.md): Recipe re-entry and automatic snapshotting.
+- [**Regional Adaption**](features/regional_adaption.md): One-click setup for CN/US regions.
+- [**Unit Preferences**](features/unit_preferences.md): Switching between kcal/kJ and g/oz.
+- [**Backend Status**](features/backend_status.md): Real-time health monitoring and version display.
+
+### 🛠️ System Design
+Technical details for developers and contributors.
+
+- [**Architecture Overview**](design/architecture.md): High-level tech stack and project structure.
+- [**System Flows**](design/flows.md): Core logic and integration sequence diagrams.
+- [**Database Implementation**](design/database_adapter.md): Adapter pattern for SQLite and PostgreSQL.
+- [**Database Schema**](design/schema.md): Detailed table definitions and snapshotted relations.
+- [**Prompt Engine**](design/prompt_engine.md): Decoupled management of AI instructions.
+- [**LLM Integration**](design/llm_integration.md): Multi-provider support and factory logic.
+- [**Docker & Deployment**](design/deployment.md): Standalone builds and container orchestration.
+- [**Page Implementation**](page_implementations.md): Breakdown of the frontend application.
 
 ## Configuration
 
