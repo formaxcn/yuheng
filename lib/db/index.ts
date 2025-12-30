@@ -1,5 +1,4 @@
 import { IDatabaseAdapter } from './interface';
-import { SQLiteAdapter } from './sqlite';
 import { PostgresAdapter } from './postgres';
 import { logger } from '../logger';
 
@@ -9,12 +8,7 @@ let initPromise: Promise<void> | null = null;
 export function getAdapter(): IDatabaseAdapter {
     if (adapter) return adapter;
 
-    const isPostgres = !!(process.env.POSTGRES_URL || process.env.DATABASE_URL);
-    if (isPostgres) {
-        adapter = new PostgresAdapter();
-    } else {
-        adapter = new SQLiteAdapter();
-    }
+    adapter = new PostgresAdapter();
     return adapter;
 }
 
@@ -22,7 +16,6 @@ export async function ensureInit() {
     if (!initPromise) {
         const activeAdapter = getAdapter();
         initPromise = activeAdapter.init().then(async () => {
-            // Shared defaults initialization logic
             const existingMealConfig = await activeAdapter.getSetting('meal_times');
             if (!existingMealConfig) {
                 const DEFAULT_MEAL_CONFIG = [

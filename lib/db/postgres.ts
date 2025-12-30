@@ -9,68 +9,19 @@ export class PostgresAdapter implements IDatabaseAdapter {
     private sql: any;
 
     constructor() {
-        const url = process.env.POSTGRES_URL || process.env.DATABASE_URL!;
+        const url = process.env.DATABASE_URL!;
         this.sql = postgres(url);
         logger.info("PostgreSQL initialized");
     }
 
     async init(): Promise<void> {
-        await this.sql.unsafe(`
-            CREATE TABLE IF NOT EXISTS recipes (
-                id SERIAL PRIMARY KEY,
-                name TEXT UNIQUE NOT NULL,
-                energy REAL,
-                energy_unit TEXT DEFAULT 'kcal',
-                protein REAL,
-                carbs REAL,
-                fat REAL,
-                weight_unit TEXT DEFAULT 'g',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-
-            CREATE TABLE IF NOT EXISTS entries (
-                id SERIAL PRIMARY KEY,
-                date TEXT NOT NULL,
-                time TEXT NOT NULL,
-                type TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-
-            CREATE TABLE IF NOT EXISTS dishes (
-                id SERIAL PRIMARY KEY,
-                entry_id INTEGER NOT NULL REFERENCES entries(id) ON DELETE CASCADE,
-                recipe_id INTEGER NOT NULL REFERENCES recipes(id),
-                name TEXT,
-                amount REAL,
-                energy REAL,
-                energy_unit TEXT DEFAULT 'kcal',
-                protein REAL,
-                carbs REAL,
-                fat REAL,
-                weight_unit TEXT DEFAULT 'g',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-
-            CREATE TABLE IF NOT EXISTS settings (
-                key TEXT PRIMARY KEY,
-                value TEXT
-            );
-
-            CREATE TABLE IF NOT EXISTS recognition_tasks (
-                id TEXT PRIMARY KEY,
-                status TEXT NOT NULL,
-                result TEXT,
-                error TEXT,
-                image_path TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        `).then(() => {
-            logger.info("PostgreSQL tables initialized");
-        }).catch((error) => {
+        try {
+            await this.sql`SELECT 1`;
+            logger.info("PostgreSQL connection verified");
+        } catch (error) {
             logger.error(error, "PostgreSQL initialization failed");
             throw error;
-        });
+        }
     }
 
     async getSetting(key: string): Promise<string | undefined> {
@@ -176,12 +127,14 @@ export class PostgresAdapter implements IDatabaseAdapter {
     }
 
     async updateRecognitionTask(id: string, updates: Partial<Pick<RecognitionTask, 'status' | 'result' | 'error'>>): Promise<void> {
-        const sets = Object.entries(updates).map(([k, v]) => this.sql`${this.sql(k)} = ${v}`);
-        await this.sql`
+        const keys = Object.keys(updates);
+        const values = Object.values(updates);
+        const setClause = keys.map((k, i) => `${k} = ${values[i]}`).join(', ');
+        await this.sql.unsafe(`
             UPDATE recognition_tasks 
-            SET ${this.sql(sets)}, updated_at = CURRENT_TIMESTAMP
+            SET ${setClause}, updated_at = CURRENT_TIMESTAMP
             WHERE id = ${id}
-        `;
+        `);
     }
 
     async getRecognitionTask(id: string): Promise<RecognitionTask | undefined> {

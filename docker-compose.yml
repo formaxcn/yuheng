@@ -1,31 +1,38 @@
 services:
-  app:
-    build: .
-    ports:
-      - "3000:3000"
+  postgres:
+    image: postgres:16-alpine
+    container_name: yuheng-postgres
+    restart: unless-stopped
     environment:
-      - POSTGRES_URL=postgres://yuheng:yuheng@db:5432/yuheng
-    depends_on:
-      db:
-        condition: service_healthy
-    volumes:
-      - ./data:/app/data
-
-  db:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_USER=yuheng
-      - POSTGRES_PASSWORD=yuheng
-      - POSTGRES_DB=yuheng
+      POSTGRES_USER: yuheng
+      POSTGRES_PASSWORD: yuheng
+      POSTGRES_DB: yuheng
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U yuheng"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
       retries: 5
 
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: yuheng-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://yuheng:yuheng@postgres:5432/yuheng
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - app_data:/app/data
+
 volumes:
-  pgdata:
+  postgres_data:
+  app_data:

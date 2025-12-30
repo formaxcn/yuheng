@@ -28,13 +28,13 @@ WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
-    HOSTNAME="0.0.0.0" \
-    DB_PATH="/app/data/nutrition.db"
+    HOSTNAME="0.0.0.0"
 
 # better-sqlite3 运行时需要 + tini 防止僵尸进程（仅 15KB）
 # 禁用APK触发器执行以解决QEMU模拟环境下的兼容性问题
+# 添加 postgresql-client 用于 pg_isready
 RUN echo "当前架构: $(uname -m)" && \
-    apk add --no-cache --no-scripts libc6-compat tini
+    apk add --no-cache --no-scripts libc6-compat tini postgresql-client
 
 # 使用官方推荐的非 root 用户
 RUN adduser -D -H -u 1001 -s /sbin/nologin nextjs
@@ -48,9 +48,17 @@ COPY --from=builder --chown=nextjs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs /app/public ./public
 
+# 复制迁移文件和配置
+COPY --from=builder --chown=nextjs /app/migrations ./migrations
+COPY --from=builder --chown=nextjs /app/db.config.js ./db.config.js
+COPY --from=builder --chown=nextjs /app/docker-entrypoint.sh ./docker-entrypoint.sh
+
+# 设置启动脚本可执行
+RUN chmod +x /app/docker-entrypoint.sh
+
 USER nextjs
 EXPOSE 3000
 
-# tini 做 PID1 + 直接运行 node
-ENTRYPOINT ["/sbin/tini", "--"]
+# 使用启动脚本作为入口点
+ENTRYPOINT ["/sbin/tini", "--", "/app/docker-entrypoint.sh"]
 CMD ["node", "server.js"]
