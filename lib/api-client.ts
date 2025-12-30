@@ -116,5 +116,11 @@ export const api = {
         const res = await fetch('/api/settings/models');
         if (!res.ok) throw new Error('Failed to fetch models');
         return res.json();
+    },
+
+    async checkHealth(): Promise<{ status: string; version: string }> {
+        const res = await fetch('/api/health');
+        if (!res.ok) throw new Error('Backend offline');
+        return res.json();
     }
 };

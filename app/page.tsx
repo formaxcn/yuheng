@@ -7,6 +7,7 @@ import { Plus, Settings, RefreshCw, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { api } from '@/lib/api-client';
 import { displayEnergy, displayWeight, type EnergyUnit, type WeightUnit } from '@/lib/units';
+import { BackendStatus } from '@/components/backend-status';
 
 export default function HomePage() {
   const [loading, setLoading] = useState(false);
@@ -70,10 +71,15 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen p-4 pb-24 flex flex-col gap-6 bg-gradient-to-b from-background to-background/80">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
-          YuHeng
-        </h1>
+      <div className="flex justify-between items-start">
+        <div className="flex flex-col">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
+            YuHeng
+          </h1>
+          <div className="ml-0.5 mt-[-2px]">
+            <BackendStatus />
+          </div>
+        </div>
         <div className="flex gap-2">
           <Link href="/settings">
             <Button variant="ghost" size="icon">

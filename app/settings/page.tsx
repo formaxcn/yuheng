@@ -120,7 +120,7 @@ export default function SettingsPage() {
         try {
             await api.saveSettings(config);
             toast.success('Settings saved successfully');
-            router.refresh();
+            router.push('/');
         } catch (error) {
             console.error(error);
             toast.error('Error saving settings');
