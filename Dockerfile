@@ -10,7 +10,7 @@ FROM base AS deps
 RUN apk add --no-cache --no-scripts python3 make g++ gcc musl-dev
 COPY package.json package-lock.json ./
 # Use npm install with --arch flag support for multi-arch builds
-RUN npm install --omit=dev && npm cache clean --force
+RUN --mount=type=cache,target=/root/.npm npm install --omit=dev
 
 # ============ 构建阶段 ============
 FROM base AS builder
