@@ -37,6 +37,9 @@ RUN apk add --no-cache --no-scripts \
     tini \
     postgresql-client
 
+# 全局安装 node-pg-migrate 以确保迁移脚本可用
+RUN npm install -g node-pg-migrate
+
 WORKDIR /app
 
 ENV NODE_ENV=production \
