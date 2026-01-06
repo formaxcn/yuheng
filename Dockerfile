@@ -35,7 +35,7 @@ FROM node:24-alpine AS runner
 RUN apk add --no-cache --no-scripts \
     libc6-compat \
     tini \
-    postgresql16-client
+    postgresql-client
 
 WORKDIR /app
 
