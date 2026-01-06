@@ -24,7 +24,7 @@ jobs:
             runner: ubuntu-latest
             tag_suffix: amd64
           - platform: linux/arm64
-            runner: ubuntu-latest-24-arm  # GitHub 提供的 ARM runner，原生超快（若额度不足可改回 ubuntu-latest）
+            runner: ubuntu-latest-arm64  # GitHub 提供的 ARM runner，原生超快（若额度不足可改回 ubuntu-latest）
             tag_suffix: arm64
 
     steps:
