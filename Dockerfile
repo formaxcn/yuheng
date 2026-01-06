@@ -22,19 +22,21 @@ COPY . .
 RUN npm run build
 
 # ============ 运行镜像（极致精简） ============
+# ============ 运行镜像（极致精简） ============
 FROM node:24-alpine AS runner
+
+# 提前安装基础依赖，利用缓存
+# better-sqlite3 运行时需要 libc6-compat
+# tini 防止僵尸进程
+# postgresql-client 用于 pg_isready 健康检查
+RUN apk add --no-cache --no-scripts libc6-compat tini postgresql-client
+
 WORKDIR /app
 
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
     HOSTNAME="0.0.0.0"
-
-# better-sqlite3 运行时需要 + tini 防止僵尸进程（仅 15KB）
-# 禁用APK触发器执行以解决QEMU模拟环境下的兼容性问题
-# 添加 postgresql-client 用于 pg_isready
-RUN echo "当前架构: $(uname -m)" && \
-    apk add --no-cache --no-scripts libc6-compat tini postgresql-client
 
 # 使用官方推荐的非 root 用户
 RUN adduser -D -H -u 1001 -s /sbin/nologin nextjs
