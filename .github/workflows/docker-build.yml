@@ -3,24 +3,36 @@ name: Docker Image
 on:
   push:
     branches: [ "main" ]
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-
-  build-and-push:
-    runs-on: ubuntu-latest
+  # 并行构建单个平台镜像
+  build-platform:
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       packages: write
 
-    steps:
-    - uses: actions/checkout@v3
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            tag_suffix: amd64
+          - platform: linux/arm64
+            runner: ubuntu-latest-24-arm  # GitHub 提供的 ARM runner，原生超快（若额度不足可改回 ubuntu-latest）
+            tag_suffix: arm64
 
-    - name: Log in to the Container registry
-      uses: docker/login-action@v2
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
@@ -28,28 +40,49 @@ jobs:
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
-      with:
-        version: latest
-        driver-opts: |
-          env.BUILDKIT_STEP_LOG_MAX_SIZE=10485760
-          env.BUILDKIT_STEP_LOG_MAX_SPEED=1048576
 
-    - name: Extract metadata (tags, labels) for Docker
+    - name: Extract metadata (tags, labels)
       id: meta
-      uses: docker/metadata-action@v4
+      uses: docker/metadata-action@v5
       with:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         tags: |
-          type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-          type=sha
+          type=raw,value=latest-${{ matrix.tag_suffix }},enable=${{ github.ref == 'refs/heads/main' }}
+          type=sha,format=long
 
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v4
+    - name: Build and push single platform
+      uses: docker/build-push-action@v6
       with:
         context: .
         push: true
-        platforms: linux/amd64,linux/arm64
+        platforms: ${{ matrix.platform }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+
+  # 合并多架构 manifest
+  create-manifest:
+    needs: build-platform
+    runs-on: ubuntu-latest
+    steps:
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Create multi-arch manifest
+      run: |
+        docker buildx imagetools create \
+          -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-amd64 \
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-arm64
+
+        # 如果有 sha tag，也合并（可选）
+        SHA_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
+        docker buildx imagetools create \
+          -t $SHA_TAG \
+          $SHA_TAG-amd64 \
+          $SHA_TAG-arm64
