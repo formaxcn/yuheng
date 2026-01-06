@@ -43,7 +43,7 @@ export async function ensureInit() {
                 { key: 'time_format', val: '24h' },
                 { key: 'other_meal_name', val: 'Snack' },
                 { key: 'llm_provider', val: 'gemini' },
-                { key: 'llm_model', val: 'gemini-1.5-flash' },
+                { key: 'llm_model', val: 'gemini-2.5-flash' },
                 { key: 'llm_base_url', val: '' }
             ];
 
