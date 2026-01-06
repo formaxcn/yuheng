@@ -1,5 +1,4 @@
 import { IDatabaseAdapter } from './interface';
-import { SQLiteAdapter } from './sqlite';
 import { PostgresAdapter } from './postgres';
 import { logger } from '../logger';
 
@@ -9,12 +8,7 @@ let initPromise: Promise<void> | null = null;
 export function getAdapter(): IDatabaseAdapter {
     if (adapter) return adapter;
 
-    const isPostgres = !!(process.env.POSTGRES_URL || process.env.DATABASE_URL);
-    if (isPostgres) {
-        adapter = new PostgresAdapter();
-    } else {
-        adapter = new SQLiteAdapter();
-    }
+    adapter = new PostgresAdapter();
     return adapter;
 }
 
@@ -22,7 +16,6 @@ export async function ensureInit() {
     if (!initPromise) {
         const activeAdapter = getAdapter();
         initPromise = activeAdapter.init().then(async () => {
-            // Shared defaults initialization logic
             const existingMealConfig = await activeAdapter.getSetting('meal_times');
             if (!existingMealConfig) {
                 const DEFAULT_MEAL_CONFIG = [
@@ -50,7 +43,7 @@ export async function ensureInit() {
                 { key: 'time_format', val: '24h' },
                 { key: 'other_meal_name', val: 'Snack' },
                 { key: 'llm_provider', val: 'gemini' },
-                { key: 'llm_model', val: 'gemini-3-flash-preview' },
+                { key: 'llm_model', val: 'gemini-1.5-flash' },
                 { key: 'llm_base_url', val: '' }
             ];
 
@@ -58,6 +51,10 @@ export async function ensureInit() {
                 const existing = await activeAdapter.getSetting(item.key);
                 if (!existing) await activeAdapter.saveSetting(item.key, item.val);
             }
+        }).catch((error) => {
+            logger.error(error, 'Database initialization failed');
+            initPromise = null;
+            throw error;
         });
     }
     await initPromise;

@@ -1,0 +1,18 @@
+module.exports = {
+  migrationsTable: 'pgmigrations',
+  migrationsDir: 'migrations',
+  createMigrationsTable: true,
+  singleTransaction: true,
+  noLock: false,
+  dir: 'migrations',
+  databaseUrl: process.env.DATABASE_URL,
+  checkOrder: true,
+  decamelize: false,
+  ignorePattern: '.*\\.js$',
+  logger: console,
+  schema: 'public',
+  create: true,
+  verbose: true,
+  dryRun: false,
+  lock: true,
+};

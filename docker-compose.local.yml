@@ -17,19 +17,21 @@ services:
       timeout: 5s
       retries: 5
 
-  app:
-    image: ghcr.io/formaxcn/yuheng:latest
-    container_name: yuheng-app
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    environment:
-      - DATABASE_URL=postgresql://yuheng:yuheng@postgres:5432/yuheng
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - app_data:/app/data
+  # app:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: yuheng-app
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - DATABASE_URL=postgresql://yuheng:yuheng@postgres:5432/yuheng
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   volumes:
+  #     - app_data:/app/data
 
 volumes:
   postgres_data:

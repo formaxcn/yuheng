@@ -43,42 +43,29 @@ Run the container:
 # Create a data directory
 mkdir data
 
-# Run container
+# Run container with PostgreSQL
 docker run -d \
   --name yuheng \
   -p 3000:3000 \
+  -e DATABASE_URL=postgresql://user:password@your-db-host:5432/yuheng \
   -v "$(pwd)/data:/app/data" \
   ghcr.io/formaxcn/yuheng
 ```
 
-When you mount an empty `data` directory, the container will automatically initialize the database with default settings. If you mount a directory that already contains a `nutrition.db` file, the database will remain untouched.
+The container will automatically run database migrations on startup.
 
 ## Environment Variables
 
 | Variable | Description | Required | Default |
 |----------|-------------|----------|---------|
-| `POSTGRES_URL` | PostgreSQL connection string (if using Postgres) | No | SQLite |
-| `DB_PATH` | Path to SQLite database file | No | `./nutrition.db` |
+| `DATABASE_URL` | PostgreSQL connection string | Yes | - |
 
-The app will automatically use PostgreSQL if `POSTGRES_URL` is provided. Otherwise, it defaults to SQLite.
-
-## Docker Usage
-
-### Docker Run (SQLite)
-
+Example:
 ```bash
-# Create a data directory for SQLite
-mkdir data
-
-# Run container
-docker run -d \
-  --name yuheng \
-  -p 3000:3000 \
-  -v "$(pwd)/data:/app/data" \
-  ghcr.io/formaxcn/yuheng
+DATABASE_URL=postgresql://user:password@localhost:5432/yuheng
 ```
 
-### Docker Compose (PostgreSQL)
+## Docker Compose (PostgreSQL)
 
 You can easily start YuHeng with a PostgreSQL database using Docker Compose:
 
@@ -86,7 +73,7 @@ You can easily start YuHeng with a PostgreSQL database using Docker Compose:
 ```bash
 docker-compose up -d
 ```
-This will start both the YuHeng app and a PostgreSQL database.
+This will start both the YuHeng app and a PostgreSQL database. The app will automatically wait for the database to be ready and run migrations before starting.
 
 ## API Documentation
 
@@ -101,6 +88,7 @@ Detailed technical and user-facing documentation for YuHeng:
 User-centric guides on what YuHeng can do and how it works.
 
 - [**Smart Food Logging**](features/smart_logging.md): AI-powered dish and text recognition.
+- [**Recognition Queue**](features/recognition_queue.md): Asynchronous processing and guided AI retry.
 - [**Packaged Food (OCR)**](features/packaged_food.md): Specialized recognition for nutrition labels.
 - [**Portion Management**](features/portion_sharing.md): Sharing meals and smart weight scaling.
 - [**Dashboard & History**](features/dashboard_history.md): Tracking daily progress and weekly trends.

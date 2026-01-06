@@ -15,6 +15,8 @@ import Image from 'next/image';
 import { logger } from '@/lib/logger';
 import { UnitPreferences } from '@/lib/db';
 import { api } from '@/lib/api-client';
+import { recognitionStore } from '@/lib/recognition-store';
+
 
 export default function AddPage() {
     const [image, setImage] = useState<string | null>(null);
@@ -105,12 +107,15 @@ export default function AddPage() {
 
     const analyzeImage = async (imgData: string) => {
         setLoading(true);
-        setTaskId(null);
-        setTaskStatus('pending');
         try {
             const data = await api.startRecognition(imgData);
-            setTaskId(data.taskId);
-            toast.info("Image uploaded! Processing in background...");
+            recognitionStore.addTask({
+                id: data.taskId,
+                imageData: imgData,
+                status: 'pending'
+            });
+            toast.success("Recognition started! Redirecting...");
+            router.push('/');
         } catch (error) {
             logger.error(error as Error, "Failed to start recognition");
             toast.error("Failed to start recognition");

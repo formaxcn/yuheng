@@ -48,6 +48,8 @@ export default function SettingsPage() {
         time_format: '24h'
     });
 
+    const [version, setVersion] = useState<string>('');
+
     const [models, setModels] = useState<{ id: string; name: string }[]>([]);
 
     useEffect(() => {
@@ -88,6 +90,13 @@ export default function SettingsPage() {
             toast.error('Error loading settings');
         } finally {
             setLoading(false);
+        }
+
+        try {
+            const health = await api.checkHealth();
+            setVersion(health.version);
+        } catch (error) {
+            console.error('Failed to fetch version:', error);
         }
     };
 
@@ -720,6 +729,14 @@ export default function SettingsPage() {
                     {saving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Save className="mr-2 h-5 w-5" />}
                     Save Settings
                 </Button>
+
+                {version && (
+                    <div className="pt-8 pb-4 text-center">
+                        <p className="text-xs text-muted-foreground opacity-50">
+                            YuHeng v{version}
+                        </p>
+                    </div>
+                )}
             </div>
         </div>
     );

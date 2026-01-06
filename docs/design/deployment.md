@@ -1,6 +1,6 @@
 # Docker & Deployment
 
-YuHeng is designed for easy deployment using Docker, supporting both single-container (SQLite) and multi-container (PostgreSQL) setups.
+YuHeng is designed for easy deployment using Docker with PostgreSQL. The application automatically runs database migrations on startup.
 
 ## Docker Image
 
@@ -11,46 +11,57 @@ The application is built using a multi-stage `Dockerfile` based on `node:24-alpi
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `PORT` | The port the server listens on | `3000` |
-| `DB_PATH` | Path to the SQLite database | `/app/data/nutrition.db` |
-| `POSTGRES_URL` | PostgreSQL connection string | (Optional) |
+| `DATABASE_URL` | PostgreSQL connection string | (Required) |
+
+## Automatic Database Migrations
+
+The Docker image includes an entrypoint script that automatically handles database migrations on startup:
+
+1. **Waits for PostgreSQL**: The script waits until the database is ready before proceeding
+2. **Runs Migrations**: Automatically executes pending migrations using `node-pg-migrate`
+3. **Starts Application**: Launches the Next.js application after successful migrations
+
+This ensures your database schema is always up-to-date without manual intervention.
 
 ## Deployment Options
 
-### 1. Single Container (SQLite)
+### Using Docker Compose (Pre-built Image)
 
-This is the simplest way to run YuHeng. Use a volume to persist your database.
+The default `docker-compose.yml` uses the pre-built image from GitHub Container Registry for quick deployment:
+
+```bash
+docker-compose up -d
+```
+
+This will:
+- Pull the latest `ghcr.io/formaxcn/yuheng:latest` image
+- Start a PostgreSQL database
+- Automatically run migrations and start the application
+
+### Using Docker Compose (Local Build)
+
+For development or custom builds, use `docker-compose.local.yml` to build the image locally:
+
+```bash
+docker-compose -f docker-compose.local.yml up -d
+```
+
+This will:
+- Build the Docker image from source
+- Start a PostgreSQL database
+- Automatically run migrations and start the application
+
+### Using Docker Run
+
+For simple deployments, you can use `docker run` directly:
 
 ```bash
 docker run -d \
   --name yuheng \
   -p 3000:3000 \
+  -e DATABASE_URL=postgresql://user:password@your-db-host:5432/yuheng \
   -v ./data:/app/data \
   ghcr.io/formaxcn/yuheng
-```
-
-### 2. Multi-Container (PostgreSQL)
-
-Use `docker-compose` to run the app with a dedicated PostgreSQL database.
-
-```yaml
-# docker-compose.yml
-services:
-  app:
-    image: ghcr.io/formaxcn/yuheng
-    ports: ["3000:3000"]
-    environment:
-      - POSTGRES_URL=postgres://yuheng:yuheng@db:5432/yuheng
-    depends_on: { db: { condition: service_healthy } }
-    volumes: ["./data:/app/data"]
-
-  db:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_USER=yuheng
-      - POSTGRES_PASSWORD=yuheng
-      - POSTGRES_DB=yuheng
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U yuheng"]
 ```
 
 ## Security & Best Practices
@@ -58,3 +69,5 @@ services:
 - **Non-Root User**: The image runs as the `nextjs` user (UID 1001) for improved security.
 - **Stand-alone Mode**: Leverages Next.js standalone mode to minimize image size and external dependencies.
 - **Health Checks**: The `docker-compose.yml` includes a health check for the database to ensure smooth startup.
+- **Automatic Migrations**: Database schema is automatically updated on container startup.
+- **Process Management**: Uses `tini` as PID 1 to properly handle signals and prevent zombie processes.

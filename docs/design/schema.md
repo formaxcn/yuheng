@@ -1,6 +1,6 @@
 # Database Design
 
-YuHeng uses SQLite for its simplicity and reliability in local environments.
+YuHeng uses PostgreSQL for its reliability and scalability, with schema versioning managed by node-pg-migrate.
 
 ## Schema Overview
 
@@ -81,3 +81,40 @@ A simple key-value store for user configurations:
 
 ### `recognition_tasks`
 Tracks the status of AI-powered image analysis tasks, allowing for asynchronous processing and error handling.
+
+## Schema Versioning
+
+YuHeng uses [node-pg-migrate](https://github.com/salsita/node-pg-migrate) for database schema version management. All migrations are stored in the `migrations/` directory.
+
+### Running Migrations
+
+```bash
+# Run pending migrations
+npm run db:migrate
+
+# Rollback last migration
+npm run db:migrate:down
+
+# Create a new migration
+npm run db:migrate:create migration-name
+```
+
+### Migration Files
+
+Migrations are written in TypeScript and follow the naming convention `YYYYMMDDHHMMSS-description.ts`. Each migration exports `up` and `down` functions for applying and rolling back changes.
+
+Example migration:
+```typescript
+import type { MigrationBuilder } from 'node-pg-migrate';
+
+export const up = (pgm: MigrationBuilder) => {
+  pgm.createTable('new_table', {
+    id: { type: 'SERIAL', primaryKey: true },
+    name: { type: 'TEXT', notNull: true }
+  });
+};
+
+export const down = (pgm: MigrationBuilder) => {
+  pgm.dropTable('new_table');
+};
+```

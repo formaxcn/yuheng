@@ -5,8 +5,8 @@ YuHeng is a modern nutrition tracking application built with a focus on speed, e
 ## Technology Stack
 
 -   **Framework**: [Next.js](https://nextjs.org/) (App Router)
--   **Framework**: [Next.js](https://nextjs.org/) (App Router)
--   **Database**: [SQLite](https://www.sqlite.org/) (via `better-sqlite3`) & [PostgreSQL](https://www.postgresql.org/) (via `pg`)
+-   **Database**: [PostgreSQL](https://www.postgresql.org/) (via `postgres` library)
+-   **Schema Management**: [node-pg-migrate](https://github.com/salsita/node-pg-migrate)
 -   **AI Providers**: [Google Gemini](https://deepmind.google/technologies/gemini/), [OpenAI](https://openai.com/), and OpenAI-compatible APIs (DeepSeek, Qwen-VL, GLM-4V, Doubao, etc.)
 -   **Styling**: [Tailwind CSS](https://tailwindcss.com/) + [Radix UI](https://www.radix-ui.com/)
 -   **Icons**: [Lucide React](https://lucide.dev/)
@@ -22,13 +22,14 @@ yuheng/
 │   └── page.tsx        # Homepage (Dashboard)
 ├── components/         # Reusable UI components (Shadcn UI)
 ├── lib/                # Core logic and shared utilities
-│   ├── db/             # Database abstraction layer (Adapters for SQLite/Postgres)
+│   ├── db/             # Database abstraction layer (PostgreSQL adapter)
 │   ├── llm/            # LLM provider factory and implementations
 │   ├── db.ts           # Unified database access functions
 │   ├── prompts.ts      # Prompt management system with variable injection
 │   ├── api-client.ts   # Frontend API client
 │   ├── units.ts        # Unit conversion (kcal/kJ, g/oz)
 │   └── logger.ts       # Unified logging (Pino)
+├── migrations/         # Database schema migrations (node-pg-migrate)
 ├── prompts/            # AI instruction templates (.txt files)
 ├── public/             # Static assets
 └── types/              # TypeScript definitions
@@ -37,7 +38,7 @@ yuheng/
 ## Core Design Patterns
 
 ### Database Adapter Pattern
-YuHeng uses an adapter pattern to support multiple databases. The system automatically detects the environment (e.g., `POSTGRES_URL`) and selects the appropriate adapter (`SQLiteAdapter` or `PostgresAdapter`) while maintaining a unified interface.
+YuHeng uses a PostgreSQL adapter for all database operations. The system connects to PostgreSQL using the connection string from environment variables (`DATABASE_URL`). Database schema is versioned using node-pg-migrate, allowing for controlled schema evolution.
 
 ### LLM Provider Factory
 A factory pattern is used to instantiate the correct LLM provider (Gemini, OpenAI, or OpenAI-compatible) based on user settings. This allows the application to stay provider-agnostic for its core recognition logic.

@@ -13,24 +13,39 @@ export class GeminiProvider implements ILLMProvider {
 
     async analyzeImage(imagePart: LLMImagePart, promptText: string): Promise<any> {
         const model = this.genAI.getGenerativeModel({ model: this.modelName });
-        logger.debug({ modelName: this.modelName, promptLength: promptText.length }, "Sending image to Gemini for analysis");
+        logger.info(`Starting Gemini analysis with model: ${this.modelName}`);
+        logger.debug(`Prompt length: ${promptText.length}`);
 
         try {
+            logger.debug("Calling Gemini API...");
             const result = await model.generateContent([promptText, imagePart]);
+
+            logger.debug("Waiting for Gemini response...");
             const response = await result.response;
             const text = response.text();
 
-            logger.debug({ textLength: text.length, textSnippet: text.slice(0, 100) + '...' }, "Gemini response received");
+            logger.info(`Gemini response received. Length: ${text.length}`);
+            logger.debug("Raw response text:", text);
 
             const jsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
             try {
                 return JSON.parse(jsonStr);
             } catch (e) {
-                logger.error({ raw: text }, "Failed to parse Gemini JSON response");
+                logger.error("Failed to parse Gemini JSON response", { textSnippet: text.slice(0, 200) });
                 throw new Error("Invalid JSON response from LLM");
             }
         } catch (e: any) {
-            logger.error(e as Error, "Gemini API error");
+            logger.error("--- Gemini API Error Details ---");
+            logger.error(`Message: ${e.message}`);
+            if (e.stack) logger.error(`Stack: ${e.stack}`);
+            if (e.response) {
+                logger.error("Response object found in error:", {
+                    status: e.response.status,
+                    statusText: e.response.statusText,
+                    headers: e.response.headers
+                });
+            }
+            logger.error("---------------------------------");
             throw e;
         }
     }
