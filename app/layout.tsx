@@ -16,7 +16,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body>
+      <body suppressHydrationWarning>
         {/* <AppProvider> */}
         {children}
         <Toaster />

@@ -22,12 +22,15 @@ export function RecognitionQueue() {
 
     return (
         <div className="space-y-4 px-2">
-            <h3 className="text-lg font-semibold text-foreground/80 flex items-center justify-between">
-                Recognition Queue
-                <span className="text-xs font-normal bg-muted px-2 py-0.5 rounded-full">
-                    {tasks.length} items
+            <div className="px-1 flex items-center justify-between mb-2">
+                <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] leading-tight opacity-50">Processing Status</span>
+                    <h2 className="text-2xl font-black text-foreground tracking-tighter uppercase italic">Recognition Queue</h2>
+                </div>
+                <span className="text-[10px] font-black bg-muted/20 border border-muted/30 px-2 py-0.5 rounded-full text-muted-foreground">
+                    {tasks.length} {tasks.length === 1 ? 'item' : 'items'}
                 </span>
-            </h3>
+            </div>
             <div className="grid gap-3">
                 {tasks.map((task) => (
                     <Card key={task.id} className="overflow-hidden border-primary/10 shadow-sm">
