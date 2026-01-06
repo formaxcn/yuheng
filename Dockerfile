@@ -29,7 +29,7 @@ FROM node:24-alpine AS runner
 # better-sqlite3 运行时需要 libc6-compat
 # tini 防止僵尸进程
 # postgresql-client 用于 pg_isready 健康检查
-RUN apk add --no-cache --no-scripts libc6-compat tini postgresql-client
+RUN apk add --no-cache --no-scripts libc6-compat tini postgresql16-client
 
 WORKDIR /app
 
