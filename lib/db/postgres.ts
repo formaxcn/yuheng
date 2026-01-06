@@ -127,14 +127,19 @@ export class PostgresAdapter implements IDatabaseAdapter {
     }
 
     async updateRecognitionTask(id: string, updates: Partial<Pick<RecognitionTask, 'status' | 'result' | 'error'>>): Promise<void> {
-        const keys = Object.keys(updates);
-        const values = Object.values(updates);
-        const setClause = keys.map((k, i) => `${k} = ${values[i]}`).join(', ');
-        await this.sql.unsafe(`
+        const allowedKeys = ['status', 'result', 'error'] as const;
+        const validUpdates = Object.fromEntries(
+            Object.entries(updates).filter(([key]) => allowedKeys.includes(key as any))
+        );
+
+        if (Object.keys(validUpdates).length === 0) return;
+
+        await this.sql`
             UPDATE recognition_tasks 
-            SET ${setClause}, updated_at = CURRENT_TIMESTAMP
+            SET ${this.sql(validUpdates)}, 
+                updated_at = CURRENT_TIMESTAMP
             WHERE id = ${id}
-        `);
+        `;
     }
 
     async getRecognitionTask(id: string): Promise<RecognitionTask | undefined> {

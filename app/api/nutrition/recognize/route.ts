@@ -7,7 +7,7 @@ import { logger } from '@/lib/logger';
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { image } = body;
+        const { image, userPrompt } = body;
 
         if (!image) {
             return NextResponse.json({ error: 'Image required' }, { status: 400 });
@@ -29,11 +29,15 @@ export async function POST(req: NextRequest) {
             : `\nIMPORTANT: 请使用中文提供 "name" 和 "description" 字段的值。`;
 
         // Load prompt
-        const promptText = await promptManager.getPrompt('dish-init-prompt', {
+        let promptText = await promptManager.getPrompt('dish-init-prompt', {
             energy_unit: unitPrefs.energy === 'kj' ? 'kJ' : 'kcal',
             weight_unit: unitPrefs.weight === 'oz' ? 'oz' : '克',
             lang_instruction: langInstruction
         });
+
+        if (userPrompt) {
+            promptText += `\n\nUSER ADDITIONAL INSTRUCTIONS: ${userPrompt}\nPlease prioritize these instructions while maintaining the overall output format.`;
+        }
 
         const imagePart = {
             inlineData: {

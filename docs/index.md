@@ -88,6 +88,7 @@ Detailed technical and user-facing documentation for YuHeng:
 User-centric guides on what YuHeng can do and how it works.
 
 - [**Smart Food Logging**](features/smart_logging.md): AI-powered dish and text recognition.
+- [**Recognition Queue**](features/recognition_queue.md): Asynchronous processing and guided AI retry.
 - [**Packaged Food (OCR)**](features/packaged_food.md): Specialized recognition for nutrition labels.
 - [**Portion Management**](features/portion_sharing.md): Sharing meals and smart weight scaling.
 - [**Dashboard & History**](features/dashboard_history.md): Tracking daily progress and weekly trends.

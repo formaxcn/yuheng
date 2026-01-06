@@ -5,7 +5,7 @@ YuHeng provides an intelligent way to log your meals using Large Language Models
 ## Photo-Based Logging
 The flagship feature of YuHeng:
 - **Instant Analysis**: Take a photo of your meal and the AI will identify the dishes and estimate their weights.
-- **Asynchronous Processing**: Uploading a photo triggers a background task. You can keep using the app while the AI analyzes your food.
+- **Asynchronous Processing**: Uploading a photo triggers a background task. You can keep using the app while the AI analyzes your food. (See [Recognition Queue](recognition_queue.md) for technical details).
 - **Visual Confirmation**: Once analyzed, the results are displayed for your review before saving.
 
 ## Smart Text Addition

@@ -8,6 +8,8 @@ import Link from 'next/link';
 import { api } from '@/lib/api-client';
 import { displayEnergy, displayWeight, type EnergyUnit, type WeightUnit } from '@/lib/units';
 import { BackendStatus } from '@/components/backend-status';
+import { RecognitionQueue } from '@/components/recognition-queue';
+
 
 export default function HomePage() {
   const [loading, setLoading] = useState(false);
@@ -182,7 +184,10 @@ export default function HomePage() {
 
 
 
+      <RecognitionQueue />
+
       {/* Meals Breakdown */}
+
       <div className="grid grid-cols-2 gap-3 px-2">
         {stats.meals.filter(m => m.calories > 0).map((meal) => {
           const colors: { [key: string]: string } = {
