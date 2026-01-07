@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Save, Loader2, Plus, Trash2, X, Sparkles, Bot, Globe } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Plus, Trash2, X, Sparkles, Bot, Globe, ChevronDown, Check } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -20,6 +20,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
 
 export default function SettingsPage() {
     const router = useRouter();
@@ -51,6 +57,7 @@ export default function SettingsPage() {
     const [version, setVersion] = useState<string>('');
 
     const [models, setModels] = useState<{ id: string; name: string }[]>([]);
+    const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
 
     useEffect(() => {
         loadSettings();
@@ -611,23 +618,59 @@ export default function SettingsPage() {
 
                         <div className="space-y-2">
                             <Label>Model Name</Label>
-                            <div className="relative">
-                                <Input
-                                    list="llm-models"
-                                    placeholder="e.g. gpt-4o"
-                                    value={config.llm_model}
-                                    onChange={(e) => setConfig(prev => ({ ...prev, llm_model: e.target.value }))}
-                                    className="w-full"
-                                />
-                                <datalist id="llm-models">
-                                    {models && models.length > 0 && models.map(m => (
-                                        <option key={m.id} value={m.id}>{m.name}</option>
-                                    ))}
-                                </datalist>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    Select from presets or type a custom model name.
-                                </p>
-                            </div>
+                            <Popover open={modelDropdownOpen} onOpenChange={setModelDropdownOpen}>
+                                <div className="relative flex w-full">
+                                    <Input
+                                        placeholder="e.g. gpt-4o"
+                                        value={config.llm_model}
+                                        onChange={(e) => setConfig(prev => ({ ...prev, llm_model: e.target.value }))}
+                                        className="w-full pr-10 rounded-r-none"
+                                    />
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            className="rounded-l-none border-l-0 px-3"
+                                            type="button"
+                                        >
+                                            <ChevronDown className="h-4 w-4 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                </div>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                    <div className="max-h-[300px] overflow-y-auto">
+                                        {models && models.length > 0 ? (
+                                            models.map((model) => (
+                                                <button
+                                                    key={model.id}
+                                                    onClick={() => {
+                                                        setConfig(prev => ({ ...prev, llm_model: model.id }));
+                                                        setModelDropdownOpen(false);
+                                                    }}
+                                                    className={cn(
+                                                        "relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                                                        config.llm_model === model.id && "bg-accent"
+                                                    )}
+                                                >
+                                                    <Check
+                                                        className={cn(
+                                                            "mr-2 h-4 w-4",
+                                                            config.llm_model === model.id ? "opacity-100" : "opacity-0"
+                                                        )}
+                                                    />
+                                                    <span>{model.name}</span>
+                                                </button>
+                                            ))
+                                        ) : (
+                                            <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                                                No models available
+                                            </div>
+                                        )}
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+                            <p className="text-xs text-muted-foreground">
+                                Select from dropdown or type a custom model name.
+                            </p>
                         </div>
                     </CardContent>
                 </Card>
