@@ -52,8 +52,9 @@ export interface NutritionStats {
 
 export const api = {
     // Nutrition
-    async getStats(): Promise<NutritionStats> {
-        const res = await fetch('/api/nutrition/stats');
+    async getStats(date?: string): Promise<NutritionStats> {
+        const url = date ? `/api/nutrition/stats?date=${date}` : '/api/nutrition/stats';
+        const res = await fetch(url);
         if (!res.ok) throw new Error('Failed to fetch stats');
         return res.json();
     },

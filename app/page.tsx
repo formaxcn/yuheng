@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Settings, RefreshCw, Loader2, Flame, Shield, Wheat, Droplets } from 'lucide-react';
+import { Plus, Settings, RefreshCw, Loader2, Flame, Shield, Wheat, Droplets, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { api } from '@/lib/api-client';
 import { displayEnergy, displayWeight, type EnergyUnit, type WeightUnit } from '@/lib/units';
@@ -14,6 +14,8 @@ import { useBackendStatus } from '@/hooks/use-backend-status';
 export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const status = useBackendStatus();
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [historyEndDate, setHistoryEndDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
   const [stats, setStats] = useState({
     calories: 0,
@@ -37,12 +39,28 @@ export default function HomePage() {
     loadStats();
   }, []);
 
-  const loadStats = async () => {
+  useEffect(() => {
+    // Reload history data when date range changes (via slide navigation)
+    const today = new Date().toISOString().split('T')[0];
+    if (historyEndDate && historyEndDate !== today) {
+      // Only reload if we're not viewing today and not already selected a specific date
+      if (!selectedDate || selectedDate === historyEndDate) {
+        api.getStats(historyEndDate).then(data => {
+          setStats(prev => ({
+            ...prev,
+            history: data.history || []
+          }));
+        });
+      }
+    }
+  }, [historyEndDate]);
+
+  const loadStats = async (date?: string) => {
     setLoading(true);
     try {
       // Load stats and settings in parallel
       const [data, settingsData] = await Promise.all([
-        api.getStats(),
+        api.getStats(date),
         api.getSettings()
       ]);
 
@@ -89,7 +107,10 @@ export default function HomePage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={loadStats}
+            onClick={() => {
+              setSelectedDate(null);
+              loadStats();
+            }}
             disabled={loading}
             className={`rounded-full transition-all duration-500 ${status?.online ? 'hover:bg-emerald-500/10' : 'hover:bg-red-500/10'}`}
           >
@@ -104,9 +125,32 @@ export default function HomePage() {
       </div>
 
       {/* Progress Header */}
-      <div className="px-3 flex flex-col gap-0.5 mb-[-12px] mt-2">
-        <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] leading-tight opacity-50">Activity Status</span>
-        <h2 className="text-2xl font-black text-foreground tracking-tighter uppercase italic">Today's Progress</h2>
+      <div className="px-3 flex items-center justify-between gap-4 mb-[-12px] mt-2">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] leading-tight opacity-50">Activity Status</span>
+          <h2 className="text-2xl font-black text-foreground tracking-tighter uppercase italic">
+            {selectedDate ? (
+              <>
+                {new Date(selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} Progress
+              </>
+            ) : (
+              "Today's Progress"
+            )}
+          </h2>
+        </div>
+        {selectedDate && (
+          <Button
+            onClick={() => {
+              setSelectedDate(null);
+              loadStats();
+            }}
+            variant="outline"
+            size="sm"
+            className="rounded-full text-xs font-bold px-4 shrink-0"
+          >
+            Return to Today
+          </Button>
+        )}
       </div>
 
       {/* Advanced Dashboard (Responsive Side-by-Side) */}
@@ -186,31 +230,33 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Redesigned Primary Action Button */}
-      <div className="px-2">
-        <Link href="/add" className="block outline-none">
-          <div className="group relative w-full h-24 rounded-[1.75rem] border-2 border-dashed border-primary/20 flex items-center gap-6 px-6 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all cursor-pointer shadow-lg active:scale-[0.98]">
-            <div className="w-14 h-14 rounded-2xl bg-primary shadow-lg shadow-primary/30 flex items-center justify-center text-white transition-all group-hover:scale-105 group-hover:rotate-6">
-              <Plus className="w-8 h-8 stroke-[4]" />
-            </div>
-            <div className="flex flex-col items-start gap-0.5">
-              <span className="text-sm font-black text-muted-foreground uppercase tracking-[0.2em] opacity-50">Record</span>
-              <span className="text-3xl font-black text-foreground group-hover:text-primary transition-colors tracking-tighter italic uppercase">
-                {(() => {
-                  const hour = new Date().getHours();
-                  if (hour >= 5 && hour < 11) return 'Breakfast';
-                  if (hour >= 11 && hour < 14) return 'Lunch';
-                  if (hour >= 17 && hour < 21) return 'Dinner';
-                  return 'Snack';
-                })()}
-              </span>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Start Tracking Now</span>
+      {/* Redesigned Primary Action Button - Only show when viewing today */}
+      {!selectedDate && (
+        <div className="px-2">
+          <Link href="/add" className="block outline-none">
+            <div className="group relative w-full h-24 rounded-[1.75rem] border-2 border-dashed border-primary/20 flex items-center gap-6 px-6 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all cursor-pointer shadow-lg active:scale-[0.98]">
+              <div className="w-14 h-14 rounded-2xl bg-primary shadow-lg shadow-primary/30 flex items-center justify-center text-white transition-all group-hover:scale-105 group-hover:rotate-6">
+                <Plus className="w-8 h-8 stroke-[4]" />
+              </div>
+              <div className="flex flex-col items-start gap-0.5">
+                <span className="text-sm font-black text-muted-foreground uppercase tracking-[0.2em] opacity-50">Record</span>
+                <span className="text-3xl font-black text-foreground group-hover:text-primary transition-colors tracking-tighter italic uppercase">
+                  {(() => {
+                    const hour = new Date().getHours();
+                    if (hour >= 5 && hour < 11) return 'Breakfast';
+                    if (hour >= 11 && hour < 14) return 'Lunch';
+                    if (hour >= 17 && hour < 21) return 'Dinner';
+                    return 'Snack';
+                  })()}
+                </span>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Start Tracking Now</span>
+                </div>
               </div>
             </div>
-          </div>
-        </Link>
-      </div>
+          </Link>
+        </div>
+      )}
 
       {/* Meals Breakdown */}
 
@@ -234,31 +280,121 @@ export default function HomePage() {
         })}
       </div>
 
-      <RecognitionQueue />
+
+      {!selectedDate && <RecognitionQueue />}
+
 
       {/* History Chart */}
       <div className="px-2 pt-4 pb-20">
-        <div className="px-1 flex flex-col gap-0.5 mb-6">
-          <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] leading-tight opacity-50">Trend Analysis</span>
-          <h2 className="text-2xl font-black text-foreground tracking-tighter uppercase italic">Last 7 Days</h2>
+        <div className="px-1 flex items-center justify-between gap-3 mb-6">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] leading-tight opacity-50">Trend Analysis</span>
+            <h2 className="text-2xl font-black text-foreground tracking-tighter uppercase italic">History</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            {selectedDate && (
+              <Button
+                onClick={() => {
+                  setSelectedDate(null);
+                  setHistoryEndDate(new Date().toISOString().split('T')[0]);
+                  loadStats();
+                }}
+                variant="outline"
+                size="sm"
+                className="rounded-full text-xs font-bold px-3 h-8"
+              >
+                Today
+              </Button>
+            )}
+            <div className="relative">
+              <input
+                type="date"
+                value={selectedDate || new Date().toISOString().split('T')[0]}
+                onChange={(e) => {
+                  const newDate = e.target.value;
+                  setSelectedDate(newDate);
+                  setHistoryEndDate(newDate);
+                  loadStats(newDate);
+                }}
+                className="absolute opacity-0 w-8 h-8 cursor-pointer"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full w-8 h-8 p-0"
+              >
+                <Calendar className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 mb-4">
+          <Button
+            onClick={() => {
+              const newEndDate = new Date(historyEndDate);
+              newEndDate.setDate(newEndDate.getDate() - 7);
+              setHistoryEndDate(newEndDate.toISOString().split('T')[0]);
+            }}
+            variant="ghost"
+            size="sm"
+            className="rounded-full w-8 h-8 p-0"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <div className="flex-1" />
+          <Button
+            onClick={() => {
+              const newEndDate = new Date(historyEndDate);
+              newEndDate.setDate(newEndDate.getDate() + 7);
+              const today = new Date().toISOString().split('T')[0];
+              const futureDate = newEndDate.toISOString().split('T')[0];
+              setHistoryEndDate(futureDate > today ? today : futureDate);
+            }}
+            variant="ghost"
+            size="sm"
+            className="rounded-full w-8 h-8 p-0"
+            disabled={historyEndDate >= new Date().toISOString().split('T')[0]}
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
         </div>
         <div className="flex items-end justify-between h-40 gap-2">
           {stats.history.map((day) => {
             const height = Math.min((day.calories / stats.targetCalories) * 100, 100);
             const isToday = new Date().toISOString().split('T')[0] === day.date;
+            const isSelected = selectedDate === day.date;
+            const date = new Date(day.date);
 
             return (
               <div key={day.date} className="flex flex-col items-center flex-1 gap-2 group">
-                <div className="w-full relative flex items-end justify-center h-32 bg-muted/20 rounded-t-md overflow-hidden">
+                <div
+                  className="w-full relative flex items-end justify-center h-32 bg-muted/20 rounded-t-md overflow-hidden cursor-pointer"
+                  onClick={() => {
+                    setSelectedDate(day.date);
+                    loadStats(day.date);
+                  }}
+                >
                   <div
                     suppressHydrationWarning
-                    className={`w-full transition-all duration-1000 ${isToday ? 'bg-primary' : 'bg-primary/40 group-hover:bg-primary/60'}`}
+                    className={`w-full transition-all duration-500 ${isSelected
+                      ? 'bg-amber-500 shadow-lg shadow-amber-500/50'
+                      : isToday
+                        ? 'bg-primary'
+                        : 'bg-primary/40 group-hover:bg-primary/60'
+                      }`}
                     style={{ height: `${height}%` }}
                   />
                 </div>
-                <span suppressHydrationWarning className="text-[10px] text-muted-foreground font-medium">
-                  {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}
-                </span>
+                <div className="flex flex-col items-center">
+                  <span suppressHydrationWarning className={`text-[10px] font-medium transition-colors leading-tight ${isSelected ? 'text-primary font-bold' : 'text-muted-foreground'
+                    }`}>
+                    {date.toLocaleDateString('en-US', { weekday: 'short' })}
+                  </span>
+                  <span suppressHydrationWarning className={`text-[9px] transition-colors leading-tight ${isSelected ? 'text-primary font-semibold' : 'text-muted-foreground/60'
+                    }`}>
+                    {date.getMonth() + 1}/{date.getDate()}
+                  </span>
+                </div>
               </div>
             );
           })}
