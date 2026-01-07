@@ -170,6 +170,19 @@ export default function HomePage() {
       }, 150);
       return () => clearTimeout(timer);
     }
+
+    // Case 3: Return to Today (selectedDate reset to null)
+    if (!selectedDate && !isInitialLoad.current) {
+      const timer = setTimeout(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollTo({
+            left: scrollRef.current.scrollWidth,
+            behavior: 'smooth'
+          });
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
   }, [selectedDate, stats.history]);
 
   const handleScroll = () => {
