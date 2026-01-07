@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Dish } from '@/types';
-import { Loader2, Camera, Trash2, Check, Edit2, Clock, Users, RefreshCw } from 'lucide-react';
+import { Loader2, Camera, Trash2, Check, Edit2, Clock, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -23,8 +23,6 @@ export default function AddPage() {
     const [dishes, setDishes] = useState<Dish[]>([]);
     const [loading, setLoading] = useState(false);
     const [processing, setProcessing] = useState(false);
-    const [taskId, setTaskId] = useState<string | null>(null);
-    const [taskStatus, setTaskStatus] = useState<'pending' | 'processing' | 'completed' | 'failed' | null>(null);
     const [unitPrefs, setUnitPrefs] = useState<UnitPreferences>({ energy: 'kcal', weight: 'g' });
 
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -59,30 +57,7 @@ export default function AddPage() {
             .catch(err => console.error('Failed to load settings:', err));
     }, []);
 
-    useEffect(() => {
-        let interval: NodeJS.Timeout;
-        if (taskId && (taskStatus === 'pending' || taskStatus === 'processing')) {
-            interval = setInterval(async () => {
-                try {
-                    const data = await api.getRecognitionTask(taskId);
-                    setTaskStatus(data.status);
-                    if (data.status === 'completed') {
-                        setDishes(data.result || []);
-                        setLoading(false);
-                        clearInterval(interval);
-                        toast.success("Recognition complete!");
-                    } else if (data.status === 'failed') {
-                        setLoading(false);
-                        clearInterval(interval);
-                        toast.error("Recognition failed: " + data.error);
-                    }
-                } catch (error) {
-                    console.error("Polling error:", error);
-                }
-            }, 2000);
-        }
-        return () => clearInterval(interval);
-    }, [taskId, taskStatus]);
+
 
     useEffect(() => {
         // Update personal portion default when numPeople changes
@@ -114,7 +89,8 @@ export default function AddPage() {
                 imageData: imgData,
                 status: 'pending'
             });
-            toast.success("Recognition started! Redirecting...");
+            toast.success("Recognition started in background!");
+            // Immediately navigate to home page, recognition will continue in background
             router.push('/');
         } catch (error) {
             logger.error(error as Error, "Failed to start recognition");
@@ -192,17 +168,8 @@ export default function AddPage() {
             ) : (
                 <div className="relative h-64 w-full rounded-lg overflow-hidden">
                     <Image src={image} alt="Food" fill className="object-cover" />
-                    <div className="absolute top-2 right-2 flex gap-2">
-                        <Button
-                            size="icon"
-                            variant="secondary"
-                            className="bg-background/80 backdrop-blur-sm"
-                            onClick={() => image && analyzeImage(image)}
-                            disabled={loading}
-                        >
-                            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                        </Button>
-                        <Button size="icon" variant="destructive" onClick={() => { setImage(null); setDishes([]); setTaskId(null); setTaskStatus(null); }}>
+                    <div className="absolute top-2 right-2">
+                        <Button size="icon" variant="destructive" onClick={() => { setImage(null); setDishes([]); }}>
                             <Trash2 className="w-4 h-4" />
                         </Button>
                     </div>
@@ -210,12 +177,9 @@ export default function AddPage() {
             )}
 
             {loading && (
-                <div className="flex flex-col items-center justify-center p-8 space-y-4">
+                <div className="flex flex-col items-center justify-center p-8 space-y-2">
                     <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                    <div className="text-center">
-                        <p className="font-medium">Recognizing food...</p>
-                        <p className="text-sm text-muted-foreground">You can leave this page, we'll keep working</p>
-                    </div>
+                    <p className="font-medium">Starting recognition...</p>
                 </div>
             )}
 
