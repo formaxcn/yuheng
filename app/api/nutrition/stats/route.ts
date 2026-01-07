@@ -47,6 +47,9 @@ import { logger } from '@/lib/logger';
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const date = searchParams.get('date') || new Date().toISOString().split('T')[0];
+    const days = parseInt(searchParams.get('days') || '7', 10);
+    const start = searchParams.get('start');
+    const end = searchParams.get('end');
 
     try {
         const entries = await getEntries(date);
@@ -55,10 +58,15 @@ export async function GET(req: NextRequest) {
         let totalCarbs = 0;
         let totalFat = 0;
 
-        const historyStartDate = new Date(date);
-        historyStartDate.setDate(historyStartDate.getDate() - 6);
-        const historyStartDateStr = historyStartDate.toISOString().split('T')[0];
-        const history = await getHistory(historyStartDateStr, date);
+        let history;
+        if (start && end) {
+            history = await getHistory(start, end);
+        } else {
+            const historyStartDate = new Date(date);
+            historyStartDate.setDate(historyStartDate.getDate() - (days - 1));
+            const historyStartDateStr = historyStartDate.toISOString().split('T')[0];
+            history = await getHistory(historyStartDateStr, date);
+        }
 
         const mealConfig = await getMealConfig();
         const otherName = (await getSetting('other_meal_name')) || "Snack";

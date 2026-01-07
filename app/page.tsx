@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Plus, Settings, RefreshCw, Loader2, Flame, Shield, Wheat, Droplets, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
@@ -13,9 +13,15 @@ import { useBackendStatus } from '@/hooks/use-backend-status';
 
 export default function HomePage() {
   const [loading, setLoading] = useState(false);
+  const loadingHistory = useRef(false);
+  const isInitialLoad = useRef(true);
   const status = useBackendStatus();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [historyEndDate, setHistoryEndDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const selectedRef = useRef<HTMLDivElement>(null);
+
+  const HISTORY_BATCH_DAYS = 30;
+  const LOAD_THRESHOLD = 200; // pixels from edge to trigger load
 
   const [stats, setStats] = useState({
     calories: 0,
@@ -35,32 +41,53 @@ export default function HomePage() {
     weight: 'g'
   });
 
-  useEffect(() => {
-    loadStats();
+  const loadHistoryRange = useCallback(async (start: string, end: string, append = false) => {
+    if (loadingHistory.current) return;
+    loadingHistory.current = true;
+    try {
+      const data = await api.getStats(undefined, 0, start, end);
+      setStats(prev => {
+        const newHistory = [...data.history];
+        const existing = [...prev.history];
+
+        // Simple merge by date to avoid duplicates
+        const merged = append
+          ? [...existing, ...newHistory]
+          : [...newHistory, ...existing];
+
+        const unique = Array.from(new Map(merged.map(item => [item.date, item])).values())
+          .sort((a, b) => a.date.localeCompare(b.date));
+
+        // Limit to 100 days for performance
+        const finalHistory = unique.length > 100
+          ? (append ? unique.slice(-100) : unique.slice(0, 100))
+          : unique;
+
+        return { ...prev, history: finalHistory };
+      });
+    } catch (error) {
+      console.error('Failed to load history batch:', error);
+    } finally {
+      loadingHistory.current = false;
+    }
   }, []);
 
-  useEffect(() => {
-    // Reload history data when date range changes (via slide navigation)
-    const today = new Date().toISOString().split('T')[0];
-    if (historyEndDate && historyEndDate !== today) {
-      // Only reload if we're not viewing today and not already selected a specific date
-      if (!selectedDate || selectedDate === historyEndDate) {
-        api.getStats(historyEndDate).then(data => {
-          setStats(prev => ({
-            ...prev,
-            history: data.history || []
-          }));
-        });
-      }
-    }
-  }, [historyEndDate]);
-
-  const loadStats = async (date?: string) => {
+  const loadStats = useCallback(async (date?: string) => {
     setLoading(true);
     try {
-      // Load stats and settings in parallel
+      const todayStr = new Date().toISOString().split('T')[0];
+      const fetchDate = date || todayStr;
+
+      // Calculate a window around the fetchDate: 20 days before, 10 days after (capped at today)
+      const histEnd = new Date(fetchDate);
+      histEnd.setDate(histEnd.getDate() + 10);
+      const histEndStr = histEnd.toISOString().split('T')[0] > todayStr ? todayStr : histEnd.toISOString().split('T')[0];
+
+      const histStart = new Date(histEndStr);
+      histStart.setDate(histStart.getDate() - (HISTORY_BATCH_DAYS - 1));
+
       const [data, settingsData] = await Promise.all([
-        api.getStats(date),
+        api.getStats(fetchDate, 0, histStart.toISOString().split('T')[0], histEndStr),
         api.getSettings()
       ]);
 
@@ -85,6 +112,98 @@ export default function HomePage() {
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  }, [HISTORY_BATCH_DAYS]);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
+
+  // Initial scroll to today or centering
+  useEffect(() => {
+    if (!scrollRef.current || stats.history.length === 0) return;
+
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // Case 1: Initial load, scroll to Today (far right)
+    if (isInitialLoad.current && !selectedDate) {
+      const scrollToEnd = () => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
+          // If we haven't reached the end yet (images still loading/layout shifting), retry once
+          if (scrollRef.current.scrollLeft < scrollRef.current.scrollWidth - scrollRef.current.clientWidth - 10) {
+            requestAnimationFrame(scrollToEnd);
+          } else {
+            isInitialLoad.current = false;
+          }
+        }
+      };
+
+      // Delay slightly for initial layout stability
+      const timer = setTimeout(scrollToEnd, 100);
+      return () => clearTimeout(timer);
+    }
+
+    // Case 2: Selected date changed (via click or picker)
+    if (selectedRef.current) {
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      const dayBefore = new Date(Date.now() - 172800000).toISOString().split('T')[0];
+
+      const isRecent = selectedDate === todayStr || selectedDate === yesterday || selectedDate === dayBefore;
+
+      // Small delay to let the highlight (amber color) be seen before the scroll starts
+      const timer = setTimeout(() => {
+        if (!scrollRef.current) return;
+
+        if (isRecent) {
+          scrollRef.current.scrollTo({
+            left: scrollRef.current.scrollWidth,
+            behavior: 'smooth'
+          });
+        } else if (selectedRef.current) {
+          selectedRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest',
+            inline: 'center'
+          });
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedDate, stats.history]);
+
+  const handleScroll = () => {
+    if (!scrollRef.current || loadingHistory.current || isInitialLoad.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+
+    // Only load more if we're not aggressively scrolling/centering
+    // and if we have some data to calculate ranges from
+    if (stats.history.length === 0) return;
+
+    // Load older (left)
+    if (scrollLeft < LOAD_THRESHOLD) {
+      const firstDate = stats.history[0]?.date;
+      if (firstDate) {
+        const end = new Date(firstDate);
+        end.setDate(end.getDate() - 1);
+        const start = new Date(end);
+        start.setDate(start.getDate() - (HISTORY_BATCH_DAYS - 1));
+        loadHistoryRange(start.toISOString().split('T')[0], end.toISOString().split('T')[0], false);
+      }
+    }
+
+    // Load newer (right)
+    if (scrollWidth - scrollLeft - clientWidth < LOAD_THRESHOLD) {
+      const lastDate = stats.history[stats.history.length - 1]?.date;
+      const today = new Date().toISOString().split('T')[0];
+      if (lastDate && lastDate < today) {
+        const start = new Date(lastDate);
+        start.setDate(start.getDate() + 1);
+        const end = new Date(start);
+        end.setDate(end.getDate() + (HISTORY_BATCH_DAYS - 1));
+        const endStr = end.toISOString().split('T')[0];
+        loadHistoryRange(start.toISOString().split('T')[0], endStr > today ? today : endStr, true);
+      }
     }
   };
 
@@ -231,7 +350,7 @@ export default function HomePage() {
       </div>
 
       {/* Redesigned Primary Action Button - Only show when viewing today */}
-      {!selectedDate && (
+      <div className={`transition-all duration-500 ease-in-out overflow-hidden ${!selectedDate ? 'opacity-100 max-h-32 translate-y-0' : 'opacity-0 max-h-0 -translate-y-4 pointer-events-none'}`}>
         <div className="px-2">
           <Link href="/add" className="block outline-none">
             <div className="group relative w-full h-24 rounded-[1.75rem] border-2 border-dashed border-primary/20 flex items-center gap-6 px-6 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all cursor-pointer shadow-lg active:scale-[0.98]">
@@ -256,7 +375,7 @@ export default function HomePage() {
             </div>
           </Link>
         </div>
-      )}
+      </div>
 
       {/* Meals Breakdown */}
 
@@ -281,22 +400,23 @@ export default function HomePage() {
       </div>
 
 
-      {!selectedDate && <RecognitionQueue />}
+      <div className={`transition-all duration-500 ease-in-out overflow-hidden ${!selectedDate ? 'opacity-100 max-h-[1000px] translate-y-0' : 'opacity-0 max-h-0 translate-y-4 pointer-events-none'}`}>
+        <RecognitionQueue />
+      </div>
 
 
       {/* History Chart */}
       <div className="px-2 pt-4 pb-20">
-        <div className="px-1 flex items-center justify-between gap-3 mb-6">
+        <div className="px-3 flex items-center justify-between gap-4 mb-3">
           <div className="flex flex-col gap-0.5">
             <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] leading-tight opacity-50">Trend Analysis</span>
-            <h2 className="text-2xl font-black text-foreground tracking-tighter uppercase italic">History</h2>
+            <h2 className="text-2xl font-black text-foreground tracking-tighter uppercase italic">History Progress</h2>
           </div>
           <div className="flex items-center gap-2">
             {selectedDate && (
               <Button
                 onClick={() => {
                   setSelectedDate(null);
-                  setHistoryEndDate(new Date().toISOString().split('T')[0]);
                   loadStats();
                 }}
                 variant="outline"
@@ -309,14 +429,14 @@ export default function HomePage() {
             <div className="relative">
               <input
                 type="date"
+                max={new Date().toISOString().split('T')[0]}
                 value={selectedDate || new Date().toISOString().split('T')[0]}
                 onChange={(e) => {
                   const newDate = e.target.value;
                   setSelectedDate(newDate);
-                  setHistoryEndDate(newDate);
                   loadStats(newDate);
                 }}
-                className="absolute opacity-0 w-8 h-8 cursor-pointer"
+                className="absolute opacity-0 w-8 h-8 cursor-pointer z-10"
               />
               <Button
                 variant="outline"
@@ -328,78 +448,59 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2 mb-4">
-          <Button
-            onClick={() => {
-              const newEndDate = new Date(historyEndDate);
-              newEndDate.setDate(newEndDate.getDate() - 7);
-              setHistoryEndDate(newEndDate.toISOString().split('T')[0]);
-            }}
-            variant="ghost"
-            size="sm"
-            className="rounded-full w-8 h-8 p-0"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <div className="flex-1" />
-          <Button
-            onClick={() => {
-              const newEndDate = new Date(historyEndDate);
-              newEndDate.setDate(newEndDate.getDate() + 7);
-              const today = new Date().toISOString().split('T')[0];
-              const futureDate = newEndDate.toISOString().split('T')[0];
-              setHistoryEndDate(futureDate > today ? today : futureDate);
-            }}
-            variant="ghost"
-            size="sm"
-            className="rounded-full w-8 h-8 p-0"
-            disabled={historyEndDate >= new Date().toISOString().split('T')[0]}
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-        </div>
-        <div className="flex items-end justify-between h-40 gap-2">
-          {stats.history.map((day) => {
-            const height = Math.min((day.calories / stats.targetCalories) * 100, 100);
-            const isToday = new Date().toISOString().split('T')[0] === day.date;
-            const isSelected = selectedDate === day.date;
-            const date = new Date(day.date);
 
-            return (
-              <div key={day.date} className="flex flex-col items-center flex-1 gap-2 group">
+        {/* Scrollable Container with Gradient Hints */}
+        <div className="relative">
+          <div
+            ref={scrollRef}
+            onScroll={handleScroll}
+            className="flex items-end h-40 gap-3 overflow-x-auto scroll-smooth no-scrollbar px-10 mask-fade-edges"
+          >
+            {stats.history.map((day) => {
+              const height = stats.targetCalories > 0 ? Math.min((day.calories / stats.targetCalories) * 100, 100) : 0;
+              const isToday = new Date().toISOString().split('T')[0] === day.date;
+              const isSelected = selectedDate === day.date;
+              const date = new Date(day.date);
+
+              return (
                 <div
-                  className="w-full relative flex items-end justify-center h-32 bg-muted/20 rounded-t-md overflow-hidden cursor-pointer"
+                  key={day.date}
+                  ref={isSelected ? selectedRef : null}
+                  className="flex flex-col items-center flex-shrink-0 w-12 gap-2 group cursor-pointer"
                   onClick={() => {
                     setSelectedDate(day.date);
                     loadStats(day.date);
                   }}
                 >
-                  <div
-                    suppressHydrationWarning
-                    className={`w-full transition-all duration-500 ${isSelected
-                      ? 'bg-amber-500 shadow-lg shadow-amber-500/50'
-                      : isToday
-                        ? 'bg-primary'
-                        : 'bg-primary/40 group-hover:bg-primary/60'
-                      }`}
-                    style={{ height: `${height}%` }}
-                  />
+                  <div className={`w-full relative flex items-end justify-center h-32 bg-muted/10 rounded-xl overflow-hidden transition-all border-2 ${isSelected ? 'border-amber-500/50 bg-amber-500/5' : 'border-transparent'}`}>
+                    <div
+                      suppressHydrationWarning
+                      className={`w-full transition-all duration-500 ${isSelected
+                        ? 'bg-amber-500 shadow-lg shadow-amber-500/50'
+                        : isToday
+                          ? 'bg-primary'
+                          : 'bg-primary/35 group-hover:bg-primary/50'
+                        }`}
+                      style={{ height: `${Math.max(height, isSelected ? 4 : 0)}%` }}
+                    />
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <span suppressHydrationWarning className={`text-[10px] font-black transition-colors leading-tight uppercase ${isSelected ? 'text-amber-500' : 'text-muted-foreground/60'
+                      }`}>
+                      {date.toLocaleDateString('en-US', { weekday: 'short' })}
+                    </span>
+                    <span suppressHydrationWarning className={`text-[9px] font-bold transition-colors leading-tight ${isSelected ? 'text-amber-500' : 'text-muted-foreground/40'
+                      }`}>
+                      {date.getMonth() + 1}/{date.getDate()}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex flex-col items-center">
-                  <span suppressHydrationWarning className={`text-[10px] font-medium transition-colors leading-tight ${isSelected ? 'text-primary font-bold' : 'text-muted-foreground'
-                    }`}>
-                    {date.toLocaleDateString('en-US', { weekday: 'short' })}
-                  </span>
-                  <span suppressHydrationWarning className={`text-[9px] transition-colors leading-tight ${isSelected ? 'text-primary font-semibold' : 'text-muted-foreground/60'
-                    }`}>
-                    {date.getMonth() + 1}/{date.getDate()}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
+
     </div>
   );
 }
