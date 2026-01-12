@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect } from 'react';
+import React, { use, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -42,6 +42,39 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
     const [backfillDate, setBackfillDate] = useState('');
     const [backfillTime, setBackfillTime] = useState('');
     const [backfillType, setBackfillType] = useState('Breakfast');
+    const [mealNames, setMealNames] = useState<string[]>(['Breakfast', 'Lunch', 'Dinner', 'Snack']);
+    const [mealSettings, setMealSettings] = useState<any[]>([]);
+    const [otherMealName, setOtherMealName] = useState('Snack');
+    const [initialTimeSet, setInitialTimeSet] = useState(false);
+
+    // Function to match time to meal name
+    const matchTimeToMeal = (time: string): string => {
+        // If we have meal settings, try to match the time to a meal
+        if (mealSettings && mealSettings.length > 0) {
+            const [hours, minutes] = time.split(':').map(Number);
+            const selectedHour = hours + minutes / 60;
+
+            for (const meal of mealSettings) {
+                const { start, end } = meal;
+                
+                // Check if selected time falls within the meal's time range
+                if (start < end) {
+                    // Normal range (e.g., 8:00 - 12:00)
+                    if (selectedHour >= start && selectedHour < end) {
+                        return meal.name;
+                    }
+                } else {
+                    // Cross-midnight range (e.g., 22:00 - 2:00)
+                    if (selectedHour >= start || selectedHour < end) {
+                        return meal.name;
+                    }
+                }
+            }
+        }
+
+        // If no match found or no meal settings, use the configured other meal name
+        return otherMealName || 'Snack';
+    };
 
     // Split State
     const [isSharing, setIsSharing] = useState(false);
@@ -58,14 +91,53 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
         setTask(t);
         setDishes(t.result || []);
 
-        setBackfillDate(new Date().toISOString().split('T')[0]);
-        setBackfillTime(new Date().toTimeString().slice(0, 5));
+        // Use local timezone for backfill date and time
+        const now = new Date();
+        setBackfillDate(now.toLocaleDateString('en-CA'));
+        const currentTime = now.toTimeString().slice(0, 5);
+        setBackfillTime(currentTime);
 
         api.getSettings()
             .then(data => {
                 if (data.unit_preferences) setUnitPrefs(data.unit_preferences);
+                if (data.meal_times && data.meal_times.length > 0) {
+                    // Extract meal names from user settings
+                    const names = data.meal_times.map((meal: any) => meal.name);
+                    // Always include the other meal name in the dropdown
+                    if (data.other_meal_name && !names.includes(data.other_meal_name)) {
+                        names.push(data.other_meal_name);
+                    }
+                    setMealNames(names);
+                    setMealSettings(data.meal_times);
+                    
+                    // Set default backfill type based on current time
+                    const matchedMeal = matchTimeToMeal(currentTime);
+                    setBackfillType(matchedMeal);
+                } else {
+                    // Fallback to default meal names if no custom settings
+                    const defaultNames = ['Breakfast', 'Lunch', 'Dinner'];
+                    // Include the other meal name in the dropdown
+                    if (data.other_meal_name && !defaultNames.includes(data.other_meal_name)) {
+                        defaultNames.push(data.other_meal_name);
+                    }
+                    setMealNames(defaultNames);
+                    setBackfillType('Dinner');
+                }
+                if (data.other_meal_name) {
+                    setOtherMealName(data.other_meal_name);
+                }
+                setInitialTimeSet(true);
             })
-            .catch(err => console.error('Failed to load settings:', err));
+            .catch(err => {
+                console.error('Failed to load settings:', err);
+                // Set default meal type based on current time even if settings fail
+                const matchedMeal = matchTimeToMeal(currentTime);
+                setBackfillType(matchedMeal);
+                // Use default snack name if settings fail to load
+                setOtherMealName('Snack');
+                setMealNames(['Breakfast', 'Lunch', 'Dinner', 'Snack']);
+                setInitialTimeSet(true);
+            });
     }, [id]);
 
     useEffect(() => {
@@ -108,14 +180,14 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
         setProcessing(true);
         try {
             await api.smartAdd({
-                dishes: dishes.map(d => ({
-                    ...d,
-                    weight: isSharing ? Math.round(d.weight * personalPortion / 100) : d.weight
-                })),
-                date: isBackfill ? backfillDate : new Date().toISOString().split('T')[0],
-                time: isBackfill ? backfillTime : undefined,
-                type: isBackfill ? backfillType : undefined,
-            });
+            dishes: dishes.map(d => ({
+                ...d,
+                weight: isSharing ? Math.round(d.weight * personalPortion / 100) : d.weight
+            })),
+            date: isBackfill ? backfillDate : new Date().toLocaleDateString('en-CA'),
+            time: isBackfill ? backfillTime : undefined,
+            type: isBackfill ? backfillType : undefined,
+        });
             toast.success("Meal added successfully!");
             recognitionStore.removeTask(id);
             router.push('/');
@@ -212,10 +284,15 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
                                         type="number"
                                         value={dish.weight}
                                         onChange={(e) => {
-                                            const val = parseFloat(e.target.value) || 0;
+                                            // Handle empty input by converting to 0
+                                            const val = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
                                             const newDishes = dishes.map((d, i) => i === idx ? { ...d, weight: val } : d);
                                             setDishes(newDishes);
                                             recognitionStore.updateTask(id, { result: newDishes });
+                                        }}
+                                        onFocus={(e) => {
+                                            // Select all text when input gains focus
+                                            e.target.select();
                                         }}
                                         className="h-9 focus-visible:ring-primary"
                                     />
@@ -324,22 +401,29 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
                                     <Input
                                         type="time"
                                         value={backfillTime}
-                                        onChange={(e) => setBackfillTime(e.target.value)}
+                                        onChange={(e) => {
+                                            const newTime = e.target.value;
+                                            setBackfillTime(newTime);
+                                            // Auto-update meal type based on selected time
+                                            const matchedMeal = matchTimeToMeal(newTime);
+                                            setBackfillType(matchedMeal);
+                                        }}
                                         className="h-10"
                                     />
                                 </div>
                                 <div className="space-y-1.5 col-span-2">
                                     <Label className="text-xs font-semibold uppercase tracking-wider opacity-60">Meal Type</Label>
                                     <select
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
-                                        value={backfillType}
-                                        onChange={(e) => setBackfillType(e.target.value)}
-                                    >
-                                        <option value="Breakfast">Breakfast</option>
-                                        <option value="Lunch">Lunch</option>
-                                        <option value="Dinner">Dinner</option>
-                                        <option value="Snack">Snack</option>
-                                    </select>
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
+                                    value={backfillType}
+                                    onChange={(e) => setBackfillType(e.target.value)}
+                                >
+                                    {mealNames.map(mealName => (
+                                        <option key={mealName} value={mealName}>
+                                            {mealName}
+                                        </option>
+                                    ))}
+                                </select>
                                 </div>
                             </div>
                         )}
