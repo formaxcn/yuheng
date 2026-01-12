@@ -27,6 +27,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover"
+import { SmartTimeInput } from './SmartTimeInput';
 import { cn } from "@/lib/utils"
 
 export default function SettingsPage() {
@@ -579,7 +580,7 @@ export default function SettingsPage() {
 
                             <div className="space-y-2">
                                 <Label>{t('recognitionLanguage')}</Label>
-                                <div className="flex gap-4 p-3 border rounded-lg h-10 items-center bg-transparent">
+                                <div className="flex gap-4 px-3 h-10 items-center border rounded-md">
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input
                                             type="radio"
@@ -589,7 +590,7 @@ export default function SettingsPage() {
                                             onChange={() => updateRecognitionLanguage('zh')}
                                             className="w-4 h-4 text-primary"
                                         />
-                                        <span className="text-sm">中文</span>
+                                        <span className="text-sm whitespace-nowrap">中文</span>
                                     </label>
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input
@@ -600,7 +601,7 @@ export default function SettingsPage() {
                                             onChange={() => updateRecognitionLanguage('en')}
                                             className="w-4 h-4 text-primary"
                                         />
-                                        <span className="text-sm">English</span>
+                                        <span className="text-sm whitespace-nowrap">English</span>
                                     </label>
                                 </div>
                             </div>
@@ -722,10 +723,11 @@ export default function SettingsPage() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label>{t('defaultTime')}</Label>
-                                        <Input
-                                            type="time"
+                                        <SmartTimeInput
                                             value={meal.default}
-                                            onChange={(e) => updateMeal(index, 'default', e.target.value)}
+                                            format={config.time_format}
+                                            onChange={(val) => updateMeal(index, 'default', val)}
+                                            className="font-mono"
                                         />
                                     </div>
                                 </div>
@@ -797,7 +799,7 @@ export default function SettingsPage() {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }
 
