@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Save, Loader2, Plus, Trash2, X, Sparkles, Bot, Globe, ChevronDown, Check } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Plus, Trash2, X, Sparkles, Bot, Globe, ChevronDown, Check, Brain } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -123,6 +123,7 @@ export default function SettingsPage() {
         let defaultModel = 'gemini-3-flash-preview';
         if (provider === 'openai') defaultModel = 'gpt-4o';
         else if (provider === 'openai-compatible') defaultModel = 'mimo-v2-flash';
+        else if (provider === 'zhipu') defaultModel = 'GLM-4.1V-Thinking-Flash';
 
         setConfig(prev => ({
             ...prev,
@@ -539,25 +540,31 @@ export default function SettingsPage() {
                                         <SelectValue placeholder="Select provider" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="gemini">
-                                            <div className="flex items-center gap-2">
-                                                <Sparkles className="w-4 h-4" />
-                                                <span>Gemini</span>
-                                            </div>
-                                        </SelectItem>
-                                        <SelectItem value="openai">
-                                            <div className="flex items-center gap-2">
-                                                <Bot className="w-4 h-4" />
-                                                <span>OpenAI</span>
-                                            </div>
-                                        </SelectItem>
-                                        <SelectItem value="openai-compatible">
-                                            <div className="flex items-center gap-2">
-                                                <Globe className="w-4 h-4" />
-                                                <span>Compatible</span>
-                                            </div>
-                                        </SelectItem>
-                                    </SelectContent>
+                                    <SelectItem value="gemini">
+                                        <div className="flex items-center gap-2">
+                                            <Sparkles className="w-4 h-4" />
+                                            <span>Gemini</span>
+                                        </div>
+                                    </SelectItem>
+                                    <SelectItem value="zhipu">
+                                        <div className="flex items-center gap-2">
+                                            <Brain className="w-4 h-4" />
+                                            <span>Zhipu</span>
+                                        </div>
+                                    </SelectItem>
+                                    <SelectItem value="openai">
+                                        <div className="flex items-center gap-2">
+                                            <Bot className="w-4 h-4" />
+                                            <span>OpenAI</span>
+                                        </div>
+                                    </SelectItem>
+                                    <SelectItem value="openai-compatible">
+                                        <div className="flex items-center gap-2">
+                                            <Globe className="w-4 h-4" />
+                                            <span>Compatible</span>
+                                        </div>
+                                    </SelectItem>
+                                </SelectContent>
                                 </Select>
                             </div>
 

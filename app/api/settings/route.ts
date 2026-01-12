@@ -25,6 +25,7 @@ const settingsSchema = z.object({
     recognition_language: z.enum(['zh', 'en']).optional(),
     region: z.enum(['CN', 'US']).optional(),
     llm_api_key: z.string().optional(),
+    llm_provider: z.string().optional(),
     llm_model: z.string().optional()
 });
 
@@ -62,10 +63,11 @@ export async function GET(req: NextRequest) {
         const recognition_language = (await getSetting('recognition_language')) || 'zh';
         const region = (await getSetting('region')) || 'CN';
         const llm_api_key = (await getSetting('llm_api_key')) || '';
+        const llm_provider = (await getSetting('llm_provider')) || 'gemini';
         const llm_model = (await getSetting('llm_model')) || 'gemini-2.5-flash';
         const other_meal_name = (await getSetting('other_meal_name')) || 'Snack';
         const time_format = (await getSetting('time_format')) || '24h';
-        return NextResponse.json({ meal_times, daily_targets, unit_preferences, recognition_language, region, llm_api_key, llm_model, other_meal_name, time_format });
+        return NextResponse.json({ meal_times, daily_targets, unit_preferences, recognition_language, region, llm_api_key, llm_provider, llm_model, other_meal_name, time_format });
     } catch (error) {
         logger.error(error as Error, 'Failed to fetch settings');
         return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
@@ -81,7 +83,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid settings format', details: parsed.error }, { status: 400 });
         }
 
-        const { meal_times, daily_targets, unit_preferences, recognition_language, llm_api_key, llm_model, other_meal_name, time_format } = parsed.data;
+        const { meal_times, daily_targets, unit_preferences, recognition_language, llm_api_key, llm_provider, llm_model, other_meal_name, time_format } = parsed.data;
 
         await saveSetting('meal_times', JSON.stringify(meal_times));
         await saveDailyTargets(daily_targets);
@@ -96,6 +98,9 @@ export async function POST(req: NextRequest) {
         }
         if (llm_api_key !== undefined) {
             await saveSetting('llm_api_key', llm_api_key);
+        }
+        if (llm_provider) {
+            await saveSetting('llm_provider', llm_provider);
         }
         if (llm_model) {
             await saveSetting('llm_model', llm_model);
@@ -117,6 +122,7 @@ export async function POST(req: NextRequest) {
             recognition_language: currentLang,
             region: (await getSetting('region')) || 'CN',
             llm_api_key: (await getSetting('llm_api_key')) || '',
+            llm_provider: (await getSetting('llm_provider')) || 'gemini',
             llm_model: (await getSetting('llm_model')) || 'gemini-2.5-flash',
             other_meal_name: (await getSetting('other_meal_name')) || 'Snack',
             time_format: (await getSetting('time_format')) || '24h'

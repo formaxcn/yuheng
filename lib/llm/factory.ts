@@ -1,10 +1,11 @@
 import { ILLMProvider } from './interface';
 import { GeminiProvider } from './providers/gemini';
 import { OpenAIProvider } from './providers/openai';
+import { ZhipuProvider } from './providers/zhipu';
 import { getSetting } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
-export type LLMProviderType = 'gemini' | 'openai' | 'openai-compatible';
+export type LLMProviderType = 'gemini' | 'openai' | 'openai-compatible' | 'zhipu';
 
 export const DEFAULT_MODELS: Record<LLMProviderType, { id: string; name: string }[]> = {
     'gemini': [
@@ -25,9 +26,6 @@ export const DEFAULT_MODELS: Record<LLMProviderType, { id: string; name: string 
         { id: 'grok-4-fast', name: 'Grok 4 Fast (Vision/Search)' },
         { id: 'grok-4.1-fast', name: 'Grok 4.1 Fast (Agentic Vision)' },
 
-        // --- 智谱 GLM: 唯一明确“API永久免费”的多模态模型 ---
-        { id: 'glm-4v-flash', name: 'GLM-4V Flash (Always Free Vision)' },
-
         // --- 阿里 Qwen: 视觉理解公认的国产最强 ---
         { id: 'qwen-vl-max-2025', name: 'Qwen-VL Max (Professional OCR)' },
         { id: 'qwen2.5-vl-7b-instruct', name: 'Qwen2.5-VL (Open Source Choice)' },
@@ -37,6 +35,11 @@ export const DEFAULT_MODELS: Record<LLMProviderType, { id: string; name: string 
 
         // --- DeepSeek: 高性价比多模态 ---
         { id: 'deepseek-v3.2', name: 'DeepSeek V3.2 (Vision Enabled)' }
+    ],
+    'zhipu': [
+        // --- 智谱 Zhipu: 多模态大模型 ---
+        { id: 'glm-4.6v-flash', name: 'GLM-4.6V-Flash (Default)' },
+        { id: 'glm-4v-flash', name: 'GLM-4V Flash (Always Free Vision)' }
     ]
 };
 
@@ -54,6 +57,8 @@ export class LLMFactory {
                 return new OpenAIProvider(apiKey, model);
             case 'openai-compatible':
                 return new OpenAIProvider(apiKey, model, baseUrl);
+            case 'zhipu':
+                return new ZhipuProvider(apiKey, model);
             case 'gemini':
             default:
                 return new GeminiProvider(apiKey, model);
