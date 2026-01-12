@@ -10,6 +10,8 @@ import { ArrowLeft, Save, Loader2, Plus, Trash2, X, Sparkles, Bot, Globe, Chevro
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
+import { setLocale } from '@/app/actions';
 import { api, Settings } from '@/lib/api-client';
 import { kcalToKj, kjToKcal, gramsToOz, ozToGrams, EnergyUnit, WeightUnit } from '@/lib/units';
 import { Slider } from '@/components/ui/slider';
@@ -28,6 +30,8 @@ import {
 import { cn } from "@/lib/utils"
 
 export default function SettingsPage() {
+    const t = useTranslations('Settings');
+    const tCommon = useTranslations('Common');
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -136,11 +140,11 @@ export default function SettingsPage() {
         setSaving(true);
         try {
             await api.saveSettings(config);
-            toast.success('Settings saved successfully');
+            toast.success(t('saveSuccess'));
             router.push('/');
         } catch (error) {
             console.error(error);
-            toast.error('Error saving settings');
+            toast.error(t('saveError'));
         } finally {
             setSaving(false);
         }
@@ -292,14 +296,16 @@ export default function SettingsPage() {
         }));
     };
 
-    const updateRecognitionLanguage = (lang: 'zh' | 'en') => {
+    const updateRecognitionLanguage = async (lang: 'zh' | 'en') => {
         setConfig(prev => ({
             ...prev,
             recognition_language: lang
         }));
+        await setLocale(lang);
+        router.refresh();
     };
 
-    const updateRegion = (newRegion: 'CN' | 'US') => {
+    const updateRegion = async (newRegion: 'CN' | 'US') => {
         if (config.region === newRegion) return;
 
         // Auto-adapt settings based on region
@@ -319,6 +325,9 @@ export default function SettingsPage() {
             time_format: targetTimeFormat,
             // Weight unit is already updated by updateWeightUnit call above if needed
         }));
+
+        await setLocale(targetLang);
+        router.refresh();
     };
 
     const formatHour = (hour: number) => {
@@ -345,19 +354,19 @@ export default function SettingsPage() {
                         <ArrowLeft className="w-6 h-6" />
                     </Button>
                 </Link>
-                <h1 className="text-2xl font-bold">Settings</h1>
+                <h1 className="text-2xl font-bold">{t('title')}</h1>
             </div>
 
             <div className="space-y-6 max-w-2xl mx-auto">
                 <Card className="border-primary/50 bg-primary/5">
                     <CardHeader>
                         <CardTitle className="text-primary flex items-center gap-2">
-                            Global Region Settings
+                            {t('globalRegionSettings')}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
-                            <Label>Global Region (Quickly adapt units and language)</Label>
+                            <Label>{t('globalRegionDescription')}</Label>
                             <div className="flex gap-6">
                                 <label className="flex items-center gap-3 cursor-pointer p-3 border rounded-lg hover:bg-background transition-colors flex-1">
                                     <input
@@ -369,8 +378,8 @@ export default function SettingsPage() {
                                         className="w-5 h-5 text-primary"
                                     />
                                     <div className="flex flex-col">
-                                        <span className="font-semibold">China (中国)</span>
-                                        <span className="text-xs text-muted-foreground">g, kcal, 24h, 中文</span>
+                                        <span className="font-semibold">{t('regionCN')}</span>
+                                        <span className="text-xs text-muted-foreground">{t('regionCNDesc')}</span>
                                     </div>
                                 </label>
                                 <label className="flex items-center gap-3 cursor-pointer p-3 border rounded-lg hover:bg-background transition-colors flex-1">
@@ -383,25 +392,25 @@ export default function SettingsPage() {
                                         className="w-5 h-5 text-primary"
                                     />
                                     <div className="flex flex-col">
-                                        <span className="font-semibold">United States</span>
-                                        <span className="text-xs text-muted-foreground">oz, kcal, 12h, English</span>
+                                        <span className="font-semibold">{t('regionUS')}</span>
+                                        <span className="text-xs text-muted-foreground">{t('regionUSDesc')}</span>
                                     </div>
                                 </label>
                             </div>
                             <p className="text-xs text-muted-foreground mt-2">
-                                Selecting a region will automatically set your preferred units and AI recognition language. You can still customize them individually below.
+                                {t('autoSetNote')}
                             </p>
                         </div>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader>
-                        <CardTitle>Daily Nutrition Targets</CardTitle>
+                        <CardTitle>{t('dailyNutritionTargets')}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>Energy ({config.unit_preferences.energy})</Label>
+                                <Label>{t('energy')} ({config.unit_preferences.energy})</Label>
                                 <Input
                                     type="number"
                                     value={config.daily_targets.energy}
@@ -409,7 +418,7 @@ export default function SettingsPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label>Protein ({config.unit_preferences.weight})</Label>
+                                <Label>{t('protein')} ({config.unit_preferences.weight})</Label>
                                 <Input
                                     type="number"
                                     value={config.daily_targets.protein}
@@ -417,7 +426,7 @@ export default function SettingsPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label>Carbs ({config.unit_preferences.weight})</Label>
+                                <Label>{t('carbs')} ({config.unit_preferences.weight})</Label>
                                 <Input
                                     type="number"
                                     value={config.daily_targets.carbs}
@@ -425,7 +434,7 @@ export default function SettingsPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label>Fat ({config.unit_preferences.weight})</Label>
+                                <Label>{t('fat')} ({config.unit_preferences.weight})</Label>
                                 <Input
                                     type="number"
                                     value={config.daily_targets.fat}
@@ -438,12 +447,12 @@ export default function SettingsPage() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Unit Preferences</CardTitle>
+                        <CardTitle>{t('unitPreferences')}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>Energy Unit</Label>
+                                <Label>{t('energyUnit')}</Label>
                                 <div className="flex gap-4">
                                     <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
                                         <input
@@ -470,7 +479,7 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <Label>Weight Unit</Label>
+                                <Label>{t('weightUnit')}</Label>
                                 <div className="flex gap-4">
                                     <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
                                         <input
@@ -497,7 +506,7 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <Label>Time Format</Label>
+                                <Label>{t('timeFormat')}</Label>
                                 <div className="flex gap-4">
                                     <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
                                         <input
@@ -529,47 +538,47 @@ export default function SettingsPage() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>AI Recognition & LLM Setup</CardTitle>
+                        <CardTitle>{t('aiSetup')}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-2 gap-4 pb-2">
                             <div className="space-y-2">
-                                <Label>LLM Provider</Label>
+                                <Label>{t('llmProvider')}</Label>
                                 <Select value={config.llm_provider || 'gemini'} onValueChange={handleProviderChange}>
                                     <SelectTrigger className="w-full h-10">
                                         <SelectValue placeholder="Select provider" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                    <SelectItem value="gemini">
-                                        <div className="flex items-center gap-2">
-                                            <Sparkles className="w-4 h-4" />
-                                            <span>Gemini</span>
-                                        </div>
-                                    </SelectItem>
-                                    <SelectItem value="zhipu">
-                                        <div className="flex items-center gap-2">
-                                            <Brain className="w-4 h-4" />
-                                            <span>Zhipu</span>
-                                        </div>
-                                    </SelectItem>
-                                    <SelectItem value="openai">
-                                        <div className="flex items-center gap-2">
-                                            <Bot className="w-4 h-4" />
-                                            <span>OpenAI</span>
-                                        </div>
-                                    </SelectItem>
-                                    <SelectItem value="openai-compatible">
-                                        <div className="flex items-center gap-2">
-                                            <Globe className="w-4 h-4" />
-                                            <span>Compatible</span>
-                                        </div>
-                                    </SelectItem>
-                                </SelectContent>
+                                        <SelectItem value="gemini">
+                                            <div className="flex items-center gap-2">
+                                                <Sparkles className="w-4 h-4" />
+                                                <span>Gemini</span>
+                                            </div>
+                                        </SelectItem>
+                                        <SelectItem value="zhipu">
+                                            <div className="flex items-center gap-2">
+                                                <Brain className="w-4 h-4" />
+                                                <span>Zhipu</span>
+                                            </div>
+                                        </SelectItem>
+                                        <SelectItem value="openai">
+                                            <div className="flex items-center gap-2">
+                                                <Bot className="w-4 h-4" />
+                                                <span>OpenAI</span>
+                                            </div>
+                                        </SelectItem>
+                                        <SelectItem value="openai-compatible">
+                                            <div className="flex items-center gap-2">
+                                                <Globe className="w-4 h-4" />
+                                                <span>Compatible</span>
+                                            </div>
+                                        </SelectItem>
+                                    </SelectContent>
                                 </Select>
                             </div>
 
                             <div className="space-y-2">
-                                <Label>Recognition Language</Label>
+                                <Label>{t('recognitionLanguage')}</Label>
                                 <div className="flex gap-4 p-3 border rounded-lg h-10 items-center bg-transparent">
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input
@@ -597,7 +606,7 @@ export default function SettingsPage() {
                             </div>
                         </div>
                         <p className="text-[10px] text-muted-foreground -mt-2">
-                            Provider and language settings for AI food recognition.
+                            {t('recognitionLangNote')}
                         </p>
 
 
@@ -624,11 +633,11 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Model Name</Label>
+                            <Label>{t('modelName')}</Label>
                             <Popover open={modelDropdownOpen} onOpenChange={setModelDropdownOpen}>
                                 <div className="relative flex w-full">
                                     <Input
-                                        placeholder="e.g. gpt-4o"
+                                        placeholder={t('modelNamePlaceholder')}
                                         value={config.llm_model}
                                         onChange={(e) => setConfig(prev => ({ ...prev, llm_model: e.target.value }))}
                                         className="w-full pr-10 rounded-r-none"
@@ -676,7 +685,7 @@ export default function SettingsPage() {
                                 </PopoverContent>
                             </Popover>
                             <p className="text-xs text-muted-foreground">
-                                Select from dropdown or type a custom model name.
+                                {t('modelNameNote')}
                             </p>
                         </div>
                     </CardContent>
@@ -685,9 +694,9 @@ export default function SettingsPage() {
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle>Meal Times</CardTitle>
+                        <CardTitle>{t('mealTimes')}</CardTitle>
                         <Button variant="outline" size="sm" onClick={addMeal} className="gap-2">
-                            <Plus className="w-4 h-4" /> Add Meal
+                            <Plus className="w-4 h-4" /> {t('addMeal')}
                         </Button>
                     </CardHeader>
                     <CardContent className="space-y-8 mt-4">
@@ -704,7 +713,7 @@ export default function SettingsPage() {
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label>Meal Name</Label>
+                                        <Label>{t('mealName')}</Label>
                                         <Input
                                             value={meal.name}
                                             onChange={(e) => updateMeal(index, 'name', e.target.value)}
@@ -712,7 +721,7 @@ export default function SettingsPage() {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label>Default Time</Label>
+                                        <Label>{t('defaultTime')}</Label>
                                         <Input
                                             type="time"
                                             value={meal.default}
@@ -723,8 +732,8 @@ export default function SettingsPage() {
 
                                 <div className="space-y-4 pt-2">
                                     <div className="flex justify-between text-xs text-muted-foreground">
-                                        <span>Time Range: {formatHour(meal.start)} - {formatHour(meal.end)}</span>
-                                        <span>{(meal.end - meal.start + 24) % 24}h duration</span>
+                                        <span className="whitespace-nowrap">{t('timeRange')}: {formatHour(meal.start)} - {formatHour(meal.end)}</span>
+                                        <span className="whitespace-nowrap">{(meal.end - meal.start + 24) % 24}h {t('duration')}</span>
                                     </div>
 
                                     <div className="relative pt-6 pb-2">
@@ -755,7 +764,7 @@ export default function SettingsPage() {
                         ))}
 
                         <div className="pt-4 border-t space-y-3">
-                            <Label className="font-semibold px-1">Other Meals Fallback</Label>
+                            <Label className="font-semibold px-1">{t('otherMealsFallback')}</Label>
                             <div className="flex gap-4 items-center">
                                 <Input
                                     placeholder="e.g. Snack"
@@ -764,7 +773,7 @@ export default function SettingsPage() {
                                     className="flex-1"
                                 />
                                 <p className="text-[10px] text-muted-foreground max-w-[200px]">
-                                    Meals recorded outside the ranges above will use this name.
+                                    {t('otherMealsNote')}
                                 </p>
                             </div>
                         </div>
@@ -777,7 +786,7 @@ export default function SettingsPage() {
                     disabled={saving}
                 >
                     {saving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Save className="mr-2 h-5 w-5" />}
-                    Save Settings
+                    {t('saveSettings')}
                 </Button>
 
                 {version && (

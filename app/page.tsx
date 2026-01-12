@@ -11,9 +11,13 @@ import { useBackendStatus } from '@/hooks/use-backend-status';
 import { toast } from 'sonner';
 import { recognitionStore } from '@/lib/recognition-store';
 import { logger } from '@/lib/logger';
+import { useTranslations, useLocale } from 'next-intl';
 
 
 export default function HomePage() {
+  const t = useTranslations('Home');
+  const tCommon = useTranslations('Common');
+  const locale = useLocale();
   const [loading, setLoading] = useState(false);
   const loadingHistory = useRef(false);
   const isInitialLoad = useRef(true);
@@ -260,7 +264,7 @@ export default function HomePage() {
       <div className="flex justify-between items-center px-1">
         <div className="flex flex-col">
           <h1 className="text-2xl font-black bg-gradient-to-r from-primary via-purple-400 to-primary bg-clip-text text-transparent tracking-tighter">
-            YuHeng
+            {t('title')}
           </h1>
         </div>
         <div className="flex items-center gap-2">
@@ -292,14 +296,14 @@ export default function HomePage() {
       {/* Progress Header */}
       <div className="px-3 flex items-center justify-between gap-4 mb-[-12px] mt-2">
         <div className="flex flex-col gap-0.5">
-          <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] leading-tight opacity-50">Activity Status</span>
+          <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] leading-tight opacity-50">{t('activityStatus')}</span>
           <h2 className="text-2xl font-black text-foreground tracking-tighter uppercase italic">
             {selectedDate ? (
               <>
-                {new Date(selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} Progress
+                {t('progress', { date: new Date(selectedDate).toLocaleDateString(locale, { month: 'short', day: 'numeric' }) })}
               </>
             ) : (
-              "Today's Progress"
+              t('todaysProgress')
             )}
           </h2>
         </div>
@@ -313,7 +317,7 @@ export default function HomePage() {
             size="sm"
             className="rounded-full text-xs font-bold px-4 shrink-0"
           >
-            Return to Today
+            {t('returnToToday')}
           </Button>
         )}
       </div>
@@ -374,7 +378,7 @@ export default function HomePage() {
                       <Flame className="w-4 h-4" style={{ color: '#ff3b30' }} />
                     </div>
                     <div className="flex flex-col min-w-0 flex-1">
-                      <span className="text-[10px] font-black text-muted-foreground uppercase opacity-30 leading-none mb-1 tracking-[0.1em] shrink-0 whitespace-nowrap">Energy ({unitPrefs.energy})</span>
+                      <span className="text-[10px] font-black text-muted-foreground uppercase opacity-30 leading-none mb-1 tracking-[0.1em] shrink-0 whitespace-nowrap">{tCommon('energy')} ({unitPrefs.energy})</span>
                       <div className="flex items-baseline gap-1.5 flex-wrap">
                         <span className="text-xl sm:text-2xl font-black leading-none tracking-tighter shrink-0" style={{ color: '#ff3b30' }}>
                           {displayEnergy(stats.calories, unitPrefs.energy)}
@@ -393,7 +397,7 @@ export default function HomePage() {
                       <Shield className="w-4 h-4" style={{ color: '#007aff' }} />
                     </div>
                     <div className="flex flex-col min-w-0 flex-1">
-                      <span className="text-[10px] font-black text-muted-foreground uppercase opacity-30 leading-none mb-1 tracking-[0.1em] shrink-0 whitespace-nowrap">Protein ({unitPrefs.weight})</span>
+                      <span className="text-[10px] font-black text-muted-foreground uppercase opacity-30 leading-none mb-1 tracking-[0.1em] shrink-0 whitespace-nowrap">{tCommon('protein')} ({unitPrefs.weight})</span>
                       <div className="flex items-baseline gap-1.5 flex-wrap">
                         <span className="text-xl sm:text-2xl font-black leading-none tracking-tighter shrink-0" style={{ color: '#007aff' }}>
                           {displayWeight(stats.protein, unitPrefs.weight)}
@@ -412,7 +416,7 @@ export default function HomePage() {
                       <Wheat className="w-4 h-4" style={{ color: '#34c759' }} />
                     </div>
                     <div className="flex flex-col min-w-0 flex-1">
-                      <span className="text-[10px] font-black text-muted-foreground uppercase opacity-30 leading-none mb-1 tracking-[0.1em] shrink-0 whitespace-nowrap">Carbs ({unitPrefs.weight})</span>
+                      <span className="text-[10px] font-black text-muted-foreground uppercase opacity-30 leading-none mb-1 tracking-[0.1em] shrink-0 whitespace-nowrap">{tCommon('carbs')} ({unitPrefs.weight})</span>
                       <div className="flex items-baseline gap-1.5 flex-wrap">
                         <span className="text-xl sm:text-2xl font-black leading-none tracking-tighter shrink-0" style={{ color: '#34c759' }}>
                           {displayWeight(stats.carbs, unitPrefs.weight)}
@@ -431,7 +435,7 @@ export default function HomePage() {
                       <Droplets className="w-4 h-4" style={{ color: '#ff9500' }} />
                     </div>
                     <div className="flex flex-col min-w-0 flex-1">
-                      <span className="text-[10px] font-black text-muted-foreground uppercase opacity-30 leading-none mb-1 tracking-[0.1em] shrink-0 whitespace-nowrap">Fat ({unitPrefs.weight})</span>
+                      <span className="text-[10px] font-black text-muted-foreground uppercase opacity-30 leading-none mb-1 tracking-[0.1em] shrink-0 whitespace-nowrap">{tCommon('fat')} ({unitPrefs.weight})</span>
                       <div className="flex items-baseline gap-1.5 flex-wrap">
                         <span className="text-xl sm:text-2xl font-black leading-none tracking-tighter shrink-0" style={{ color: '#ff9500' }}>
                           {displayWeight(stats.fat, unitPrefs.weight)}
@@ -453,7 +457,7 @@ export default function HomePage() {
       {/* Redesigned Primary Action Button - Only show when viewing today */}
       <div className={`transition-all duration-500 ease-in-out overflow-hidden ${!selectedDate ? 'opacity-100 max-h-32 translate-y-0' : 'opacity-0 max-h-0 -translate-y-4 pointer-events-none'}`}>
         <div className="px-2">
-          <div 
+          <div
             onClick={() => fileInputRef.current?.click()}
             className="group relative w-full h-24 rounded-[1.75rem] border-2 border-dashed border-primary/20 flex items-center gap-6 px-6 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all cursor-pointer shadow-lg active:scale-[0.98]"
           >
@@ -465,18 +469,18 @@ export default function HomePage() {
               )}
             </div>
             <div className="flex flex-col items-start gap-0.5">
-              <span className="text-sm font-black text-muted-foreground uppercase tracking-[0.2em] opacity-50">Record</span>
+              <span className="text-sm font-black text-muted-foreground uppercase tracking-[0.2em] opacity-50">{t('record')}</span>
               <span className="text-3xl font-black text-foreground group-hover:text-primary transition-colors tracking-tighter italic uppercase">
                 {(() => {
                   const hour = new Date().getHours();
-                  if (hour >= 5 && hour < 11) return 'Breakfast';
-                  if (hour >= 11 && hour < 14) return 'Lunch';
-                  if (hour >= 17 && hour < 21) return 'Dinner';
-                  return 'Snack';
+                  if (hour >= 5 && hour < 11) return t('meals.breakfast');
+                  if (hour >= 11 && hour < 14) return t('meals.lunch');
+                  if (hour >= 17 && hour < 21) return t('meals.dinner');
+                  return t('meals.snack');
                 })()}
               </span>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Start Tracking Now</span>
+                <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">{t('startTracking')}</span>
               </div>
             </div>
           </div>
@@ -523,8 +527,8 @@ export default function HomePage() {
       <div className="px-2 pt-4 pb-20">
         <div className="px-3 flex items-center justify-between gap-4 mb-3">
           <div className="flex flex-col gap-0.5">
-            <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] leading-tight opacity-50">Trend Analysis</span>
-            <h2 className="text-2xl font-black text-foreground tracking-tighter uppercase italic">History Progress</h2>
+            <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] leading-tight opacity-50">{t('trendAnalysis')}</span>
+            <h2 className="text-2xl font-black text-foreground tracking-tighter uppercase italic">{t('historyProgress')}</h2>
           </div>
           <div className="flex items-center gap-2">
             {selectedDate && (
@@ -537,7 +541,7 @@ export default function HomePage() {
                 size="sm"
                 className="rounded-full text-xs font-bold px-3 h-8"
               >
-                Today
+                {t('today')}
               </Button>
             )}
             <div className="relative">
@@ -601,7 +605,7 @@ export default function HomePage() {
                   <div className="flex flex-col items-center">
                     <span suppressHydrationWarning className={`text-[10px] font-black transition-colors leading-tight uppercase ${isSelected ? 'text-amber-500' : 'text-muted-foreground/60'
                       }`}>
-                      {date.toLocaleDateString('en-US', { weekday: 'short' })}
+                      {date.toLocaleDateString(locale, { weekday: 'short' })}
                     </span>
                     <span suppressHydrationWarning className={`text-[9px] font-bold transition-colors leading-tight ${isSelected ? 'text-amber-500' : 'text-muted-foreground/40'
                       }`}>

@@ -17,8 +17,12 @@ import { UnitPreferences } from '@/lib/db';
 import { api } from '@/lib/api-client';
 import { recognitionStore } from '@/lib/recognition-store';
 import Link from 'next/link';
+import { useTranslations, useLocale } from 'next-intl';
 
 export default function RecognitionResultPage({ params }: { params: Promise<{ id: string }> }) {
+    const t = useTranslations('Recognition');
+    const tCommon = useTranslations('Common');
+    const locale = useLocale();
     const { id } = use(params);
     const router = useRouter();
     const [task, setTask] = useState<any>(null);
@@ -56,7 +60,7 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
 
             for (const meal of mealSettings) {
                 const { start, end } = meal;
-                
+
                 // Check if selected time falls within the meal's time range
                 if (start < end) {
                     // Normal range (e.g., 8:00 - 12:00)
@@ -109,7 +113,7 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
                     }
                     setMealNames(names);
                     setMealSettings(data.meal_times);
-                    
+
                     // Set default backfill type based on current time
                     const matchedMeal = matchTimeToMeal(currentTime);
                     setBackfillType(matchedMeal);
@@ -167,10 +171,10 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
             setIsEditDialogOpen(false);
             setEditingDish(null);
             setEditPrompt('');
-            toast.success("Dish updated!");
+            toast.success(t('successUpdated'));
         } catch (error) {
             logger.error(error as Error, "Failed to update dish");
-            toast.error("Failed to update dish");
+            toast.error(t('errorUpdate'));
         } finally {
             setLoading(false);
         }
@@ -180,20 +184,20 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
         setProcessing(true);
         try {
             await api.smartAdd({
-            dishes: dishes.map(d => ({
-                ...d,
-                weight: isSharing ? Math.round(d.weight * personalPortion / 100) : d.weight
-            })),
-            date: isBackfill ? backfillDate : new Date().toLocaleDateString('en-CA'),
-            time: isBackfill ? backfillTime : undefined,
-            type: isBackfill ? backfillType : undefined,
-        });
-            toast.success("Meal added successfully!");
+                dishes: dishes.map(d => ({
+                    ...d,
+                    weight: isSharing ? Math.round(d.weight * personalPortion / 100) : d.weight
+                })),
+                date: isBackfill ? backfillDate : new Date().toLocaleDateString('en-CA'),
+                time: isBackfill ? backfillTime : undefined,
+                type: isBackfill ? backfillType : undefined,
+            });
+            toast.success(t('successAdded'));
             recognitionStore.removeTask(id);
             router.push('/');
         } catch (error) {
             logger.error(error as Error, "Failed to add meal");
-            toast.error("Failed to add meal");
+            toast.error(t('errorAdd'));
         } finally {
             setProcessing(false);
         }
@@ -203,10 +207,10 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
         setRetrying(true);
         try {
             await recognitionStore.retryTask(id, retryPrompt);
-            toast.success("Re-recognition started!");
+            toast.success(t('successRetry'));
             router.push('/'); // Redirect to home to see progress in queue
         } catch (error) {
-            toast.error("Failed to restart recognition");
+            toast.error(t('errorRetry'));
         } finally {
             setRetrying(false);
             setIsRetryDialogOpen(false);
@@ -224,7 +228,7 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
                             <ChevronLeft className="w-5 h-5" />
                         </Button>
                     </Link>
-                    <h1 className="text-2xl font-bold">Recognition Results</h1>
+                    <h1 className="text-2xl font-bold">{t('title')}</h1>
                 </div>
                 <Button
                     variant="outline"
@@ -232,7 +236,7 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
                     className="gap-2 h-9 border-primary/20 hover:bg-primary/5"
                     onClick={() => setIsRetryDialogOpen(true)}
                 >
-                    <RefreshCw className="w-4 h-4" /> Guided Retry
+                    <RefreshCw className="w-4 h-4" /> {t('guidedRetry')}
                 </Button>
             </div>
 
@@ -240,7 +244,7 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
                 <Image src={task.imageData} alt="Food" fill className="object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
                     <p className="text-white/80 text-sm">
-                        Captured on {new Date(task.created_at).toLocaleString()}
+                        {t('capturedOn', { date: new Date(task.created_at).toLocaleString(locale) })}
                     </p>
                 </div>
             </div>
@@ -249,7 +253,7 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
                 {dishes.length === 0 && task.status === 'completed' && (
                     <Card className="bg-muted/50 border-dashed">
                         <CardContent className="h-40 flex items-center justify-center text-muted-foreground italic">
-                            No dishes were identified. Try again with a clearer photo.
+                            {t('noDishes')}
                         </CardContent>
                     </Card>
                 )}
@@ -279,7 +283,7 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
                         <CardContent className="pt-4">
                             <div className="grid grid-cols-2 gap-6">
                                 <div className="space-y-1.5">
-                                    <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Weight ({unitPrefs.weight})</Label>
+                                    <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{t('weight')} ({unitPrefs.weight})</Label>
                                     <Input
                                         type="number"
                                         value={dish.weight}
@@ -298,7 +302,7 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Total Energy</Label>
+                                    <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{t('totalEnergy')}</Label>
                                     <div className="h-9 flex items-center font-bold text-lg text-primary">
                                         {Math.round(dish.calories * dish.weight / 100)} <span className="text-xs ml-1 font-normal opacity-70">{unitPrefs.energy}</span>
                                     </div>
@@ -320,7 +324,7 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
                     <div className="bg-primary/5 border border-primary/20 p-5 rounded-2xl space-y-4">
                         <div className="flex items-center justify-between">
                             <Label htmlFor="sharing" className="font-bold cursor-pointer flex items-center gap-2 text-primary">
-                                <Users className="w-4 h-4" /> Meal Sharing
+                                <Users className="w-4 h-4" /> {t('mealSharing')}
                             </Label>
                             <input
                                 type="checkbox"
@@ -334,7 +338,7 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
                         {isSharing && (
                             <div className="space-y-5 animate-in slide-in-from-top-2 duration-300">
                                 <div className="flex items-center justify-between">
-                                    <Label className="text-sm font-medium">Number of People</Label>
+                                    <Label className="text-sm font-medium">{t('numPeople')}</Label>
                                     <div className="flex items-center gap-2">
                                         {[1, 2, 3, 4].map(n => (
                                             <Button
@@ -352,7 +356,7 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
 
                                 <div className="space-y-3">
                                     <div className="flex justify-between text-xs font-medium">
-                                        <Label>Personal Portion</Label>
+                                        <Label>{t('personalPortion')}</Label>
                                         <span className="text-primary font-bold">{personalPortion}%</span>
                                     </div>
                                     <input
@@ -364,7 +368,7 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
                                         className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
                                     />
                                     <p className="text-[10px] text-muted-foreground italic">
-                                        Final log will be {personalPortion}% of the total weight for all dishes.
+                                        {t('portionNote', { percent: personalPortion })}
                                     </p>
                                 </div>
                             </div>
@@ -374,7 +378,7 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
                     <div className="bg-muted/30 p-5 rounded-2xl space-y-4 border border-transparent">
                         <div className="flex items-center justify-between">
                             <Label htmlFor="backfill" className="font-bold cursor-pointer flex items-center gap-2">
-                                <Clock className="w-4 h-4" /> Backfill this meal
+                                <Clock className="w-4 h-4" /> {t('backfill')}
                             </Label>
                             <input
                                 type="checkbox"
@@ -388,7 +392,7 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
                         {isBackfill && (
                             <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
                                 <div className="space-y-1.5">
-                                    <Label className="text-xs font-semibold uppercase tracking-wider opacity-60">Date</Label>
+                                    <Label className="text-xs font-semibold uppercase tracking-wider opacity-60">{t('date')}</Label>
                                     <Input
                                         type="date"
                                         value={backfillDate}
@@ -397,7 +401,7 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label className="text-xs font-semibold uppercase tracking-wider opacity-60">Time</Label>
+                                    <Label className="text-xs font-semibold uppercase tracking-wider opacity-60">{t('time')}</Label>
                                     <Input
                                         type="time"
                                         value={backfillTime}
@@ -412,18 +416,18 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
                                     />
                                 </div>
                                 <div className="space-y-1.5 col-span-2">
-                                    <Label className="text-xs font-semibold uppercase tracking-wider opacity-60">Meal Type</Label>
+                                    <Label className="text-xs font-semibold uppercase tracking-wider opacity-60">{t('mealType')}</Label>
                                     <select
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
-                                    value={backfillType}
-                                    onChange={(e) => setBackfillType(e.target.value)}
-                                >
-                                    {mealNames.map(mealName => (
-                                        <option key={mealName} value={mealName}>
-                                            {mealName}
-                                        </option>
-                                    ))}
-                                </select>
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
+                                        value={backfillType}
+                                        onChange={(e) => setBackfillType(e.target.value)}
+                                    >
+                                        {mealNames.map(mealName => (
+                                            <option key={mealName} value={mealName}>
+                                                {mealName}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
                         )}
@@ -435,7 +439,7 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
                         disabled={processing}
                     >
                         {processing ? <Loader2 className="w-6 h-6 animate-spin mr-2" /> : <Check className="w-6 h-6 mr-2" />}
-                        Confirm & Save to Log
+                        {t('confirmSave')}
                     </Button>
                 </>
             )}
@@ -443,24 +447,24 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Refine Dish: {editingDish?.name}</DialogTitle>
+                        <DialogTitle>{t('refineDish', { name: editingDish?.name || '' })}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-5 pt-2">
                         <div className="space-y-2.5">
-                            <Label className="text-sm font-medium">Instructions for AI</Label>
+                            <Label className="text-sm font-medium">{t('instructionsAI')}</Label>
                             <Textarea
-                                placeholder="e.g. It's actually beef, not pork. Or: make it 300g."
+                                placeholder={t('instructionsPlaceholder')}
                                 value={editPrompt}
                                 onChange={(e) => setEditPrompt(e.target.value)}
                                 className="min-h-[100px] resize-none focus-visible:ring-primary"
                             />
                             <p className="text-[10px] text-muted-foreground">
-                                The AI will re-evaluate the nutrition based on your feedback and the original photo.
+                                {t('aiNote')}
                             </p>
                         </div>
                         <Button onClick={handleFixDish} disabled={loading} className="w-full h-11">
                             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                            Update Dish Nutrition
+                            {t('updateDish')}
                         </Button>
                     </div>
                 </DialogContent>
@@ -469,24 +473,24 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
             <Dialog open={isRetryDialogOpen} onOpenChange={setIsRetryDialogOpen}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Guided Re-recognition</DialogTitle>
+                        <DialogTitle>{t('guidedReRecognition')}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-5 pt-2">
                         <div className="space-y-2.5">
-                            <Label className="text-sm font-medium">Extra Instructions for AI</Label>
+                            <Label className="text-sm font-medium">{t('extraInstructionsAI')}</Label>
                             <Textarea
-                                placeholder="e.g. Total weight is about 500g. It's mostly rice. The yellowish part is actually curry."
+                                placeholder={t('retryPlaceholder')}
                                 value={retryPrompt}
                                 onChange={(e) => setRetryPrompt(e.target.value)}
                                 className="min-h-[120px] resize-none focus-visible:ring-primary"
                             />
                             <p className="text-[10px] text-muted-foreground italic">
-                                This will restart the entire recognition process using the original photo and your new instructions.
+                                {t('retryNote')}
                             </p>
                         </div>
                         <Button onClick={handleGuidedRetry} disabled={retrying} className="w-full h-11 bg-primary hover:bg-primary/90">
                             {retrying ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-                            Restart Recognition
+                            {t('restartRecognition')}
                         </Button>
                     </div>
                 </DialogContent>
