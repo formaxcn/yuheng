@@ -2,13 +2,15 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Plus, Settings, RefreshCw, Loader2, Flame, Shield, Wheat, Droplets, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { Plus, Settings, RefreshCw, Flame, Shield, Wheat, Droplets, Calendar, Loader2 as Loader } from 'lucide-react';
 import Link from 'next/link';
 import { api } from '@/lib/api-client';
 import { displayEnergy, displayWeight, type EnergyUnit, type WeightUnit } from '@/lib/units';
 import { RecognitionQueue } from '@/components/recognition-queue';
 import { useBackendStatus } from '@/hooks/use-backend-status';
+import { toast } from 'sonner';
+import { recognitionStore } from '@/lib/recognition-store';
+import { logger } from '@/lib/logger';
 
 
 export default function HomePage() {
@@ -19,6 +21,8 @@ export default function HomePage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const selectedRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [imageLoading, setImageLoading] = useState(false);
 
   const HISTORY_BATCH_DAYS = 30;
   const LOAD_THRESHOLD = 200; // pixels from edge to trigger load
@@ -220,7 +224,36 @@ export default function HomePage() {
     }
   };
 
-  const caloriePercent = Math.min((stats.calories / stats.targetCalories) * 100, 100);
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        analyzeImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const analyzeImage = async (imgData: string) => {
+    setImageLoading(true);
+    try {
+      const data = await api.startRecognition(imgData);
+      recognitionStore.addTask({
+        id: data.taskId,
+        imageData: imgData,
+        status: 'pending'
+      });
+      toast.success("Recognition started in background!");
+    } catch (error) {
+      logger.error(error as Error, "Failed to start recognition");
+      toast.error("Failed to start recognition");
+    } finally {
+      setImageLoading(false);
+    }
+  };
+
+
 
   return (
     <div className="min-h-screen p-4 pb-24 flex flex-col gap-6 bg-gradient-to-b from-background to-background/80 max-w-2xl mx-auto w-full">
@@ -296,7 +329,7 @@ export default function HomePage() {
             ))}
 
             {(() => {
-              const renderRing = (val: number, target: number, r: number, color: string, glow: string, idx: number, Icon: any) => {
+              const renderRing = (val: number, target: number, r: number, color: string, glow: string, idx: number, Icon: React.ElementType<{ size: number; className?: string }>) => {
                 const percent = (val / target) * 100;
                 const lap1 = Math.min(percent, 100);
                 const lap2 = Math.max(0, Math.min(percent - 100, 100));
@@ -333,31 +366,86 @@ export default function HomePage() {
         {/* Right Side: Detailed Stats (Responsive Grid) */}
         <div className="w-full flex-1 grid grid-cols-2 sm:flex sm:flex-col gap-x-4 gap-y-6 sm:gap-4 min-w-0 pr-1">
           {(['calories', 'protein', 'carbs', 'fat'] as const).map((key, i) => {
-            const items = {
-              calories: { label: `Energy (${unitPrefs.energy})`, val: stats.calories, target: stats.targetCalories, color: '#ff3b30', icon: Flame, unit: unitPrefs.energy, disp: displayEnergy },
-              protein: { label: `Protein (${unitPrefs.weight})`, val: stats.protein, target: stats.targetProtein, color: '#007aff', icon: Shield, unit: unitPrefs.weight, disp: displayWeight },
-              carbs: { label: `Carbs (${unitPrefs.weight})`, val: stats.carbs, target: stats.targetCarbs, color: '#34c759', icon: Wheat, unit: unitPrefs.weight, disp: displayWeight },
-              fat: { label: `Fat (${unitPrefs.weight})`, val: stats.fat, target: stats.targetFat, color: '#ff9500', icon: Droplets, unit: unitPrefs.weight, disp: displayWeight }
-            };
-            const item = items[key];
-            return (
-              <div key={i} className="flex items-center gap-3 group/stat">
-                <div className="p-1.5 rounded-lg bg-muted/10 border border-muted/20 group-hover/stat:bg-muted/15 transition-colors">
-                  <item.icon className="w-4 h-4" style={{ color: item.color }} />
-                </div>
-                <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-[10px] font-black text-muted-foreground uppercase opacity-30 leading-none mb-1 tracking-[0.1em] shrink-0 whitespace-nowrap">{item.label}</span>
-                  <div className="flex items-baseline gap-1.5 flex-wrap">
-                    <span className="text-xl sm:text-2xl font-black leading-none tracking-tighter shrink-0" style={{ color: item.color }}>
-                      {(item.disp as Function)(item.val, item.unit)}
-                    </span>
-                    <span className={`text-[10px] sm:text-xs font-bold tracking-tight leading-none whitespace-nowrap transition-colors ${item.val > item.target ? 'text-red-500 opacity-100 font-black' : 'opacity-30'}`}>
-                      / {(item.disp as Function)(item.target, item.unit)}
-                    </span>
+            switch (key) {
+              case 'calories':
+                return (
+                  <div key={i} className="flex items-center gap-3 group/stat">
+                    <div className="p-1.5 rounded-lg bg-muted/10 border border-muted/20 group-hover/stat:bg-muted/15 transition-colors">
+                      <Flame className="w-4 h-4" style={{ color: '#ff3b30' }} />
+                    </div>
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="text-[10px] font-black text-muted-foreground uppercase opacity-30 leading-none mb-1 tracking-[0.1em] shrink-0 whitespace-nowrap">Energy ({unitPrefs.energy})</span>
+                      <div className="flex items-baseline gap-1.5 flex-wrap">
+                        <span className="text-xl sm:text-2xl font-black leading-none tracking-tighter shrink-0" style={{ color: '#ff3b30' }}>
+                          {displayEnergy(stats.calories, unitPrefs.energy)}
+                        </span>
+                        <span className={`text-[10px] sm:text-xs font-bold tracking-tight leading-none whitespace-nowrap transition-colors ${stats.calories > stats.targetCalories ? 'text-red-500 opacity-100 font-black' : 'opacity-30'}`}>
+                          / {displayEnergy(stats.targetCalories, unitPrefs.energy)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            );
+                );
+              case 'protein':
+                return (
+                  <div key={i} className="flex items-center gap-3 group/stat">
+                    <div className="p-1.5 rounded-lg bg-muted/10 border border-muted/20 group-hover/stat:bg-muted/15 transition-colors">
+                      <Shield className="w-4 h-4" style={{ color: '#007aff' }} />
+                    </div>
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="text-[10px] font-black text-muted-foreground uppercase opacity-30 leading-none mb-1 tracking-[0.1em] shrink-0 whitespace-nowrap">Protein ({unitPrefs.weight})</span>
+                      <div className="flex items-baseline gap-1.5 flex-wrap">
+                        <span className="text-xl sm:text-2xl font-black leading-none tracking-tighter shrink-0" style={{ color: '#007aff' }}>
+                          {displayWeight(stats.protein, unitPrefs.weight)}
+                        </span>
+                        <span className={`text-[10px] sm:text-xs font-bold tracking-tight leading-none whitespace-nowrap transition-colors ${stats.protein > stats.targetProtein ? 'text-red-500 opacity-100 font-black' : 'opacity-30'}`}>
+                          / {displayWeight(stats.targetProtein, unitPrefs.weight)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              case 'carbs':
+                return (
+                  <div key={i} className="flex items-center gap-3 group/stat">
+                    <div className="p-1.5 rounded-lg bg-muted/10 border border-muted/20 group-hover/stat:bg-muted/15 transition-colors">
+                      <Wheat className="w-4 h-4" style={{ color: '#34c759' }} />
+                    </div>
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="text-[10px] font-black text-muted-foreground uppercase opacity-30 leading-none mb-1 tracking-[0.1em] shrink-0 whitespace-nowrap">Carbs ({unitPrefs.weight})</span>
+                      <div className="flex items-baseline gap-1.5 flex-wrap">
+                        <span className="text-xl sm:text-2xl font-black leading-none tracking-tighter shrink-0" style={{ color: '#34c759' }}>
+                          {displayWeight(stats.carbs, unitPrefs.weight)}
+                        </span>
+                        <span className={`text-[10px] sm:text-xs font-bold tracking-tight leading-none whitespace-nowrap transition-colors ${stats.carbs > stats.targetCarbs ? 'text-red-500 opacity-100 font-black' : 'opacity-30'}`}>
+                          / {displayWeight(stats.targetCarbs, unitPrefs.weight)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              case 'fat':
+                return (
+                  <div key={i} className="flex items-center gap-3 group/stat">
+                    <div className="p-1.5 rounded-lg bg-muted/10 border border-muted/20 group-hover/stat:bg-muted/15 transition-colors">
+                      <Droplets className="w-4 h-4" style={{ color: '#ff9500' }} />
+                    </div>
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="text-[10px] font-black text-muted-foreground uppercase opacity-30 leading-none mb-1 tracking-[0.1em] shrink-0 whitespace-nowrap">Fat ({unitPrefs.weight})</span>
+                      <div className="flex items-baseline gap-1.5 flex-wrap">
+                        <span className="text-xl sm:text-2xl font-black leading-none tracking-tighter shrink-0" style={{ color: '#ff9500' }}>
+                          {displayWeight(stats.fat, unitPrefs.weight)}
+                        </span>
+                        <span className={`text-[10px] sm:text-xs font-bold tracking-tight leading-none whitespace-nowrap transition-colors ${stats.fat > stats.targetFat ? 'text-red-500 opacity-100 font-black' : 'opacity-30'}`}>
+                          / {displayWeight(stats.targetFat, unitPrefs.weight)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              default:
+                return null;
+            }
           })}
         </div>
       </div>
@@ -365,28 +453,41 @@ export default function HomePage() {
       {/* Redesigned Primary Action Button - Only show when viewing today */}
       <div className={`transition-all duration-500 ease-in-out overflow-hidden ${!selectedDate ? 'opacity-100 max-h-32 translate-y-0' : 'opacity-0 max-h-0 -translate-y-4 pointer-events-none'}`}>
         <div className="px-2">
-          <Link href="/add" className="block outline-none">
-            <div className="group relative w-full h-24 rounded-[1.75rem] border-2 border-dashed border-primary/20 flex items-center gap-6 px-6 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all cursor-pointer shadow-lg active:scale-[0.98]">
-              <div className="w-14 h-14 rounded-2xl bg-primary shadow-lg shadow-primary/30 flex items-center justify-center text-white transition-all group-hover:scale-105 group-hover:rotate-6">
+          <div 
+            onClick={() => fileInputRef.current?.click()}
+            className="group relative w-full h-24 rounded-[1.75rem] border-2 border-dashed border-primary/20 flex items-center gap-6 px-6 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all cursor-pointer shadow-lg active:scale-[0.98]"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-primary shadow-lg shadow-primary/30 flex items-center justify-center text-white transition-all group-hover:scale-105 group-hover:rotate-6">
+              {imageLoading ? (
+                <Loader className="w-8 h-8 animate-spin" />
+              ) : (
                 <Plus className="w-8 h-8 stroke-[4]" />
-              </div>
-              <div className="flex flex-col items-start gap-0.5">
-                <span className="text-sm font-black text-muted-foreground uppercase tracking-[0.2em] opacity-50">Record</span>
-                <span className="text-3xl font-black text-foreground group-hover:text-primary transition-colors tracking-tighter italic uppercase">
-                  {(() => {
-                    const hour = new Date().getHours();
-                    if (hour >= 5 && hour < 11) return 'Breakfast';
-                    if (hour >= 11 && hour < 14) return 'Lunch';
-                    if (hour >= 17 && hour < 21) return 'Dinner';
-                    return 'Snack';
-                  })()}
-                </span>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Start Tracking Now</span>
-                </div>
+              )}
+            </div>
+            <div className="flex flex-col items-start gap-0.5">
+              <span className="text-sm font-black text-muted-foreground uppercase tracking-[0.2em] opacity-50">Record</span>
+              <span className="text-3xl font-black text-foreground group-hover:text-primary transition-colors tracking-tighter italic uppercase">
+                {(() => {
+                  const hour = new Date().getHours();
+                  if (hour >= 5 && hour < 11) return 'Breakfast';
+                  if (hour >= 11 && hour < 14) return 'Lunch';
+                  if (hour >= 17 && hour < 21) return 'Dinner';
+                  return 'Snack';
+                })()}
+              </span>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Start Tracking Now</span>
               </div>
             </div>
-          </Link>
+          </div>
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            ref={fileInputRef}
+            onChange={handleImageUpload}
+            disabled={imageLoading}
+          />
         </div>
       </div>
 
