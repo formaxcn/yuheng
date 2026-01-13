@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     const metaPath = join(UPLOAD_DIR, `${fileId}.json`);
 
     const url = new URL(req.url);
-    const location = `${url.origin}/api/upload/tus/${fileId}`;
+    const location = `/api/upload/tus/${fileId}`;
 
     // If file already exists, don't overwrite, just return existing location for resume
     if (existsSync(filePath)) {
