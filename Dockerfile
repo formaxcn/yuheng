@@ -12,7 +12,7 @@ COPY package.json package-lock.json ./
 
 # 使用 BuildKit 缓存加速 npm install（GitHub Actions gha 缓存会持久化）
 RUN --mount=type=cache,id=npm-cache,target=/root/.npm \
-    npm ci --omit=dev
+    npm ci
 
 # ============ 构建阶段 ============
 FROM base AS builder
@@ -35,7 +35,7 @@ FROM node:24-alpine AS runner
 RUN apk add --no-cache --no-scripts \
     libc6-compat \
     tini \
-    postgresql-client
+    postgresql16-client
 
 # 全局安装 node-pg-migrate 以确保迁移脚本可用
 RUN npm install -g node-pg-migrate
