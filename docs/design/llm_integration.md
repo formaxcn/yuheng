@@ -5,6 +5,7 @@ YuHeng leverages Large Language Models (LLMs) to provide advanced food recogniti
 ## Supported Providers
 
 - **Google Gemini**: The primary provider, optimized for vision-language tasks. Recommended models: `gemini-2.5-flash`, `gemini-2.5-pro`.
+- **Zhipu AI**: Official support for Zhipu (GLM) models.
 - **OpenAI**: Support for `gpt-4o` and `gpt-4o-mini`.
 - **OpenAI Compatible**: Support for any API that follows the OpenAI specification, allowing integration with local models or other providers like DeepSeek, Qwen-VL, GLM-4V, and Doubao.
 
@@ -21,7 +22,7 @@ LLM settings can be configured in the application's **Settings** page:
 
 1. **Provider Select**: Choose between Gemini, OpenAI, or Compatible.
 2. **API Key**: Securely store your provider's API key.
-3. **Model Name**: Select from a list of presets or enter a custom model ID.
+3. **Model Name**: Use the combobox to select from available cloud models or type to enter a custom model name directly.
 4. **Base URL** (Compatible only): specify the endpoint for your OpenAI-compatible service.
 
 ## Security
