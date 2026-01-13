@@ -33,7 +33,7 @@ if [ -n "$DATABASE_URL" ]; then
     echo "PostgreSQL is ready!"
 
     echo "Running database migrations..."
-    npm run db:migrate
+    node-pg-migrate up --config db.config.js
 
     if [ $? -eq 0 ]; then
         echo "Migrations completed successfully!"
