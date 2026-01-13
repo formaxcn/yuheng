@@ -109,6 +109,7 @@ Technical details for developers and contributors.
 - [**Prompt Engine**](design/prompt_engine.md): Decoupled management of AI instructions.
 - [**LLM Integration**](design/llm_integration.md): Multi-provider support and factory logic.
 - [**Docker & Deployment**](design/deployment.md): Standalone builds and container orchestration.
+- [**Resumable Uploads**](design/resumable_uploads.md): Fault-tolerant image uploads for mobile networks.
 - [**Page Implementation**](page_implementations.md): Breakdown of the frontend application.
 
 ## Configuration
