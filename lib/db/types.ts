@@ -52,7 +52,8 @@ export interface Dish {
 
 export interface RecognitionTask {
     id: string;
-    status: 'pending' | 'processing' | 'completed' | 'failed';
+    status: 'uploading' | 'pending' | 'processing' | 'completed' | 'failed';
+    progress?: number;
     result?: string;
     error?: string;
     image_path?: string;

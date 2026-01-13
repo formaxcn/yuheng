@@ -100,9 +100,16 @@ export function RecognitionQueue() {
                                             <div className="flex-1 space-y-1">
                                                 <div className="flex justify-between text-[10px] text-muted-foreground uppercase tracking-wider">
                                                     <span>{task.status}</span>
-                                                    <span>{t('refining')}</span>
+                                                    <span>{task.status === 'uploading' ? t('uploading') : t('refining')}</span>
                                                 </div>
-                                                <Progress value={task.status === 'processing' ? 65 : 15} className="h-1.5" />
+                                                <Progress
+                                                    value={
+                                                        task.status === 'processing' ? 65 :
+                                                            task.status === 'uploading' ? (task.progress ?? 5) :
+                                                                15
+                                                    }
+                                                    className="h-1.5"
+                                                />
                                             </div>
                                         )}
                                     </div>

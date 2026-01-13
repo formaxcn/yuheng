@@ -3,7 +3,8 @@ import { EnergyUnit, WeightUnit } from './units';
 
 export interface RecognitionTask {
     id: string;
-    status: 'pending' | 'processing' | 'completed' | 'failed';
+    status: 'uploading' | 'pending' | 'processing' | 'completed' | 'failed';
+    progress?: number;
     result?: Dish[];
     error?: string;
     created_at: string;

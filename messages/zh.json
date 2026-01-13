@@ -60,7 +60,9 @@
             "lunch": "午餐",
             "dinner": "晚餐",
             "snack": "加餐"
-        }
+        },
+        "recognitionStarted": "识别已在后台开始！",
+        "failedToStart": "启动识别失败"
     },
     "Recognition": {
         "title": "识别结果",
@@ -106,6 +108,7 @@
         "viewResults": "查看结果",
         "retry": "重试",
         "refining": "优化中...",
+        "uploading": "上传中...",
         "unknownError": "未知错误"
     }
 }

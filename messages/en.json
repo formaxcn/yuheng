@@ -60,7 +60,9 @@
             "lunch": "Lunch",
             "dinner": "Dinner",
             "snack": "Snack"
-        }
+        },
+        "recognitionStarted": "Recognition started in background!",
+        "failedToStart": "Failed to start recognition"
     },
     "Recognition": {
         "title": "Recognition Results",
@@ -106,6 +108,7 @@
         "viewResults": "View Results",
         "retry": "Retry",
         "refining": "Refining...",
+        "uploading": "Uploading...",
         "unknownError": "Unknown error"
     }
 }

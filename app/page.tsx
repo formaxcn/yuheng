@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { recognitionStore } from '@/lib/recognition-store';
 import { logger } from '@/lib/logger';
 import { useTranslations, useLocale } from 'next-intl';
+import { UploadManager } from '@/lib/upload-manager';
 
 
 export default function HomePage() {
@@ -228,32 +229,47 @@ export default function HomePage() {
     }
   };
 
+  const processUpload = async (file: File, imgData: string) => {
+    setImageLoading(true);
+    try {
+      const taskId = await UploadManager.createTask();
+
+      recognitionStore.addTask({
+        id: taskId,
+        imageData: imgData,
+        status: 'uploading'
+      });
+
+      setImageLoading(false);
+      toast.success(t('recognitionStarted'));
+
+      // Start background upload
+      UploadManager.uploadFile(taskId, file, undefined, (progress: number) => {
+        recognitionStore.updateTask(taskId, { progress });
+      }).then(() => {
+        // Optimistically set to pending and trigger immediate refresh
+        recognitionStore.updateTask(taskId, { status: 'pending', progress: 100 });
+        recognitionStore.refreshTask(taskId);
+      }).catch((error: Error) => {
+        console.error("Upload failed in background", error);
+        recognitionStore.updateTask(taskId, { status: 'failed', error: 'Upload failed' });
+      });
+
+    } catch (error) {
+      logger.error(error as Error, "Failed to start recognition");
+      toast.error(t('failedToStart'));
+      setImageLoading(false);
+    }
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        analyzeImage(reader.result as string);
+        processUpload(file, reader.result as string);
       };
       reader.readAsDataURL(file);
-    }
-  };
-
-  const analyzeImage = async (imgData: string) => {
-    setImageLoading(true);
-    try {
-      const data = await api.startRecognition(imgData);
-      recognitionStore.addTask({
-        id: data.taskId,
-        imageData: imgData,
-        status: 'pending'
-      });
-      toast.success("Recognition started in background!");
-    } catch (error) {
-      logger.error(error as Error, "Failed to start recognition");
-      toast.error("Failed to start recognition");
-    } finally {
-      setImageLoading(false);
     }
   };
 
