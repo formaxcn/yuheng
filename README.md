@@ -5,7 +5,7 @@ YuHeng (玉衡 Jade Balance) is a local-first nutrition tracking application pow
 ## 🚀 Key Features
 
 - **Photo-based food logging**: Snapshot your meal and let AI handle the rest.
-- **Smart Recognition**: Powered by Gemini, OpenAI, and other LLMs.
+- **Smart Recognition**: Powered by Gemini, Zhipu AI, OpenAI, and other LLMs.
 - **Async Processing**: Fast, non-blocking background analysis.
 - **Privacy First**: Local database support (SQLite) with optional PostgreSQL for scaling.
 - **Portion Splitting**: Easily log shared meals by percentage or person count.

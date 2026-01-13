@@ -18,6 +18,7 @@ YuHeng(玉衡 Jade Balance) - A local nutrition tracking app named after the fif
 
 YuHeng supports a wide range of LLM providers for food recognition:
 - **Google Gemini**: Optimized for vision tasks (Gemini 2.5 Flash, Gemini 3 Flash/Pro).
+- **Zhipu AI**: Support for GLM-4V models.
 - **OpenAI**: GPT-4o and GPT-4o mini.
 - **OpenAI Compatible**: Support for various providers like DeepSeek, Qwen-VL, GLM-4V, Doubao, etc.
 
