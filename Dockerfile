@@ -38,7 +38,6 @@ RUN --mount=type=cache,id=next-cache,target=/app/.next/cache \
 
 # ============================================================================
 # 运行阶段（Alpine / 体积最小）
-# ⚠️ 如果 ARM 下 runtime 再报 libc / musl 错误 → 换成 oven/bun:1
 # ============================================================================
 FROM oven/bun:1-alpine AS runner
 
@@ -47,9 +46,6 @@ RUN apk add --no-cache \
     libc6-compat \
     tini \
     postgresql-client
-
-# 全局工具（运行期）
-RUN bun add -g node-pg-migrate
 
 WORKDIR /app
 
@@ -65,14 +61,16 @@ RUN adduser -D -H -u 1001 -s /sbin/nologin nextjs
 RUN mkdir /app/data && chown nextjs:nextjs /app/data
 VOLUME /app/data
 
-# 拷贝 Next.js standalone 产物
+# 拷贝必要的运行时文件
 COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nextjs /app/public ./public
 
-# 迁移 & 启动脚本
+# 拷贝迁移相关文件和 node_modules（关键！包含 node-pg-migrate）
 COPY --from=builder --chown=nextjs:nextjs /app/migrations ./migrations
 COPY --from=builder --chown=nextjs:nextjs /app/db.config.js ./db.config.js
+COPY --from=builder --chown=nextjs:nextjs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nextjs /app/package.json ./package.json
 COPY --from=builder --chown=nextjs:nextjs /app/docker-entrypoint.sh ./docker-entrypoint.sh
 
 RUN chmod +x /app/docker-entrypoint.sh

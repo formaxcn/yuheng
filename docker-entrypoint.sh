@@ -33,7 +33,8 @@ if [ -n "$DATABASE_URL" ]; then
     echo "PostgreSQL is ready!"
 
     echo "Running database migrations..."
-    node-pg-migrate up --config db.config.js
+    # 使用 bunx 调用本地安装的 node-pg-migrate
+    bunx node-pg-migrate up --config db.config.js
 
     if [ $? -eq 0 ]; then
         echo "Migrations completed successfully!"
