@@ -10,7 +10,6 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # 第一步：并行构建每个平台的镜像（只 push by digest，不带 tag）
   build:
     runs-on: ${{ matrix.runner }}
     permissions:
@@ -22,9 +21,9 @@ jobs:
       matrix:
         include:
           - platform: linux/amd64
-            runner: ubuntu-latest        # amd64 runner
+            runner: ubuntu-latest
           - platform: linux/arm64
-            runner: ubuntu-24.04-arm    # arm64 runner（推荐 24.04，性能更好）
+            runner: ubuntu-24.04-arm
 
     steps:
     - name: Checkout
@@ -55,14 +54,14 @@ jobs:
       with:
         context: .
         push: true
-        platforms: ${{ matrix.platform }}   # 只建单个平台，原生速度快
-        tags: ${{ steps.meta.outputs.tags }}
+        platforms: ${{ matrix.platform }}
+        # 关键修复：删除 tags 这一行！
+        # tags: ${{ steps.meta.outputs.tags }}   ← 删除这行
         labels: ${{ steps.meta.outputs.labels }}
         outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-    # 输出 digest，用于后面的 merge job
     - name: Export digest
       run: |
         mkdir -p /tmp/digests
@@ -74,10 +73,9 @@ jobs:
         name: digests
         path: /tmp/digests/*
 
-  # 第二步：合并 manifest，创建 multi-arch 镜像并 push 最终 tag
   merge:
     needs: build
-    runs-on: ubuntu-latest   # 这个 job 只需在 amd64 上跑即可
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
@@ -110,14 +108,10 @@ jobs:
 
     - name: Create and push manifest
       run: |
-        # 读取所有 digest
-        digests=$(cat /tmp/digests/*)
-        # 创建 multi-arch manifest 并 push
-        docker buildx imagetools create \
-          --tag ${{ steps.meta.outputs.tags }} \
-          $digests
+        digests=$(cat /tmp/digests/* | tr '\n' ' ')
+        tags=(${{ steps.meta.outputs.tags }})
 
-        # 可选：为 manifest index 添加 annotation（如果需要 description 等）
-        # docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
-        #   --annotation "index:org.opencontainers.image.description=Your description" \
-        #   $digests
+        for tag in "${tags[@]}"; do
+          echo "Creating manifest for $tag"
+          docker buildx imagetools create -t $tag $digests
+        done
