@@ -5,8 +5,8 @@ WORKDIR /app
 
 # ============ 依赖安装 ============
 FROM base AS deps
-# better-sqlite3 等 native 模块编译需要
-RUN apk add --no-cache --no-scripts python3 make g++ gcc musl-dev
+# better-sqlite3、tree-sitter 等 native 模块编译需要
+RUN apk add --no-cache --no-scripts build-base python3 make g++ gcc musl-dev bash linux-headers
 
 COPY package.json bun.lock ./
 
