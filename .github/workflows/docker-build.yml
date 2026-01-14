@@ -11,7 +11,7 @@ env:
 
 jobs:
   build:
-    name: Build & Push (${{ matrix.platform }})
+    name: Build & Push (${{ matrix.platform_id }})
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
@@ -22,12 +22,14 @@ jobs:
       matrix:
         include:
           - platform: linux/amd64
+            platform_id: linux-amd64
             runner: ubuntu-latest
           - platform: linux/arm64
+            platform_id: linux-arm64
             runner: ubuntu-24.04-arm
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Log in to GHCR
@@ -49,7 +51,7 @@ jobs:
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=sha,format=long
 
-      - name: Build & Push image by digest
+      - name: Build and push image by digest
         id: build
         uses: docker/build-push-action@v6
         with:
@@ -64,19 +66,17 @@ jobs:
       - name: Save image digest
         run: |
           mkdir -p /tmp/digests
-          platform="${{ matrix.platform }}"
-          safe_platform="${platform//\//-}"
-          echo "${{ steps.build.outputs.digest }}" > "/tmp/digests/digest-${safe_platform}"
+          echo "${{ steps.build.outputs.digest }}" > /tmp/digests/digest-${{ matrix.platform_id }}
 
       - name: Upload digest artifact
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ matrix.platform }}
+          name: digests-${{ matrix.platform_id }}
           path: /tmp/digests/*
           retention-days: 1
 
   manifest:
-    name: Create & Push Manifest
+    name: Create & Push Multi-Arch Manifest
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -116,7 +116,7 @@ jobs:
           tags="${{ steps.meta.outputs.tags }}"
 
           for tag in $tags; do
-            echo "Creating manifest for $tag"
+            echo "Creating multi-arch manifest for $tag"
             docker buildx imagetools create \
               -t "$tag" \
               $digests
