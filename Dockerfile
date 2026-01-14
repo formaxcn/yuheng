@@ -6,7 +6,7 @@ WORKDIR /app
 # ============ 依赖安装 ============
 FROM base AS deps
 # better-sqlite3、tree-sitter 等 native 模块编译需要
-RUN apk add --no-cache --no-scripts build-base python3 make g++ gcc musl-dev bash linux-headers
+RUN apk add --no-cache --no-scripts python3 make g++ gcc musl-dev
 
 COPY package.json bun.lock ./
 
@@ -26,18 +26,20 @@ COPY . .
 RUN --mount=type=cache,id=next-cache,target=/app/.next/cache \
     bun run build
 
+# 可选：强制检查 standalone 输出（预防 Bun 偶发 bug）
+# RUN test -f .next/standalone/server.js || (echo "server.js missing!" && exit 1)
+
 # ============ 运行镜像（极致精简） ============
 FROM oven/bun:1-alpine AS runner
 
 # 安装运行时依赖
-# tini：防止僵尸进程
-# postgresql16-client：提供 pg_isready、psql 等工具
+# postgresql-client 会自动安装当前最新版本的客户端工具（更稳定）
 RUN apk add --no-cache --no-scripts \
     libc6-compat \
     tini \
-    postgresql16-client
+    postgresql-client
 
-# 全局安装 node-pg-migrate 以确保迁移脚本可用
+# 全局安装 node-pg-migrate
 RUN bun add -g node-pg-migrate
 
 WORKDIR /app
