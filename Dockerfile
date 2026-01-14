@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-COPY package.json bun.lockb ./
+COPY package.json bun.lock ./
 
 # Bun 缓存挂载
 RUN --mount=type=cache,id=bun-cache,target=/root/.bun \
