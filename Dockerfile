@@ -1,13 +1,13 @@
-# ============ 依赖安装阶段（用 debian 版，安装完整构建工具） ============
+# ============ 依赖安装阶段（用 debian 版，安装 node-gyp） ============
 FROM oven/bun:1 AS deps
 
 WORKDIR /app
 
-# 安装 build-essential（包含 gcc g++ make dpkg-dev libc6-dev 等一切 node-gyp 需要的东西）
-# 加上 python3（node-gyp 明确需要）
+# 安装完整构建工具 + node-gyp（关键！）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     python3 \
+    && bun add -g node-gyp \
     && rm -rf /var/lib/apt/lists/*
 
 COPY package.json bun.lock ./
