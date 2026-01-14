@@ -1,45 +1,48 @@
-# ============ 基础镜像 ============
-FROM oven/bun:1-alpine AS base
-RUN apk add --no-cache --no-scripts libc6-compat
+# ============ 依赖安装阶段（用 debian 版，工具齐全） ============
+FROM oven/bun:1 AS deps
+
 WORKDIR /app
 
-# ============ 依赖安装 ============
-FROM base AS deps
-# better-sqlite3、tree-sitter 等 native 模块编译需要
-RUN apk add --no-cache --no-scripts python3 make g++ gcc musl-dev
+# debian-slim 自带 python3、make、g++ 等，几乎无需额外安装
+# 如果有特殊 native 模块需求，再补几个包即可
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY package.json bun.lock ./
+COPY package.json bun.lockb ./
 
-# 使用 BuildKit 缓存加速 bun install
+# Bun 缓存挂载
 RUN --mount=type=cache,id=bun-cache,target=/root/.bun \
     bun install --frozen-lockfile
 
-# ============ 构建阶段 ============
-FROM base AS builder
+# ============ 构建阶段（同样用 debian 版） ============
+FROM oven/bun:1 AS builder
+
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+
+WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# 缓存 Next.js build cache
+# Next.js build 缓存
 RUN --mount=type=cache,id=next-cache,target=/app/.next/cache \
     bun run build
 
-# 可选：强制检查 standalone 输出（预防 Bun 偶发 bug）
+# 可选：检查 standalone 输出完整性
 # RUN test -f .next/standalone/server.js || (echo "server.js missing!" && exit 1)
 
-# ============ 运行镜像（极致精简） ============
+# ============ 运行阶段（极致精简 alpine 版） ============
 FROM oven/bun:1-alpine AS runner
 
-# 安装运行时依赖
-# postgresql-client 会自动安装当前最新版本的客户端工具（更稳定）
-RUN apk add --no-cache --no-scripts \
+# 运行时所需包
+RUN apk add --no-cache \
     libc6-compat \
     tini \
-    postgresql-client
+    postgresql-client  # 自动最新版 pg_isready 等
 
-# 全局安装 node-pg-migrate
+# 全局安装迁移工具
 RUN bun add -g node-pg-migrate
 
 WORKDIR /app
@@ -49,19 +52,18 @@ ENV NODE_ENV=production \
     PORT=3000 \
     HOSTNAME="0.0.0.0"
 
-# 创建非 root 用户
+# 非 root 用户
 RUN adduser -D -H -u 1001 -s /sbin/nologin nextjs
 
-# 数据目录
 RUN mkdir /app/data && chown nextjs:nextjs /app/data
 VOLUME /app/data
 
-# 复制 standalone 所需文件
+# 复制 standalone 输出
 COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nextjs /app/public ./public
 
-# 迁移、配置、启动脚本
+# 脚本和配置
 COPY --from=builder --chown=nextjs:nextjs /app/migrations ./migrations
 COPY --from=builder --chown=nextjs:nextjs /app/db.config.js ./db.config.js
 COPY --from=builder --chown=nextjs:nextjs /app/docker-entrypoint.sh ./docker-entrypoint.sh
