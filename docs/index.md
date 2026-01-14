@@ -27,8 +27,8 @@ Detailed model lists can be configured in the settings page.
 ## Getting Started
 
 1. Clone the repo
-2. Run `npm install`
-3. Run `npm run dev`
+2. Run `bun install`
+3. Run `bun run dev`
 4. Open `http://localhost:3000`
 5. Configure your LLM Provider and API Key in the settings page.
 

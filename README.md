@@ -21,8 +21,8 @@ For detailed guides, architecture, and system design, please visit our documenta
 ## Quick Start
 
 1. Clone the repo: `git clone https://github.com/formaxcn/yuheng.git`
-2. Install dependencies: `npm install`
-3. Start the dev server: `npm run dev`
+2. Install dependencies: `bun install`
+3. Start the dev server: `bun run dev`
 4. Access at `http://localhost:3000` and configure your API keys in the settings.
 
 ## Docker

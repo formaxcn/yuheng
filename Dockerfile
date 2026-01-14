@@ -1,5 +1,5 @@
 # ============ 基础镜像 ============
-FROM node:24-alpine AS base
+FROM oven/bun:1-alpine AS base
 RUN apk add --no-cache --no-scripts libc6-compat
 WORKDIR /app
 
@@ -8,11 +8,11 @@ FROM base AS deps
 # better-sqlite3 等 native 模块编译需要
 RUN apk add --no-cache --no-scripts python3 make g++ gcc musl-dev
 
-COPY package.json package-lock.json ./
+COPY package.json bun.lock ./
 
-# 使用 BuildKit 缓存加速 npm install（GitHub Actions gha 缓存会持久化）
-RUN --mount=type=cache,id=npm-cache,target=/root/.npm \
-    npm ci
+# 使用 BuildKit 缓存加速 bun install
+RUN --mount=type=cache,id=bun-cache,target=/root/.bun \
+    bun install --frozen-lockfile
 
 # ============ 构建阶段 ============
 FROM base AS builder
@@ -22,23 +22,23 @@ ENV NODE_ENV=production
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# 缓存 Next.js build cache（极大加速后续构建）
+# 缓存 Next.js build cache
 RUN --mount=type=cache,id=next-cache,target=/app/.next/cache \
-    npm run build
+    bun run build
 
 # ============ 运行镜像（极致精简） ============
-FROM node:24-alpine AS runner
+FROM oven/bun:1-alpine AS runner
 
 # 安装运行时依赖
 # tini：防止僵尸进程
-# postgresql16-client：提供 pg_isready、psql 等工具（Alpine 新版必须指定版本）
+# postgresql16-client：提供 pg_isready、psql 等工具
 RUN apk add --no-cache --no-scripts \
     libc6-compat \
     tini \
     postgresql16-client
 
 # 全局安装 node-pg-migrate 以确保迁移脚本可用
-RUN npm install -g node-pg-migrate
+RUN bun add -g node-pg-migrate
 
 WORKDIR /app
 
@@ -70,4 +70,4 @@ USER nextjs
 EXPOSE 3000
 
 ENTRYPOINT ["/sbin/tini", "--", "/app/docker-entrypoint.sh"]
-CMD ["node", "server.js"]
+CMD ["bun", "server.js"]

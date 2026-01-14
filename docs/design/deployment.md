@@ -4,7 +4,7 @@ YuHeng is designed for easy deployment using Docker with PostgreSQL. The applica
 
 ## Docker Image
 
-The application is built using a multi-stage `Dockerfile` based on `node:24-alpine` for the smallest possible production footprint. It uses Next.js [standalone output](https://nextjs.org/docs/advanced-features/output-file-tracing) for efficiency.
+The application is built using a multi-stage `Dockerfile` based on `oven/bun:1-alpine` for maximum performance and the smallest possible production footprint. It uses Next.js [standalone output](https://nextjs.org/docs/advanced-features/output-file-tracing) for efficiency and is natively built for `linux/arm64` using GitHub's native ARM runners.
 
 ### Key Environment Variables
 
