@@ -1,16 +1,14 @@
 # ============================================================================
-# 依赖安装阶段（Debian / glibc / ARM 稳定）
+# 依赖安装阶段
 # ============================================================================
-FROM oven/bun:1 AS deps
+FROM oven/bun:1-slim AS deps
 
 WORKDIR /app
 
-# 安装完整 native 构建工具链 + node-gyp（关键）
+# 安装 native 构建工具链
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     python3 \
-    node-gyp \
-    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 COPY package.json bun.lock ./
@@ -20,9 +18,9 @@ RUN --mount=type=cache,id=bun-cache,target=/root/.bun \
     bun install --frozen-lockfile
 
 # ============================================================================
-# 构建阶段（Debian / glibc）
+# 构建阶段
 # ============================================================================
-FROM oven/bun:1 AS builder
+FROM oven/bun:1-slim AS builder
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -37,15 +35,15 @@ RUN --mount=type=cache,id=next-cache,target=/app/.next/cache \
     bun run build
 
 # ============================================================================
-# 运行阶段（Alpine / 体积最小）
+# 运行阶段（使用 slim 保持 glibc 兼容性）
 # ============================================================================
-FROM oven/bun:1-alpine AS runner
+FROM oven/bun:1-slim AS runner
 
 # 运行期最小依赖
-RUN apk add --no-cache \
-    libc6-compat \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     tini \
-    postgresql-client
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -55,7 +53,7 @@ ENV NODE_ENV=production \
     HOSTNAME="0.0.0.0"
 
 # 非 root 用户
-RUN adduser -D -H -u 1001 -s /sbin/nologin nextjs
+RUN useradd -r -u 1001 -s /sbin/nologin nextjs
 
 # 数据目录
 RUN mkdir /app/data && chown nextjs:nextjs /app/data
@@ -66,11 +64,9 @@ COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nextjs /app/public ./public
 
-# 拷贝迁移相关文件和 node_modules（关键！包含 node-pg-migrate）
+# 拷贝迁移相关文件
 COPY --from=builder --chown=nextjs:nextjs /app/migrations ./migrations
-COPY --from=builder --chown=nextjs:nextjs /app/db.config.js ./db.config.js
 COPY --from=builder --chown=nextjs:nextjs /app/node_modules ./node_modules
-COPY --from=builder --chown=nextjs:nextjs /app/package.json ./package.json
 COPY --from=builder --chown=nextjs:nextjs /app/docker-entrypoint.sh ./docker-entrypoint.sh
 
 RUN chmod +x /app/docker-entrypoint.sh
@@ -79,5 +75,5 @@ USER nextjs
 
 EXPOSE 3000
 
-ENTRYPOINT ["/sbin/tini", "--", "/app/docker-entrypoint.sh"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/app/docker-entrypoint.sh"]
 CMD ["bun", "server.js"]
