@@ -55,8 +55,6 @@ jobs:
         context: .
         push: true
         platforms: ${{ matrix.platform }}
-        # 关键修复：删除 tags 这一行！
-        # tags: ${{ steps.meta.outputs.tags }}   ← 删除这行
         labels: ${{ steps.meta.outputs.labels }}
         outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true
         cache-from: type=gha
@@ -65,7 +63,10 @@ jobs:
     - name: Export digest
       run: |
         mkdir -p /tmp/digests
-        echo "${{ steps.build.outputs.digest }}" > /tmp/digests/digest-${{ matrix.platform }}
+        # 关键：把 / 替换成 - ，避免路径问题
+        PLATFORM_SAFE=${{ matrix.platform }} 
+        PLATFORM_SAFE=${PLATFORM_SAFE//\//-}
+        echo "${{ steps.build.outputs.digest }}" > /tmp/digests/digest-$PLATFORM_SAFE
 
     - name: Upload digest
       uses: actions/upload-artifact@v4
@@ -108,10 +109,11 @@ jobs:
 
     - name: Create and push manifest
       run: |
-        digests=$(cat /tmp/digests/* | tr '\n' ' ')
+        # 把文件名中的 - 再换回 / （如果需要显示），但其实直接读内容就行
+        digests=$(cat /tmp/digests/digest-* | tr '\n' ' ')
         tags=(${{ steps.meta.outputs.tags }})
 
         for tag in "${tags[@]}"; do
-          echo "Creating manifest for $tag"
-          docker buildx imagetools create -t $tag $digests
+          echo "Creating manifest for tag: $tag"
+          docker buildx imagetools create -t "$tag" $digests
         done
