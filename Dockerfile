@@ -67,7 +67,7 @@ COPY --from=builder --chown=nextjs:nextjs /app/public ./public
 COPY --from=builder --chown=nextjs:nextjs /app/drizzle ./drizzle
 COPY --from=builder --chown=nextjs:nextjs /app/scripts/migrate.ts ./scripts/migrate.ts
 COPY --from=builder --chown=nextjs:nextjs /app/package.json ./package.json
-COPY --from=builder --chown=nextjs:nextjs /app/bun.lock ./bun.lock 2>/dev/null || true
+COPY --from=builder --chown=nextjs:nextjs /app/bun.lock ./bun.lock
 
 RUN bun install --production --frozen-lockfile || bun install --production
 
