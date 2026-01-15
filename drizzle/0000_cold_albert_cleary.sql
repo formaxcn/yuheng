@@ -1,4 +1,4 @@
-CREATE TABLE "dishes" (
+CREATE TABLE IF NOT EXISTS "dishes" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"entry_id" integer NOT NULL,
 	"recipe_id" integer NOT NULL,
@@ -13,7 +13,7 @@ CREATE TABLE "dishes" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE "entries" (
+CREATE TABLE IF NOT EXISTS "entries" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"date" text NOT NULL,
 	"time" text NOT NULL,
@@ -21,7 +21,7 @@ CREATE TABLE "entries" (
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE "recipes" (
+CREATE TABLE IF NOT EXISTS "recipes" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
 	"energy" real,
@@ -34,7 +34,7 @@ CREATE TABLE "recipes" (
 	CONSTRAINT "recipes_name_unique" UNIQUE("name")
 );
 --> statement-breakpoint
-CREATE TABLE "recognition_tasks" (
+CREATE TABLE IF NOT EXISTS "recognition_tasks" (
 	"id" text PRIMARY KEY NOT NULL,
 	"status" text NOT NULL,
 	"result" text,
@@ -44,10 +44,21 @@ CREATE TABLE "recognition_tasks" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE "settings" (
+CREATE TABLE IF NOT EXISTS "settings" (
 	"key" text PRIMARY KEY NOT NULL,
 	"value" text
 );
 --> statement-breakpoint
-ALTER TABLE "dishes" ADD CONSTRAINT "dishes_entry_id_entries_id_fk" FOREIGN KEY ("entry_id") REFERENCES "public"."entries"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "dishes" ADD CONSTRAINT "dishes_recipe_id_recipes_id_fk" FOREIGN KEY ("recipe_id") REFERENCES "public"."recipes"("id") ON DELETE no action ON UPDATE no action;
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'dishes_entry_id_entries_id_fk') THEN
+        ALTER TABLE "dishes" ADD CONSTRAINT "dishes_entry_id_entries_id_fk" FOREIGN KEY ("entry_id") REFERENCES "public"."entries"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;
+--> statement-breakpoint
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'dishes_recipe_id_recipes_id_fk') THEN
+        ALTER TABLE "dishes" ADD CONSTRAINT "dishes_recipe_id_recipes_id_fk" FOREIGN KEY ("recipe_id") REFERENCES "public"."recipes"("id") ON DELETE no action ON UPDATE no action;
+    END IF;
+END $$;
