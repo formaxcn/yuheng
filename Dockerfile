@@ -9,6 +9,9 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     python3 \
+    nodejs \
+    npm \
+    && npm install -g node-gyp \
     && rm -rf /var/lib/apt/lists/*
 
 COPY package.json bun.lock ./
