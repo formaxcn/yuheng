@@ -262,9 +262,35 @@ export default function HomePage() {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file) return;
+
+    setImageLoading(true);
+
+    try {
+      // Dynamically import the compressor to keep initial bundle small
+      const { compressImage, shouldCompress } = await import('@/lib/image-compressor');
+
+      if (shouldCompress(file, 500)) {
+        console.log(`[Upload] Compressing image: ${Math.round(file.size / 1024)}KB`);
+        const { file: compressedFile, dataUrl } = await compressImage(file, {
+          maxWidth: 1920,
+          maxHeight: 1920,
+          quality: 0.85
+        });
+        processUpload(compressedFile, dataUrl);
+      } else {
+        // Small enough, use original
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          processUpload(file, reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch (error) {
+      console.error('Compression failed, using original:', error);
+      // Fallback to original file
       const reader = new FileReader();
       reader.onloadend = () => {
         processUpload(file, reader.result as string);

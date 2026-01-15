@@ -12,7 +12,12 @@ export class ZhipuProvider implements ILLMProvider {
     }
 
     async analyzeImage(imagePart: LLMImagePart, promptText: string): Promise<any> {
-        logger.debug({ modelName: this.modelName, promptLength: promptText.length }, "Sending image to Zhipu API for analysis");
+        const imageSize = Math.round(imagePart.inlineData.data.length / 1024);
+        logger.debug({ modelName: this.modelName, promptLength: promptText.length, imageSizeKB: imageSize }, "Sending image to Zhipu API for analysis");
+
+        const startTime = Date.now();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
         try {
             const response = await fetch(`${this.baseUrl}/chat/completions`, {
@@ -38,8 +43,11 @@ export class ZhipuProvider implements ILLMProvider {
                         },
                     ],
                     response_format: { type: "json_object" }
-                })
+                }),
+                signal: controller.signal
             });
+
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 const errorText = await response.text();
@@ -58,7 +66,21 @@ export class ZhipuProvider implements ILLMProvider {
                 throw new Error("Invalid JSON response from Zhipu");
             }
         } catch (e: any) {
-            logger.error(e as Error, "Zhipu provider error");
+            clearTimeout(timeoutId);
+            const elapsed = Date.now() - startTime;
+
+            if (e.name === 'AbortError') {
+                logger.error({ elapsedMs: elapsed, imageSizeKB: imageSize }, "Zhipu API request timed out after 60s");
+                throw new Error('Zhipu API request timed out after 60 seconds');
+            }
+
+            logger.error({
+                error: e?.message || String(e),
+                name: e?.name,
+                code: e?.code,
+                cause: e?.cause?.message,
+                elapsedMs: elapsed
+            }, "Zhipu provider error");
             throw e;
         }
     }
