@@ -69,7 +69,7 @@ COPY --from=builder --chown=nextjs:nextjs /app/scripts/migrate.ts ./scripts/migr
 COPY --from=builder --chown=nextjs:nextjs /app/package.json ./package.json
 COPY --from=builder --chown=nextjs:nextjs /app/bun.lock ./bun.lock
 
-RUN bun install --production --frozen-lockfile || bun install --production
+RUN bun install --production --frozen-lockfile
 
 COPY --from=builder --chown=nextjs:nextjs /app/docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
