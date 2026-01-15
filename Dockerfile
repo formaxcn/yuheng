@@ -60,15 +60,20 @@ RUN useradd -r -u 1001 -s /sbin/nologin nextjs
 RUN mkdir /app/data && chown nextjs:nextjs /app/data
 VOLUME /app/data
 
-# 拷贝必要的运行时文件
+# 拷贝必要的运行时文件 (standalone 已包含最小依赖)
 COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nextjs /app/public ./public
 
 # 拷贝迁移相关文件
 COPY --from=builder --chown=nextjs:nextjs /app/migrations ./migrations
-COPY --from=builder --chown=nextjs:nextjs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nextjs /app/docker-entrypoint.sh ./docker-entrypoint.sh
+
+# 安装仅迁移所需的生产依赖（node-pg-migrate + pg）
+COPY --from=builder /app/package.json ./package.json
+RUN --mount=type=cache,id=bun-cache,target=/root/.bun \
+    bun install --production --no-save node-pg-migrate pg && \
+    chown -R nextjs:nextjs /app/node_modules
 
 RUN chmod +x /app/docker-entrypoint.sh
 
