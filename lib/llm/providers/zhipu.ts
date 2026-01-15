@@ -1,5 +1,6 @@
 import { ILLMProvider, LLMImagePart } from "../interface";
 import { logger } from "@/lib/logger";
+import { logLLMError, logLLMRequest, logLLMResponse } from "../logger-utils";
 
 export class ZhipuProvider implements ILLMProvider {
     private apiKey: string;
@@ -12,8 +13,7 @@ export class ZhipuProvider implements ILLMProvider {
     }
 
     async analyzeImage(imagePart: LLMImagePart, promptText: string): Promise<any> {
-        const imageSize = Math.round(imagePart.inlineData.data.length / 1024);
-        logger.debug({ modelName: this.modelName, promptLength: promptText.length, imageSizeKB: imageSize }, "Sending image to Zhipu API for analysis");
+        logLLMRequest("Zhipu", this.modelName, promptText, imagePart);
 
         const startTime = Date.now();
         const controller = new AbortController();
@@ -51,13 +51,16 @@ export class ZhipuProvider implements ILLMProvider {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                logger.error({ status: response.status, error: errorText }, "Zhipu API error");
-                throw new Error(`Zhipu API error: ${response.status}`);
+                // Construct a fake error object to leverage our standardized logger
+                const errorObj = new Error(`Zhipu API error: ${response.status}`);
+                (errorObj as any).response = { status: response.status, statusText: response.statusText, headers: response.headers };
+                throw errorObj;
             }
 
             const data = await response.json();
+            logLLMResponse("Zhipu", data);
+
             const text = data.choices?.[0]?.message?.content || "";
-            logger.debug({ textLength: text.length, textSnippet: text.slice(0, 100) + '...' }, "Zhipu response received");
 
             try {
                 return JSON.parse(text);
@@ -67,20 +70,13 @@ export class ZhipuProvider implements ILLMProvider {
             }
         } catch (e: any) {
             clearTimeout(timeoutId);
-            const elapsed = Date.now() - startTime;
 
             if (e.name === 'AbortError') {
-                logger.error({ elapsedMs: elapsed, imageSizeKB: imageSize }, "Zhipu API request timed out after 60s");
+                logLLMError("Zhipu", new Error('Zhipu API request timed out after 60 seconds'));
                 throw new Error('Zhipu API request timed out after 60 seconds');
             }
 
-            logger.error({
-                error: e?.message || String(e),
-                name: e?.name,
-                code: e?.code,
-                cause: e?.cause?.message,
-                elapsedMs: elapsed
-            }, "Zhipu provider error");
+            logLLMError("Zhipu", e);
             throw e;
         }
     }

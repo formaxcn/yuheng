@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { ILLMProvider, LLMImagePart } from "../interface";
 import { logger } from "@/lib/logger";
+import { logLLMError, logLLMRequest, logLLMResponse } from "../logger-utils";
 
 export class OpenAIProvider implements ILLMProvider {
     private client: OpenAI;
@@ -15,7 +16,7 @@ export class OpenAIProvider implements ILLMProvider {
     }
 
     async analyzeImage(imagePart: LLMImagePart, promptText: string): Promise<any> {
-        logger.debug({ modelName: this.modelName, promptLength: promptText.length }, "Sending image to OpenAI compatible provider for analysis");
+        logLLMRequest("OpenAI", this.modelName, promptText, imagePart);
 
         try {
             const response = await this.client.chat.completions.create({
@@ -38,7 +39,7 @@ export class OpenAIProvider implements ILLMProvider {
             });
 
             const text = response.choices[0].message.content || "";
-            logger.debug({ textLength: text.length, textSnippet: text.slice(0, 100) + '...' }, "OpenAI compatible response received");
+            logLLMResponse("OpenAI", text);
 
             try {
                 return JSON.parse(text);
@@ -47,7 +48,7 @@ export class OpenAIProvider implements ILLMProvider {
                 throw new Error("Invalid JSON response from LLM");
             }
         } catch (e: any) {
-            logger.error(e as Error, "OpenAI compatible API error");
+            logLLMError("OpenAI", e);
             throw e;
         }
     }

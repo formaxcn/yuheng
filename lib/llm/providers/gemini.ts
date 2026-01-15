@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ILLMProvider, LLMImagePart } from "../interface";
 import { logger } from "@/lib/logger";
+import { logLLMError, logLLMRequest, logLLMResponse } from "../logger-utils";
 
 export class GeminiProvider implements ILLMProvider {
     private genAI: GoogleGenerativeAI;
@@ -12,20 +13,15 @@ export class GeminiProvider implements ILLMProvider {
     }
 
     async analyzeImage(imagePart: LLMImagePart, promptText: string): Promise<any> {
+        logLLMRequest("Gemini", this.modelName, promptText, imagePart);
         const model = this.genAI.getGenerativeModel({ model: this.modelName });
-        logger.info(`Starting Gemini analysis with model: ${this.modelName}`);
-        logger.debug(`Prompt length: ${promptText.length}`);
 
         try {
-            logger.debug("Calling Gemini API...");
             const result = await model.generateContent([promptText, imagePart]);
-
-            logger.debug("Waiting for Gemini response...");
             const response = await result.response;
             const text = response.text();
 
-            logger.info(`Gemini response received. Length: ${text.length}`);
-            logger.debug("Raw response text:", text);
+            logLLMResponse("Gemini", text);
 
             const jsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
             try {
@@ -35,17 +31,7 @@ export class GeminiProvider implements ILLMProvider {
                 throw new Error("Invalid JSON response from LLM");
             }
         } catch (e: any) {
-            logger.error("--- Gemini API Error Details ---");
-            logger.error(`Message: ${e.message}`);
-            if (e.stack) logger.error(`Stack: ${e.stack}`);
-            if (e.response) {
-                logger.error("Response object found in error:", {
-                    status: e.response.status,
-                    statusText: e.response.statusText,
-                    headers: e.response.headers
-                });
-            }
-            logger.error("---------------------------------");
+            logLLMError("Gemini", e);
             throw e;
         }
     }

@@ -15,12 +15,8 @@ if [ -n "$DATABASE_URL" ]; then
     echo "PostgreSQL is ready!"
 
     echo "Running database migrations..."
-    bunx node-pg-migrate up \
-        --database-url-var DATABASE_URL \
-        --migrations-dir migrations \
-        --migrations-table pgmigrations \
-        --single-transaction \
-        --no-lock
+    echo "Running database migrations..."
+    bun run scripts/migrate.ts
 
     if [ $? -eq 0 ]; then
         echo "Migrations completed successfully!"
