@@ -31,6 +31,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Build migration script (bundle drizzle-orm, keep postgres external as it's in standalone node_modules)
+RUN bun build ./scripts/migrate.ts --outfile=./scripts/migrate.js --external postgres
+
 # Next.js build cache
 RUN --mount=type=cache,id=next-cache,target=/app/.next/cache \
     bun run build
@@ -67,9 +70,8 @@ COPY --from=builder --chown=nextjs:nextjs /app/public ./public
 
 # 拷贝迁移相关文件
 COPY --from=builder --chown=nextjs:nextjs /app/drizzle ./drizzle
-COPY --from=builder --chown=nextjs:nextjs /app/scripts ./scripts
+COPY --from=builder --chown=nextjs:nextjs /app/scripts/migrate.js ./scripts/migrate.js
 COPY --from=builder --chown=nextjs:nextjs /app/docker-entrypoint.sh ./docker-entrypoint.sh
-
 
 RUN chmod +x /app/docker-entrypoint.sh
 

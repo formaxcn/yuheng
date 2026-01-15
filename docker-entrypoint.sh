@@ -16,7 +16,7 @@ if [ -n "$DATABASE_URL" ]; then
 
     echo "Running database migrations..."
     echo "Running database migrations..."
-    bun run scripts/migrate.ts
+    bun run scripts/migrate.js
 
     if [ $? -eq 0 ]; then
         echo "Migrations completed successfully!"
