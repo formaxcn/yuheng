@@ -6,7 +6,6 @@ echo "Starting YuHeng container..."
 if [ -n "$DATABASE_URL" ]; then
     echo "Waiting for PostgreSQL to be ready..."
 
-    # 等待数据库就绪
     until pg_isready -d "$DATABASE_URL" >/dev/null 2>&1; do
         echo "PostgreSQL is not ready yet - sleeping 1s"
         sleep 1
@@ -15,8 +14,7 @@ if [ -n "$DATABASE_URL" ]; then
     echo "PostgreSQL is ready!"
 
     echo "Running database migrations..."
-    echo "Running database migrations..."
-    bun run scripts/migrate.js
+    bun scripts/migrate.ts
 
     if [ $? -eq 0 ]; then
         echo "Migrations completed successfully!"
