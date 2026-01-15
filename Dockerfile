@@ -69,11 +69,12 @@ COPY --from=builder --chown=nextjs:nextjs /app/public ./public
 COPY --from=builder --chown=nextjs:nextjs /app/migrations ./migrations
 COPY --from=builder --chown=nextjs:nextjs /app/docker-entrypoint.sh ./docker-entrypoint.sh
 
-# 安装仅迁移所需的生产依赖（node-pg-migrate + pg）
-COPY --from=builder /app/package.json ./package.json
-RUN --mount=type=cache,id=bun-cache,target=/root/.bun \
-    bun install --production --no-save node-pg-migrate pg && \
-    chown -R nextjs:nextjs /app/node_modules
+# 复制迁移所需的依赖（node-pg-migrate + pg 及其依赖）
+# 从 builder 复制而非重新安装，避免在 runner 阶段需要构建工具
+COPY --from=builder --chown=nextjs:nextjs /app/node_modules/node-pg-migrate ./node_modules/node-pg-migrate
+COPY --from=builder --chown=nextjs:nextjs /app/node_modules/pg ./node_modules/pg
+COPY --from=builder --chown=nextjs:nextjs /app/node_modules/pg-* ./node_modules/
+COPY --from=builder --chown=nextjs:nextjs /app/node_modules/.bin/node-pg-migrate ./node_modules/.bin/node-pg-migrate
 
 RUN chmod +x /app/docker-entrypoint.sh
 
