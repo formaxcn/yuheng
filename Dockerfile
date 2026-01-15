@@ -35,16 +35,17 @@ COPY . .
 # Next.js 构建（带缓存加速）
 RUN --mount=type=cache,id=next-cache,target=/app/.next/cache \
     bun run build
-
 # ============================================================================
 # 3. 运行阶段（最小化镜像）
 # ============================================================================
 FROM oven/bun:1-slim AS runner
 
-# 只安装运行必需的系统包
+# 运行时必需系统包
+# - tini: 进程管理器，避免僵尸进程
+# - postgresql-client: 提供 pg_isready 命令用于等待 DB 就绪
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    tini \                  # 进程管理，防止僵尸进程
-    postgresql-client \     # 提供 pg_isready 命令
+    tini \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -54,32 +55,25 @@ ENV NODE_ENV=production \
     PORT=3000 \
     HOSTNAME="0.0.0.0"
 
-# 创建非 root 用户（安全最佳实践）
 RUN useradd -r -u 1001 -s /sbin/nologin nextjs
 
-# 可持久化数据目录（如果你有上传文件等需求）
 RUN mkdir /app/data && chown nextjs:nextjs /app/data
 VOLUME /app/data
 
-# 复制 Next.js standalone 输出（已包含 server.js 和核心依赖）
 COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nextjs /app/public ./public
 
-# 复制迁移脚本所需的源码和依赖描述文件
 COPY --from=builder --chown=nextjs:nextjs /app/drizzle ./drizzle
 COPY --from=builder --chown=nextjs:nextjs /app/scripts/migrate.ts ./scripts/migrate.ts
 COPY --from=builder --chown=nextjs:nextjs /app/package.json ./package.json
 COPY --from=builder --chown=nextjs:nextjs /app/bun.lock ./bun.lock 2>/dev/null || true
 
-# 只安装生产依赖（关键：包含 postgres、drizzle-orm 等）
 RUN bun install --production --frozen-lockfile || bun install --production
 
-# 复制入口脚本并赋予执行权限
 COPY --from=builder --chown=nextjs:nextjs /app/docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
 
-# 切换到非 root 用户
 USER nextjs
 
 EXPOSE 3000
