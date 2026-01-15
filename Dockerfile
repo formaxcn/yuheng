@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY package.json ./
 # 如果有 bun.lock，就复制（没有也不报错）
-COPY bun.lock ./ 2>/dev/null || true
+COPY bun.lock ./
 
 # 使用 Bun 缓存加速安装
 RUN --mount=type=cache,id=bun-cache,target=/root/.bun \
