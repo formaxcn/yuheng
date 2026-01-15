@@ -6,21 +6,50 @@ export class ZhipuProvider implements ILLMProvider {
     private apiKey: string;
     private modelName: string;
     private baseUrl = 'https://open.bigmodel.cn/api/paas/v4';
+    private pollInterval = 2000; // 2 seconds
+    private maxPollTime = 300000; // 5 minutes
 
     constructor(apiKey: string, modelName: string) {
         this.apiKey = apiKey;
         this.modelName = modelName;
     }
 
+    private async pollResult(taskId: string): Promise<any> {
+        const startTime = Date.now();
+
+        while (Date.now() - startTime < this.maxPollTime) {
+            const response = await fetch(`${this.baseUrl}/async-result/${taskId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${this.apiKey}`
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Zhipu poll error: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+
+            if (data.task_status === 'SUCCESS') {
+                return data;
+            } else if (data.task_status === 'FAIL') {
+                throw new Error(`Zhipu task failed: ${JSON.stringify(data)}`);
+            }
+
+            // Still processing, wait before next poll
+            await new Promise(resolve => setTimeout(resolve, this.pollInterval));
+        }
+
+        throw new Error('Zhipu task timed out during polling');
+    }
+
     async analyzeImage(imagePart: LLMImagePart, promptText: string): Promise<any> {
         logLLMRequest("Zhipu", this.modelName, promptText, imagePart);
 
-        const startTime = Date.now();
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
-
         try {
-            const response = await fetch(`${this.baseUrl}/chat/completions`, {
+            const response = await fetch(`${this.baseUrl}/async/chat/completions`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -43,21 +72,26 @@ export class ZhipuProvider implements ILLMProvider {
                         },
                     ],
                     response_format: { type: "json_object" }
-                }),
-                signal: controller.signal
+                })
             });
-
-            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 const errorText = await response.text();
-                // Construct a fake error object to leverage our standardized logger
                 const errorObj = new Error(`Zhipu API error: ${response.status}`);
                 (errorObj as any).response = { status: response.status, statusText: response.statusText, headers: response.headers };
                 throw errorObj;
             }
 
-            const data = await response.json();
+            const initialData = await response.json();
+            const taskId = initialData.id;
+
+            if (!taskId) {
+                throw new Error("No task ID returned from Zhipu async call");
+            }
+
+            logger.debug({ taskId }, "Zhipu async task created, polling...");
+
+            const data = await this.pollResult(taskId);
             logLLMResponse("Zhipu", data);
 
             const text = data.choices?.[0]?.message?.content || "";
@@ -69,36 +103,41 @@ export class ZhipuProvider implements ILLMProvider {
                 throw new Error("Invalid JSON response from Zhipu");
             }
         } catch (e: any) {
-            clearTimeout(timeoutId);
-
-            if (e.name === 'AbortError') {
-                logLLMError("Zhipu", new Error('Zhipu API request timed out after 60 seconds'));
-                throw new Error('Zhipu API request timed out after 60 seconds');
-            }
-
             logLLMError("Zhipu", e);
             throw e;
         }
     }
 
     async generateContent(promptText: string): Promise<string> {
-        const response = await fetch(`${this.baseUrl}/chat/completions`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.apiKey}`
-            },
-            body: JSON.stringify({
-                model: this.modelName,
-                messages: [{ role: "user", content: promptText }]
-            })
-        });
+        try {
+            const response = await fetch(`${this.baseUrl}/async/chat/completions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.apiKey}`
+                },
+                body: JSON.stringify({
+                    model: this.modelName,
+                    messages: [{ role: "user", content: promptText }]
+                })
+            });
 
-        if (!response.ok) {
-            throw new Error(`Zhipu API error: ${response.status}`);
+            if (!response.ok) {
+                throw new Error(`Zhipu API error: ${response.status}`);
+            }
+
+            const initialData = await response.json();
+            const taskId = initialData.id;
+
+            if (!taskId) {
+                throw new Error("No task ID returned from Zhipu async call");
+            }
+
+            const data = await this.pollResult(taskId);
+            return data.choices?.[0]?.message?.content || "";
+        } catch (e: any) {
+            logLLMError("Zhipu", e);
+            throw e;
         }
-
-        const data = await response.json();
-        return data.choices?.[0]?.message?.content || "";
     }
 }
