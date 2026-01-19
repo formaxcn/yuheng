@@ -390,7 +390,7 @@ export default function RecognitionResultPage({ params }: { params: Promise<{ id
                         </div>
 
                         {isBackfill && (
-                            <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
+                            <div className="flex flex-col sm:grid sm:grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
                                 <div className="space-y-1.5">
                                     <Label className="text-xs font-semibold uppercase tracking-wider opacity-60">{t('date')}</Label>
                                     <Input
