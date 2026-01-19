@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, readFile, mkdir, stat, appendFile, rm } from 'fs/promises';
 import { join } from 'path';
 import { updateRecognitionTask } from '@/lib/db';
-import { processRecognition } from '@/lib/recognition';
+import { queueManager } from '@/lib/queue';
 import { logger } from '@/lib/logger';
 import { existsSync } from 'fs';
 
@@ -160,7 +160,12 @@ export async function PATCH(req: NextRequest) {
 
             await updateRecognitionTask(taskId, { status: 'pending' });
             console.log(`[TUS] Task ${taskId} status updated to pending on server.`);
-            processRecognition(taskId, base64Data, userPrompt);
+
+            await queueManager.enqueueRecognition({
+                taskId,
+                imageBase64: base64Data,
+                userPrompt
+            });
 
             // Clean up files
             await rm(filePath);

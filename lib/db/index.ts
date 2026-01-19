@@ -44,7 +44,9 @@ export async function ensureInit() {
                 { key: 'other_meal_name', val: 'Snack' },
                 { key: 'llm_provider', val: 'gemini' },
                 { key: 'llm_model', val: 'gemini-2.5-flash' },
-                { key: 'llm_base_url', val: '' }
+                { key: 'llm_base_url', val: '' },
+                { key: 'queue_concurrency', val: '5' },
+                { key: 'queue_retry_limit', val: '3' }
             ];
 
             for (const item of defaults) {

@@ -4,19 +4,27 @@ YuHeng implements a sophisticated client-side queue for image recognition tasks.
 
 ## Core Architecture
 
-The recognition system is split between a persistent client-side store and a stateless backend processing API.
+The recognition system is split between a persistent client-side store and a persistent server-side queue managed by PostgreSQL.
 
 ### 1. Client-Side Store (`lib/recognition-store.ts`)
-- **Persistence**: All tasks are stored in the browser's `localStorage` (`yuheng_recognition_queue`). This ensures that pending analysis tasks survive page reloads or accidental tab closures.
-- **Image Caching**: Images are stored as **Base64 strings** directly within the local storage. This adheres to the design philosophy of not storing user photos on the server database.
-- **State Management**: Uses React's `useSyncExternalStore` for high-performance, reactive UI updates.
-- **Background Polling**: The store automatically manages periodic polling of the `/api/nutrition/tasks/[id]` endpoint for every non-terminal task.
+- **Persistence**: All tasks are stored in the browser's `localStorage` (`yuheng_recognition_queue`). This ensures that pending analysis tasks survive page reloads.
+- **Image Caching**: Images are stored as **Base64 strings** in local storage before upload.
+- **State Management**: Uses React's `useSyncExternalStore` for reactive UI updates.
+- **Background Polling**: The store polls the `/api/nutrition/tasks/[id]` endpoint to check for status updates from the server-side queue.
 
-### 2. Recognition Flow
-1. **Initiation**: User uploads an image on `/add`.
-2. **Immediate Redirection**: The app calls `POST /api/nutrition/recognize`, gets a `taskId`, saves the Base64 image + `taskId` to the store, and immediately redirects the user to the Home page.
-3. **Background Processing**: The `RecognitionStore` starts polling. The UI on the Home page (`RecognitionQueue` component) displays the task's progress.
-4. **Completion**: Once the AI analysis is done, the task status changes to `completed`, and a "View Results" button appears.
+### 2. Server-Side Queue (`lib/queue.ts`)
+- **Persistence**: Powered by **pg-boss**, jobs are stored in the database (`pgboss` schema). This ensures tasks survive server restarts.
+- **Worker Registration**: The worker is initialized via `instrumentation.ts` on server boot, ensuring it starts automatically.
+- **Dynamic Configuration**:
+    - `queue_concurrency`: Controls parallel processing (Default: 5).
+    - `queue_retry_limit`: Automatic retries on failure (Default: 3).
+
+### 3. Recognition Flow
+1. **Initiation**: User uploads an image on `/add` or via Home page.
+2. **Immediate Redirection**: The app calls `POST /api/nutrition/recognize`, which enqueues a job in `pg-boss` and returns a `taskId`.
+3. **Background Processing**: The `QueueManager` worker picks up the job, calls the AI provider, and updates the task status in the `recognition_tasks` table.
+4. **Polling**: The client-side `RecognitionStore` polls for completion.
+5. **Completion**: Once finished, a "View Results" button appears in the UI.
 
 ## Guided Retry Mechanism
 
