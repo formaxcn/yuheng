@@ -1,4 +1,5 @@
 import { getAdapter, ensureInit } from './db/index';
+export { ensureInit };
 import {
     Recipe, Entry, Dish, RecognitionTask, DailyTargets, UnitPreferences
 } from './db/types';

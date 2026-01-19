@@ -1,4 +1,4 @@
-import PgBoss from 'pg-boss';
+import { PgBoss } from 'pg-boss';
 import { getSetting } from './db';
 import { logger } from './logger';
 
@@ -35,8 +35,12 @@ class QueueManager {
         this.boss.on('error', (error: Error) => logger.error(error, 'PgBoss error'));
 
         await this.boss.start();
+
+        // Ensure the queue exists before workers try to pull from it
+        await this.boss.createQueue('recognition-task');
+
         this.initialized = true;
-        logger.info('QueueManager (pg-boss) started');
+        logger.info('QueueManager (pg-boss) started and recognition-task queue ensured');
     }
 
     async enqueueRecognition(data: RecognitionJob) {
@@ -58,13 +62,21 @@ class QueueManager {
 
         const concurrency = parseInt((await getSetting('queue_concurrency')) || '5', 10);
 
-        await this.boss!.work<RecognitionJob, void>('recognition-task', { teamConcurrency: concurrency }, async (job: { id: string, data: RecognitionJob }) => {
-            const { data } = job;
-            logger.info(`Processing job ${job.id} for task ${data.taskId}`);
-            await handler(data);
-        });
+        // In pg-boss v12, we can start multiple workers to achieve concurrency
+        // or use batchSize. For individual job control and retries, multiple workers are safer.
+        for (let i = 0; i < concurrency; i++) {
+            await this.boss!.work<RecognitionJob, void>('recognition-task', async (jobs: { id: string, data: RecognitionJob }[]) => {
+                // By default without batchSize, we get an array of size 1
+                const job = jobs[0];
+                if (!job) return;
 
-        logger.info(`Registered recognition worker with concurrency ${concurrency}`);
+                const { data } = job;
+                logger.info(`Processing job ${job.id} for task ${data.taskId} (Worker ${i + 1}/${concurrency})`);
+                await handler(data);
+            });
+        }
+
+        logger.info(`Registered ${concurrency} parallel recognition workers`);
     }
 
     async stop() {
