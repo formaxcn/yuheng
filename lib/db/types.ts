@@ -5,6 +5,16 @@ export interface DailyTargets {
     fat: number;
 }
 
+export type NutritionStandard = 'CN' | 'US' | 'Balanced';
+
+export interface BodyData {
+    height: number;
+    weight: number;
+    age: number;
+    sex: 'male' | 'female';
+    activity_level: 1.2 | 1.375 | 1.55 | 1.725 | 1.9;
+}
+
 export interface UnitPreferences {
     energy: 'kcal' | 'kj';
     weight: 'g' | 'oz';

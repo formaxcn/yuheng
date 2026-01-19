@@ -28,7 +28,15 @@ const settingsSchema = z.object({
     llm_provider: z.string().optional(),
     llm_model: z.string().optional(),
     image_compression_enabled: z.boolean().optional(),
-    image_compression_quality: z.number().optional()
+    image_compression_quality: z.number().optional(),
+    body_data: z.object({
+        height: z.number(),
+        weight: z.number(),
+        age: z.number(),
+        sex: z.enum(['male', 'female']),
+        activity_level: z.number()
+    }).optional(),
+    nutrition_standard: z.enum(['CN', 'US', 'Balanced']).optional(),
 });
 
 /**
@@ -71,6 +79,8 @@ export async function GET(req: NextRequest) {
         const time_format = (await getSetting('time_format')) || '24h';
         const image_compression_enabled = (await getSetting('image_compression_enabled')) === 'true';
         const image_compression_quality = parseFloat((await getSetting('image_compression_quality')) || '0.85');
+        const body_data = await getSetting('body_data') ? JSON.parse(await getSetting('body_data') as string) : undefined;
+        const nutrition_standard = (await getSetting('nutrition_standard')) || 'CN';
 
         return NextResponse.json({
             meal_times,
@@ -84,7 +94,9 @@ export async function GET(req: NextRequest) {
             other_meal_name,
             time_format,
             image_compression_enabled,
-            image_compression_quality
+            image_compression_quality,
+            body_data,
+            nutrition_standard
         });
     } catch (error) {
         logger.error(error as Error, 'Failed to fetch settings');
@@ -101,7 +113,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid settings format', details: parsed.error }, { status: 400 });
         }
 
-        const { meal_times, daily_targets, unit_preferences, recognition_language, llm_api_key, llm_provider, llm_model, other_meal_name, time_format, image_compression_enabled, image_compression_quality } = parsed.data;
+        const { meal_times, daily_targets, unit_preferences, recognition_language, llm_api_key, llm_provider, llm_model, other_meal_name, time_format, image_compression_enabled, image_compression_quality, body_data, nutrition_standard } = parsed.data;
 
         await saveSetting('meal_times', JSON.stringify(meal_times));
         await saveDailyTargets(daily_targets);
@@ -135,6 +147,12 @@ export async function POST(req: NextRequest) {
         if (image_compression_quality !== undefined) {
             await saveSetting('image_compression_quality', String(image_compression_quality));
         }
+        if (body_data) {
+            await saveSetting('body_data', JSON.stringify(body_data));
+        }
+        if (nutrition_standard) {
+            await saveSetting('nutrition_standard', nutrition_standard);
+        }
 
         const currentUnitPrefs = await getUnitPreferences();
         const currentLang = (await getSetting('recognition_language')) || 'zh';
@@ -151,7 +169,9 @@ export async function POST(req: NextRequest) {
             other_meal_name: (await getSetting('other_meal_name')) || 'Snack',
             time_format: (await getSetting('time_format')) || '24h',
             image_compression_enabled: (await getSetting('image_compression_enabled')) === 'true',
-            image_compression_quality: parseFloat((await getSetting('image_compression_quality')) || '0.85')
+            image_compression_quality: parseFloat((await getSetting('image_compression_quality')) || '0.85'),
+            body_data,
+            nutrition_standard: (await getSetting('nutrition_standard')) || 'CN'
         });
     } catch (error) {
         logger.error(error as Error, 'Failed to save settings');

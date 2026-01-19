@@ -15,6 +15,8 @@ import { setLocale } from '@/app/actions';
 import { api, Settings } from '@/lib/api-client';
 import { kcalToKj, kjToKcal, gramsToOz, ozToGrams, EnergyUnit, WeightUnit } from '@/lib/units';
 import { Slider } from '@/components/ui/slider';
+import { calculateNutritionTargets } from '@/lib/nutrition-calc';
+import { BodyData, NutritionStandard } from '@/lib/db/types';
 import {
     Select,
     SelectContent,
@@ -61,7 +63,15 @@ export default function SettingsPage() {
         other_meal_name: 'Snack',
         time_format: '24h',
         image_compression_enabled: true,
-        image_compression_quality: 0.85
+        image_compression_quality: 0.85,
+        body_data: {
+            height: 170,
+            weight: 65,
+            age: 30,
+            sex: 'male',
+            activity_level: 1.375
+        },
+        nutrition_standard: 'CN'
     });
 
     const [version, setVersion] = useState<string>('');
@@ -106,6 +116,18 @@ export default function SettingsPage() {
             }
             if (data.image_compression_quality === undefined) {
                 data.image_compression_quality = 0.85;
+            }
+            if (!data.body_data) {
+                data.body_data = {
+                    height: 170,
+                    weight: 65,
+                    age: 30,
+                    sex: 'male',
+                    activity_level: 1.375
+                };
+            }
+            if (!data.nutrition_standard) {
+                data.nutrition_standard = 'CN';
             }
             setConfig(data);
         } catch (error) {
@@ -419,7 +441,145 @@ export default function SettingsPage() {
                     <CardHeader>
                         <CardTitle>{t('dailyNutritionTargets')}</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-6">
+                        <div className="space-y-6 p-5 border rounded-xl bg-accent/5">
+                            <h3 className="text-sm font-medium flex items-center gap-2 text-primary">
+                                <Bot className="w-4 h-4" />
+                                {t('bodyInfo')}
+                            </h3>
+
+                            {/* Row 1: Basic Stats (3 cols) */}
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs text-muted-foreground">{t('height')}</Label>
+                                    <div className="relative">
+                                        <Input
+                                            type="number"
+                                            className="h-9 pr-8"
+                                            value={config.body_data?.height}
+                                            onChange={(e) => setConfig(prev => ({
+                                                ...prev,
+                                                body_data: { ...prev.body_data!, height: Number(e.target.value) }
+                                            }))}
+                                        />
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">cm</span>
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs text-muted-foreground">{t('weight')}</Label>
+                                    <div className="relative">
+                                        <Input
+                                            type="number"
+                                            className="h-9 pr-6"
+                                            value={config.body_data?.weight}
+                                            onChange={(e) => setConfig(prev => ({
+                                                ...prev,
+                                                body_data: { ...prev.body_data!, weight: Number(e.target.value) }
+                                            }))}
+                                        />
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">kg</span>
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs text-muted-foreground">{t('age')}</Label>
+                                    <Input
+                                        type="number"
+                                        className="h-9"
+                                        value={config.body_data?.age}
+                                        onChange={(e) => setConfig(prev => ({
+                                            ...prev,
+                                            body_data: { ...prev.body_data!, age: Number(e.target.value) }
+                                        }))}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Row 2: Sex & Activity (Grid with different spans) */}
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="col-span-1 space-y-1.5">
+                                    <Label className="text-xs text-muted-foreground">{t('sex')}</Label>
+                                    <Select
+                                        value={config.body_data?.sex}
+                                        onValueChange={(val: 'male' | 'female') => setConfig(prev => ({
+                                            ...prev,
+                                            body_data: { ...prev.body_data!, sex: val }
+                                        }))}
+                                    >
+                                        <SelectTrigger className="h-9">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="male">{t('male')}</SelectItem>
+                                            <SelectItem value="female">{t('female')}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="col-span-2 space-y-1.5">
+                                    <Label className="text-xs text-muted-foreground">{t('activityLevel')}</Label>
+                                    <Select
+                                        value={String(config.body_data?.activity_level)}
+                                        onValueChange={(val) => setConfig(prev => ({
+                                            ...prev,
+                                            body_data: { ...prev.body_data!, activity_level: Number(val) }
+                                        }))}
+                                    >
+                                        <SelectTrigger className="h-9">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="1.2">{t('activity1')}</SelectItem>
+                                            <SelectItem value="1.375">{t('activity2')}</SelectItem>
+                                            <SelectItem value="1.55">{t('activity3')}</SelectItem>
+                                            <SelectItem value="1.725">{t('activity4')}</SelectItem>
+                                            <SelectItem value="1.9">{t('activity5')}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            {/* Row 3: Standard & Action */}
+                            <div className="space-y-3">
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs text-muted-foreground">{t('nutritionStandard')}</Label>
+                                    <Select
+                                        value={config.nutrition_standard}
+                                        onValueChange={(val: NutritionStandard) => setConfig(prev => ({
+                                            ...prev,
+                                            nutrition_standard: val
+                                        }))}
+                                    >
+                                        <SelectTrigger className="h-9">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="CN">{t('standardCN')}</SelectItem>
+                                            <SelectItem value="US">{t('standardUS')}</SelectItem>
+                                            <SelectItem value="Balanced">{t('standardBalanced')}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <Button
+                                    className="w-full gap-2 h-9 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 shadow-none mt-1"
+                                    onClick={() => {
+                                        if (config.body_data) {
+                                            const targets = calculateNutritionTargets(config.body_data as BodyData, config.nutrition_standard as NutritionStandard);
+                                            setConfig(prev => ({
+                                                ...prev,
+                                                daily_targets: targets
+                                            }));
+                                            toast.success(t('calculateSuggestions'));
+                                        }
+                                    }}
+                                >
+                                    <Sparkles className="w-3.5 h-3.5" />
+                                    {t('calculateSuggestions')}
+                                </Button>
+                            </div>
+                        </div>
+
+                        <Separator />
+
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label>{t('energy')} ({config.unit_preferences.energy})</Label>

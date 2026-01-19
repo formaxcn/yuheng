@@ -28,6 +28,7 @@ A multi-functional interface for logging food.
 Allows users to personalize the application.
 
 -   **Sections**:
+    -   **Body Information**: Input height, weight, age, and activity level to auto-calculate targets.
     -   **Daily Targets**: Set goals for Calories and Macros.
     -   **Meal Times**: Define the start and end hours for meal classification.
     -   **Unit Preferences**: Switch between `kcal`/`kj` and `g`/`oz`.

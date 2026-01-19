@@ -38,6 +38,14 @@ export interface Settings {
     llm_base_url?: string;
     image_compression_enabled?: boolean;
     image_compression_quality?: number;
+    body_data?: {
+        height: number;
+        weight: number;
+        age: number;
+        sex: 'male' | 'female';
+        activity_level: number;
+    };
+    nutrition_standard?: 'CN' | 'US' | 'Balanced';
 }
 
 export interface NutritionStats {
