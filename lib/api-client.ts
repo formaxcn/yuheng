@@ -36,6 +36,8 @@ export interface Settings {
     llm_provider?: string;
     llm_model?: string;
     llm_base_url?: string;
+    image_compression_enabled?: boolean;
+    image_compression_quality?: number;
 }
 
 export interface NutritionStats {

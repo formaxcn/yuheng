@@ -35,7 +35,11 @@
         "saveSettings": "保存设置",
         "saveSuccess": "设置保存成功",
         "saveError": "保存设置时出错",
-        "loading": "加载中..."
+        "loading": "加载中...",
+        "advancedOptions": "高级选项",
+        "imageCompression": "图片压缩",
+        "compressionQuality": "压缩质量",
+        "compressionQualityNote": "质量越高，图片越清晰但体积越大。默认 0.85。"
     },
     "Common": {
         "back": "返回",

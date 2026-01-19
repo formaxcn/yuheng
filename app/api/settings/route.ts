@@ -26,7 +26,9 @@ const settingsSchema = z.object({
     region: z.enum(['CN', 'US']).optional(),
     llm_api_key: z.string().optional(),
     llm_provider: z.string().optional(),
-    llm_model: z.string().optional()
+    llm_model: z.string().optional(),
+    image_compression_enabled: z.boolean().optional(),
+    image_compression_quality: z.number().optional()
 });
 
 /**
@@ -67,7 +69,23 @@ export async function GET(req: NextRequest) {
         const llm_model = (await getSetting('llm_model')) || 'gemini-2.5-flash';
         const other_meal_name = (await getSetting('other_meal_name')) || 'Snack';
         const time_format = (await getSetting('time_format')) || '24h';
-        return NextResponse.json({ meal_times, daily_targets, unit_preferences, recognition_language, region, llm_api_key, llm_provider, llm_model, other_meal_name, time_format });
+        const image_compression_enabled = (await getSetting('image_compression_enabled')) === 'true';
+        const image_compression_quality = parseFloat((await getSetting('image_compression_quality')) || '0.85');
+
+        return NextResponse.json({
+            meal_times,
+            daily_targets,
+            unit_preferences,
+            recognition_language,
+            region,
+            llm_api_key,
+            llm_provider,
+            llm_model,
+            other_meal_name,
+            time_format,
+            image_compression_enabled,
+            image_compression_quality
+        });
     } catch (error) {
         logger.error(error as Error, 'Failed to fetch settings');
         return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
@@ -83,7 +101,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid settings format', details: parsed.error }, { status: 400 });
         }
 
-        const { meal_times, daily_targets, unit_preferences, recognition_language, llm_api_key, llm_provider, llm_model, other_meal_name, time_format } = parsed.data;
+        const { meal_times, daily_targets, unit_preferences, recognition_language, llm_api_key, llm_provider, llm_model, other_meal_name, time_format, image_compression_enabled, image_compression_quality } = parsed.data;
 
         await saveSetting('meal_times', JSON.stringify(meal_times));
         await saveDailyTargets(daily_targets);
@@ -111,6 +129,12 @@ export async function POST(req: NextRequest) {
         if (time_format) {
             await saveSetting('time_format', time_format);
         }
+        if (image_compression_enabled !== undefined) {
+            await saveSetting('image_compression_enabled', String(image_compression_enabled));
+        }
+        if (image_compression_quality !== undefined) {
+            await saveSetting('image_compression_quality', String(image_compression_quality));
+        }
 
         const currentUnitPrefs = await getUnitPreferences();
         const currentLang = (await getSetting('recognition_language')) || 'zh';
@@ -125,7 +149,9 @@ export async function POST(req: NextRequest) {
             llm_provider: (await getSetting('llm_provider')) || 'gemini',
             llm_model: (await getSetting('llm_model')) || 'gemini-2.5-flash',
             other_meal_name: (await getSetting('other_meal_name')) || 'Snack',
-            time_format: (await getSetting('time_format')) || '24h'
+            time_format: (await getSetting('time_format')) || '24h',
+            image_compression_enabled: (await getSetting('image_compression_enabled')) === 'true',
+            image_compression_quality: parseFloat((await getSetting('image_compression_quality')) || '0.85')
         });
     } catch (error) {
         logger.error(error as Error, 'Failed to save settings');

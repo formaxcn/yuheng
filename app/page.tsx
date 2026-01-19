@@ -45,9 +45,16 @@ export default function HomePage() {
     history: [] as { date: string, calories: number }[]
   });
 
-  const [unitPrefs, setUnitPrefs] = useState<{ energy: EnergyUnit; weight: WeightUnit }>({
+  const [unitPrefs, setUnitPrefs] = useState<{
+    energy: EnergyUnit;
+    weight: WeightUnit;
+    image_compression_enabled?: boolean;
+    image_compression_quality?: number;
+  }>({
     energy: 'kcal',
-    weight: 'g'
+    weight: 'g',
+    image_compression_enabled: true,
+    image_compression_quality: 0.85
   });
 
   const loadHistoryRange = useCallback(async (start: string, end: string, append = false) => {
@@ -115,7 +122,11 @@ export default function HomePage() {
       }));
 
       if (settingsData.unit_preferences) {
-        setUnitPrefs(settingsData.unit_preferences);
+        setUnitPrefs({
+          ...settingsData.unit_preferences,
+          image_compression_enabled: settingsData.image_compression_enabled,
+          image_compression_quality: settingsData.image_compression_quality
+        });
       }
     } catch (error) {
       console.error(error);
@@ -272,12 +283,12 @@ export default function HomePage() {
       // Dynamically import the compressor to keep initial bundle small
       const { compressImage, shouldCompress } = await import('@/lib/image-compressor');
 
-      if (shouldCompress(file, 500)) {
+      if (unitPrefs.image_compression_enabled !== false && shouldCompress(file, 500)) {
         console.log(`[Upload] Compressing image: ${Math.round(file.size / 1024)}KB`);
         const { file: compressedFile, dataUrl } = await compressImage(file, {
           maxWidth: 1920,
           maxHeight: 1920,
-          quality: 0.85
+          quality: unitPrefs.image_compression_quality || 0.85
         });
         processUpload(compressedFile, dataUrl);
       } else {

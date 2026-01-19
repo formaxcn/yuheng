@@ -35,7 +35,11 @@
         "saveSettings": "Save Settings",
         "saveSuccess": "Settings saved successfully",
         "saveError": "Error saving settings",
-        "loading": "Loading..."
+        "loading": "Loading...",
+        "advancedOptions": "Advanced Options",
+        "imageCompression": "Image Compression",
+        "compressionQuality": "Compression Quality",
+        "compressionQualityNote": "Higher quality results in clearer images but larger file sizes. Default is 0.85."
     },
     "Common": {
         "back": "Back",

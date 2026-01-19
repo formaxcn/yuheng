@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Save, Loader2, Plus, Trash2, X, Sparkles, Bot, Globe, ChevronDown, Check, Brain } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Plus, Trash2, X, Sparkles, Bot, Globe, ChevronDown, Check, Brain, Settings as SettingsIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -29,6 +29,8 @@ import {
 } from "@/components/ui/popover"
 import { SmartTimeInput } from './SmartTimeInput';
 import { cn } from "@/lib/utils"
+import { Switch } from "@/components/ui/switch"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 export default function SettingsPage() {
     const t = useTranslations('Settings');
@@ -36,6 +38,7 @@ export default function SettingsPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [advancedOpen, setAdvancedOpen] = useState(false);
 
     const [config, setConfig] = useState<Settings>({
         meal_times: [],
@@ -56,7 +59,9 @@ export default function SettingsPage() {
         llm_model: 'gemini-2.5-flash',
         llm_base_url: '',
         other_meal_name: 'Snack',
-        time_format: '24h'
+        time_format: '24h',
+        image_compression_enabled: true,
+        image_compression_quality: 0.85
     });
 
     const [version, setVersion] = useState<string>('');
@@ -95,6 +100,12 @@ export default function SettingsPage() {
             }
             if (!data.time_format) {
                 data.time_format = '24h';
+            }
+            if (data.image_compression_enabled === undefined) {
+                data.image_compression_enabled = true;
+            }
+            if (data.image_compression_quality === undefined) {
+                data.image_compression_quality = 0.85;
             }
             setConfig(data);
         } catch (error) {
@@ -781,6 +792,55 @@ export default function SettingsPage() {
                         </div>
                     </CardContent>
                 </Card>
+
+                <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen} className="space-y-2">
+                    <CollapsibleTrigger asChild>
+                        <Button variant="ghost" className="flex items-center gap-2 w-full justify-between p-4 hover:bg-accent/50 rounded-xl border border-dashed border-muted-foreground/20">
+                            <div className="flex items-center gap-2">
+                                <SettingsIcon className="w-4 h-4 text-muted-foreground" />
+                                <span className="font-semibold">{t('advancedOptions')}</span>
+                            </div>
+                            <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", advancedOpen && "rotate-180")} />
+                        </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-4">
+                        <Card>
+                            <CardContent className="pt-6 space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                        <Label className="text-base">{t('imageCompression')}</Label>
+                                        <p className="text-sm text-muted-foreground">
+                                            {t('compressionQualityNote')}
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        checked={config.image_compression_enabled}
+                                        onCheckedChange={(checked: boolean) => setConfig(prev => ({ ...prev, image_compression_enabled: checked }))}
+                                    />
+                                </div>
+
+                                {config.image_compression_enabled && (
+                                    <div className="space-y-4 pt-2">
+                                        <div className="flex justify-between items-center">
+                                            <Label>{t('compressionQuality')}</Label>
+                                            <span className="text-sm font-mono font-bold text-primary">
+                                                {Math.round((config.image_compression_quality || 0.85) * 100)}%
+                                            </span>
+                                        </div>
+                                        <Slider
+                                            value={[config.image_compression_quality || 0.85]}
+                                            min={0.1}
+                                            max={1.0}
+                                            step={0.05}
+                                            onValueChange={([val]) => setConfig(prev => ({ ...prev, image_compression_quality: val }))}
+                                            className="py-2"
+                                        />
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </CollapsibleContent>
+                </Collapsible>
 
                 <Button
                     className="w-full h-12 text-lg"
