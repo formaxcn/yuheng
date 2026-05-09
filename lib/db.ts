@@ -1,6 +1,11 @@
 import { getAdapter, ensureInit } from './db/index';
 export { ensureInit };
 import {
+    DEFAULT_MEAL_CONFIG,
+    DEFAULT_DAILY_TARGETS,
+    DEFAULT_UNIT_PREFERENCES
+} from './constants';
+import {
     Recipe, Entry, Dish, RecognitionTask, DailyTargets, UnitPreferences
 } from './db/types';
 
@@ -21,11 +26,6 @@ export async function saveSetting(key: string, value: string) {
 export async function getMealConfig() {
     const configStr = await getSetting('meal_times');
     try {
-        const DEFAULT_MEAL_CONFIG = [
-            { name: "Breakfast", start: 6, end: 10, default: "08:00" },
-            { name: "Lunch", start: 10, end: 14, default: "12:00" },
-            { name: "Dinner", start: 17, end: 19, default: "18:00" }
-        ];
         return configStr ? JSON.parse(configStr) : DEFAULT_MEAL_CONFIG;
     } catch (e) {
         return [];
@@ -34,7 +34,6 @@ export async function getMealConfig() {
 
 export async function getDailyTargets(): Promise<DailyTargets> {
     const targetStr = await getSetting('daily_targets');
-    const DEFAULT_DAILY_TARGETS = { energy: 2000, protein: 150, carbs: 200, fat: 65 };
     try {
         return targetStr ? JSON.parse(targetStr) : DEFAULT_DAILY_TARGETS;
     } catch (e) {
@@ -48,11 +47,10 @@ export async function saveDailyTargets(targets: DailyTargets) {
 
 export async function getUnitPreferences(): Promise<UnitPreferences> {
     const prefStr = await getSetting('unit_preferences');
-    const DEFAULT_UNIT_PREFS: UnitPreferences = { energy: 'kcal', weight: 'g' };
     try {
-        return prefStr ? JSON.parse(prefStr) : DEFAULT_UNIT_PREFS;
+        return prefStr ? JSON.parse(prefStr) : DEFAULT_UNIT_PREFERENCES;
     } catch (e) {
-        return DEFAULT_UNIT_PREFS;
+        return DEFAULT_UNIT_PREFERENCES;
     }
 }
 

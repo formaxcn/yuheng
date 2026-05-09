@@ -1,6 +1,12 @@
 import { IDatabaseAdapter } from './interface';
 import { PostgresAdapter } from './postgres';
 import { logger } from '../logger';
+import {
+    DEFAULT_MEAL_CONFIG,
+    DEFAULT_DAILY_TARGETS,
+    DEFAULT_UNIT_PREFERENCES,
+    DEFAULT_SETTINGS
+} from '../constants';
 
 let adapter: IDatabaseAdapter | null = null;
 let initPromise: Promise<void> | null = null;
@@ -18,38 +24,20 @@ export async function ensureInit() {
         initPromise = activeAdapter.init().then(async () => {
             const existingMealConfig = await activeAdapter.getSetting('meal_times');
             if (!existingMealConfig) {
-                const DEFAULT_MEAL_CONFIG = [
-                    { name: "Breakfast", start: 6, end: 10, default: "08:00" },
-                    { name: "Lunch", start: 10, end: 14, default: "12:00" },
-                    { name: "Dinner", start: 17, end: 19, default: "18:00" }
-                ];
                 await activeAdapter.saveSetting('meal_times', JSON.stringify(DEFAULT_MEAL_CONFIG));
             }
 
             const existingTargets = await activeAdapter.getSetting('daily_targets');
             if (!existingTargets) {
-                const DEFAULT_DAILY_TARGETS = { energy: 2000, protein: 150, carbs: 200, fat: 65 };
                 await activeAdapter.saveSetting('daily_targets', JSON.stringify(DEFAULT_DAILY_TARGETS));
             }
 
             const existingUnitPrefs = await activeAdapter.getSetting('unit_preferences');
             if (!existingUnitPrefs) {
-                await activeAdapter.saveSetting('unit_preferences', JSON.stringify({ energy: 'kcal', weight: 'g' }));
+                await activeAdapter.saveSetting('unit_preferences', JSON.stringify(DEFAULT_UNIT_PREFERENCES));
             }
 
-            const defaults = [
-                { key: 'recognition_language', val: 'zh' },
-                { key: 'region', val: 'CN' },
-                { key: 'time_format', val: '24h' },
-                { key: 'other_meal_name', val: 'Snack' },
-                { key: 'llm_provider', val: 'gemini' },
-                { key: 'llm_model', val: 'gemini-2.5-flash' },
-                { key: 'llm_base_url', val: '' },
-                { key: 'queue_concurrency', val: '5' },
-                { key: 'queue_retry_limit', val: '3' }
-            ];
-
-            for (const item of defaults) {
+            for (const item of DEFAULT_SETTINGS) {
                 const existing = await activeAdapter.getSetting(item.key);
                 if (!existing) await activeAdapter.saveSetting(item.key, item.val);
             }
