@@ -1,6 +1,7 @@
 import { PgBoss } from 'pg-boss';
 import { getSetting } from './db';
 import { logger } from './logger';
+import { QUEUE_RETRY_DELAY_SECONDS } from './constants';
 
 export interface RecognitionJob {
     taskId: string;
@@ -50,7 +51,7 @@ class QueueManager {
 
         const id = await this.boss!.send('recognition-task', data, {
             retryLimit,
-            retryDelay: 30, // 30 seconds
+            retryDelay: QUEUE_RETRY_DELAY_SECONDS,
             retryBackoff: true
         });
 

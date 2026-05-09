@@ -90,24 +90,26 @@ export class PostgresAdapter implements IDatabaseAdapter {
     }
 
     async getDishesForEntry(entryId: number): Promise<Dish[]> {
+        // Note: 4.184 = KJ_PER_KCAL, 28.3495 = GRAMS_PER_OZ from lib/constants.ts
         return await this.sql`
             SELECT *,
-                   ((CASE WHEN energy_unit = 'kj' THEN energy / 4.184 ELSE energy END) * 
+                   ((CASE WHEN energy_unit = 'kj' THEN energy / 4.184 ELSE energy END) *
                     (CASE WHEN weight_unit = 'oz' THEN amount * 28.3495 ELSE amount END) / 100) as total_energy,
                    (protein * (CASE WHEN weight_unit = 'oz' THEN amount * 28.3495 ELSE amount END) / 100) as total_protein,
                    (carbs * (CASE WHEN weight_unit = 'oz' THEN amount * 28.3495 ELSE amount END) / 100) as total_carbs,
                    (fat * (CASE WHEN weight_unit = 'oz' THEN amount * 28.3495 ELSE amount END) / 100) as total_fat
             FROM dishes
             WHERE entry_id = ${entryId}
-        `;
+        ` as unknown as Dish[];
     }
 
     async getHistory(startDate: string, endDate: string): Promise<{ date: string; calories: number; }[]> {
+        // Note: 4.184 = KJ_PER_KCAL, 28.3495 = GRAMS_PER_OZ from lib/constants.ts
         return await this.sql`
-            SELECT 
-                e.date, 
+            SELECT
+                e.date,
                 SUM(
-                    (CASE WHEN d.energy_unit = 'kj' THEN d.energy / 4.184 ELSE d.energy END) * 
+                    (CASE WHEN d.energy_unit = 'kj' THEN d.energy / 4.184 ELSE d.energy END) *
                     (CASE WHEN d.weight_unit = 'oz' THEN d.amount * 28.3495 ELSE d.amount END) / 100
                 ) as calories
             FROM entries e
@@ -115,7 +117,7 @@ export class PostgresAdapter implements IDatabaseAdapter {
             WHERE e.date >= ${startDate} AND e.date <= ${endDate}
             GROUP BY e.date
             ORDER BY e.date ASC
-        `;
+        ` as unknown as { date: string; calories: number }[];
     }
 
     async createRecognitionTask(id: string, imagePath?: string): Promise<RecognitionTask> {

@@ -1,13 +1,14 @@
 import { ILLMProvider, LLMImagePart } from "../interface";
 import { logger } from '../../logger';
 import { logLLMError, logLLMRequest, logLLMResponse } from "../logger-utils";
+import { ZHIPU_POLL_INTERVAL_MS, ZHIPU_MAX_POLL_TIME_MS } from '../../constants';
 
 export class ZhipuProvider implements ILLMProvider {
     private apiKey: string;
     private modelName: string;
     private baseUrl = 'https://open.bigmodel.cn/api/paas/v4';
-    private pollInterval = 2000; // 2 seconds
-    private maxPollTime = 300000; // 5 minutes
+    private pollInterval = ZHIPU_POLL_INTERVAL_MS;
+    private maxPollTime = ZHIPU_MAX_POLL_TIME_MS;
 
     constructor(apiKey: string, modelName: string) {
         this.apiKey = apiKey;

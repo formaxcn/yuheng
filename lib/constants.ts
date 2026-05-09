@@ -28,3 +28,17 @@ export const DEFAULT_SETTINGS = [
 export const POLLING_INTERVAL_MS = 3000;
 export const QUEUE_RETRY_DELAY_SECONDS = 30;
 export const NETWORK_RECOVERY_DELAY_MS = 1000;
+
+// Zhipu LLM polling
+export const ZHIPU_POLL_INTERVAL_MS = 2000;
+export const ZHIPU_MAX_POLL_TIME_MS = 300000; // 5 minutes
+
+// 单位转换系数
+export const KJ_PER_KCAL = 4.184;
+export const GRAMS_PER_OZ = 28.3495;
+
+// 上传重试配置
+export const UPLOAD_MAX_RETRIES = 100;
+export const UPLOAD_RETRY_BASE_DELAY = 1000;
+export const UPLOAD_RETRY_MAX_DELAY = 180000;
+export const UPLOAD_RETRY_BACKOFF_FACTOR = 1.2;
