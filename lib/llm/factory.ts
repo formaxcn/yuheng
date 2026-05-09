@@ -2,8 +2,8 @@ import { ILLMProvider } from './interface';
 import { GeminiProvider } from './providers/gemini';
 import { OpenAIProvider } from './providers/openai';
 import { ZhipuProvider } from './providers/zhipu';
-import { getSetting } from '@/lib/db';
-import { logger } from '@/lib/logger';
+import { getSetting } from '../db';
+import { logger } from '../logger';
 
 export type LLMProviderType = 'gemini' | 'openai' | 'openai-compatible' | 'zhipu';
 

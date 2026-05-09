@@ -1,7 +1,7 @@
-import { createRecognitionTask, updateRecognitionTask, getUnitPreferences, getSetting, RecognizedDish } from '@/lib/db';
-import { LLMFactory } from '@/lib/llm/factory';
-import { promptManager } from '@/lib/prompts';
-import { logger } from '@/lib/logger';
+import { createRecognitionTask, updateRecognitionTask, getUnitPreferences, getSetting, RecognizedDish } from './db';
+import { LLMFactory } from './llm/factory';
+import { promptManager } from './prompts';
+import { logger } from './logger';
 
 export async function executeRecognition(data: { taskId: string, imageBase64: string, userPrompt?: string }) {
     const { taskId, imageBase64, userPrompt } = data;
