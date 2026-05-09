@@ -15,7 +15,7 @@ export class OpenAIProvider implements ILLMProvider {
         this.modelName = modelName;
     }
 
-    async analyzeImage(imagePart: LLMImagePart, promptText: string): Promise<any> {
+    async analyzeImage(imagePart: LLMImagePart, promptText: string) {
         logLLMRequest("OpenAI", this.modelName, promptText, imagePart);
 
         try {

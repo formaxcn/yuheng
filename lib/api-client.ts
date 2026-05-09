@@ -89,7 +89,7 @@ export const api = {
         return res.json();
     },
 
-    async smartAdd(data: { dishes: Dish[]; date?: string; time?: string; type?: string }): Promise<{ success: boolean; results: any[] }> {
+    async smartAdd(data: { dishes: Dish[]; date?: string; time?: string; type?: string }): Promise<{ success: boolean; results: unknown[] }> {
         const res = await fetch('/api/nutrition/smart-add', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

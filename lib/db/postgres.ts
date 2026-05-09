@@ -6,7 +6,7 @@ import {
 } from './types';
 
 export class PostgresAdapter implements IDatabaseAdapter {
-    private sql: any;
+    private sql: postgres.Sql<{}>;
 
     constructor() {
         const url = process.env.DATABASE_URL!;
@@ -38,7 +38,7 @@ export class PostgresAdapter implements IDatabaseAdapter {
 
     async getRecipe(name: string): Promise<Recipe | undefined> {
         const rows = await this.sql`SELECT * FROM recipes WHERE name = ${name}`;
-        return rows[0];
+        return rows[0] as Recipe | undefined;
     }
 
     async createRecipe(recipe: Omit<Recipe, 'id' | 'created_at'>): Promise<Recipe> {
@@ -65,7 +65,7 @@ export class PostgresAdapter implements IDatabaseAdapter {
 
     async getEntryByDateTime(date: string, time: string): Promise<Entry | undefined> {
         const rows = await this.sql`SELECT * FROM entries WHERE date = ${date} AND time = ${time}`;
-        return rows[0];
+        return rows[0] as Entry | undefined;
     }
 
     async addDish(entryId: number, recipe: Recipe, amount: number): Promise<Dish> {
@@ -127,9 +127,9 @@ export class PostgresAdapter implements IDatabaseAdapter {
     }
 
     async updateRecognitionTask(id: string, updates: Partial<Pick<RecognitionTask, 'status' | 'result' | 'error'>>): Promise<void> {
-        const allowedKeys = ['status', 'result', 'error'] as const;
+        const allowedKeys: readonly ('status' | 'result' | 'error')[] = ['status', 'result', 'error'] as const;
         const validUpdates = Object.fromEntries(
-            Object.entries(updates).filter(([key]) => allowedKeys.includes(key as any))
+            Object.entries(updates).filter(([key]) => allowedKeys.includes(key as typeof allowedKeys[number]))
         );
 
         if (Object.keys(validUpdates).length === 0) return;
@@ -144,6 +144,6 @@ export class PostgresAdapter implements IDatabaseAdapter {
 
     async getRecognitionTask(id: string): Promise<RecognitionTask | undefined> {
         const rows = await this.sql`SELECT * FROM recognition_tasks WHERE id = ${id}`;
-        return rows[0];
+        return rows[0] as RecognitionTask | undefined;
     }
 }

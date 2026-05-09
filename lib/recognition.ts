@@ -1,4 +1,4 @@
-import { createRecognitionTask, updateRecognitionTask, getUnitPreferences, getSetting } from '@/lib/db';
+import { createRecognitionTask, updateRecognitionTask, getUnitPreferences, getSetting, RecognizedDish } from '@/lib/db';
 import { LLMFactory } from '@/lib/llm/factory';
 import { promptManager } from '@/lib/prompts';
 import { logger } from '@/lib/logger';
@@ -40,7 +40,7 @@ export async function executeRecognition(data: { taskId: string, imageBase64: st
 
         const provider = await LLMFactory.getProvider();
         const dishes = await provider.analyzeImage(imagePart, promptText);
-        const dishesWithUnits = dishes.map((d: any) => ({
+        const dishesWithUnits = dishes.map((d: RecognizedDish) => ({
             ...d,
             energy_unit: unitPrefs.energy,
             weight_unit: unitPrefs.weight

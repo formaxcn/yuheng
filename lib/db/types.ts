@@ -70,3 +70,14 @@ export interface RecognitionTask {
     created_at: string;
     updated_at: string;
 }
+
+export interface RecognizedDish {
+    name: string;
+    description?: string;
+    energy: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    energy_unit?: 'kcal' | 'kj';
+    weight_unit?: 'g' | 'oz';
+}

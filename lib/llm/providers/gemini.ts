@@ -12,7 +12,7 @@ export class GeminiProvider implements ILLMProvider {
         this.modelName = modelName;
     }
 
-    async analyzeImage(imagePart: LLMImagePart, promptText: string): Promise<any> {
+    async analyzeImage(imagePart: LLMImagePart, promptText: string) {
         logLLMRequest("Gemini", this.modelName, promptText, imagePart);
         const model = this.genAI.getGenerativeModel({ model: this.modelName });
 

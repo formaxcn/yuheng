@@ -6,10 +6,10 @@ import {
     DEFAULT_UNIT_PREFERENCES
 } from './constants';
 import {
-    Recipe, Entry, Dish, RecognitionTask, DailyTargets, UnitPreferences
+    Recipe, Entry, Dish, RecognitionTask, DailyTargets, UnitPreferences, RecognizedDish
 } from './db/types';
 
-export type { Recipe, Entry, Dish, RecognitionTask, DailyTargets, UnitPreferences };
+export type { Recipe, Entry, Dish, RecognitionTask, DailyTargets, UnitPreferences, RecognizedDish };
 
 // --- Settings ---
 export async function getSetting(key: string): Promise<string | undefined> {
