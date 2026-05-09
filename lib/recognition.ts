@@ -53,11 +53,3 @@ export async function executeRecognition(data: { taskId: string, imageBase64: st
         throw error;
     }
 }
-
-/**
- * @deprecated Use queueManager.enqueueRecognition directly. 
- * This remains for compatibility if needed during transition.
- */
-export async function processRecognition(taskId: string, imageBase64: string, userPrompt?: string) {
-    console.warn(`[Recognition] processRecognition is deprecated. Use queueManager.enqueueRecognition instead.`);
-}
