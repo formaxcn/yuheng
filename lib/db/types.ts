@@ -81,3 +81,23 @@ export interface RecognizedDish {
     energy_unit?: 'kcal' | 'kj';
     weight_unit?: 'g' | 'oz';
 }
+
+export interface User {
+    id: string;
+    name: string;
+    email?: string | null;
+    password_hash?: string;
+    avatar?: string;
+    is_active: boolean;
+    is_default: boolean;
+    role: 'user' | 'admin';
+    created_at: string;
+    last_login_at?: string;
+    sso_provider?: string;
+    sso_id?: string;
+}
+
+export interface AuthMode {
+    multiUserEnabled: boolean;
+    currentUserId?: string;
+}

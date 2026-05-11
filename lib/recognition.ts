@@ -23,7 +23,7 @@ export async function executeRecognition(data: { taskId: string, imageBase64: st
         // Load prompt
         let promptText = await promptManager.getPrompt('dish-init-prompt', {
             energy_unit: unitPrefs.energy === 'kj' ? 'kJ' : 'kcal',
-            weight_unit: unitPrefs.weight === 'oz' ? 'oz' : '克',
+            weight_unit: unitPrefs.weight === 'oz' ? 'oz' : 'g',
             lang_instruction: langInstruction
         });
 

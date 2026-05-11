@@ -1,0 +1,49 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Docker: Start Database",
+            "type": "shell",
+            "command": "docker compose -f docker-compose.local.yml up -d postgres",
+            "problemMatcher": [],
+            "detail": "Start PostgreSQL database in Docker"
+        },
+        {
+            "label": "Docker: Stop Database",
+            "type": "shell",
+            "command": "docker compose -f docker-compose.local.yml stop postgres",
+            "problemMatcher": [],
+            "detail": "Stop PostgreSQL database"
+        },
+        {
+            "label": "Docker: Restart Database",
+            "type": "shell",
+            "command": "docker compose -f docker-compose.local.yml restart postgres",
+            "problemMatcher": [],
+            "detail": "Restart PostgreSQL database"
+        },
+        {
+            "label": "Docker: Database Logs",
+            "type": "shell",
+            "command": "docker compose -f docker-compose.local.yml logs -f postgres",
+            "problemMatcher": [],
+            "detail": "View PostgreSQL database logs"
+        },
+        {
+            "label": "DB: Run Migrations",
+            "type": "shell",
+            "command": "bun run db:migrate",
+            "problemMatcher": [],
+            "detail": "Run database migrations",
+            "dependsOn": ["Docker: Start Database"]
+        },
+        {
+            "label": "DB: Push Schema",
+            "type": "shell",
+            "command": "bun run db:push",
+            "problemMatcher": [],
+            "detail": "Push database schema directly",
+            "dependsOn": ["Docker: Start Database"]
+        }
+    ]
+}

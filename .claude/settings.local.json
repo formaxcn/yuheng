@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun run *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(npx drizzle-kit *)",
+      "Bash(bun add *)",
+      "Bash(npx tsc *)",
+      "Bash(docker stop *)",
+      "Bash(docker rm *)",
+      "Bash(docker run *)",
+      "Bash(bun drizzle-kit *)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(curl -s http://localhost:9222/json/version)",
+      "Bash(curl -s http://localhost:3000/api/auth/status)",
+      "Bash(curl *)",
+      "Bash(dir lib\\\\db*)",
+      "Bash(docker compose *)",
+      "Bash(docker exec *)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :5432)",
+      "Bash(psql -U yuheng -d yuheng -c \"SELECT * FROM users;\")",
+      "Bash(bun *)"
+    ]
+  }
+}

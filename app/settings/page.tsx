@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Save, Loader2, Plus, Trash2, X, Sparkles, Bot, Globe, ChevronDown, Check, Brain, Settings as SettingsIcon } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Plus, Trash2, X, Sparkles, Bot, Globe, ChevronDown, Check, Brain, Settings as SettingsIcon, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -17,6 +17,7 @@ import { kcalToKj, kjToKcal, gramsToOz, ozToGrams, EnergyUnit, WeightUnit } from
 import { Slider } from '@/components/ui/slider';
 import { calculateNutritionTargets } from '@/lib/nutrition-calc';
 import { BodyData, NutritionStandard } from '@/lib/db/types';
+import { useAuth } from '@/lib/auth/auth-context';
 import {
     Select,
     SelectContent,
@@ -33,14 +34,26 @@ import { SmartTimeInput } from './SmartTimeInput';
 import { cn } from "@/lib/utils"
 import { Switch } from "@/components/ui/switch"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
 
 export default function SettingsPage() {
     const t = useTranslations('Settings');
     const tCommon = useTranslations('Common');
     const router = useRouter();
+    const { multiUserEnabled, user, enableMultiUser, disableMultiUser, refresh } = useAuth();
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [advancedOpen, setAdvancedOpen] = useState(false);
+    const [enableMultiUserDialogOpen, setEnableMultiUserDialogOpen] = useState(false);
+    const [disableMultiUserDialogOpen, setDisableMultiUserDialogOpen] = useState(false);
+    const [adminPassword, setAdminPassword] = useState('');
+    const [actionLoading, setActionLoading] = useState(false);
 
     const [config, setConfig] = useState<Settings>({
         meal_times: [],
@@ -761,7 +774,7 @@ export default function SettingsPage() {
                                             onChange={() => updateRecognitionLanguage('zh')}
                                             className="w-4 h-4 text-primary"
                                         />
-                                        <span className="text-sm whitespace-nowrap">中文</span>
+                                        <span className="text-sm whitespace-nowrap">Chinese</span>
                                     </label>
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input
@@ -997,10 +1010,156 @@ export default function SettingsPage() {
                                         />
                                     </div>
                                 )}
+
+                                {/* Multi-User Mode - inside Advanced Options */}
+                                <div className="pt-6 border-t mt-6">
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-0.5">
+                                            <Label className="text-base flex items-center gap-2">
+                                                <Users className="w-4 h-4" />
+                                                Multi-User Mode
+                                            </Label>
+                                            <p className="text-sm text-muted-foreground">
+                                                {multiUserEnabled
+                                                    ? "Enable multiple independent user accounts"
+                                                    : "Create an admin password for the default user to enable multi-user mode"}
+                                            </p>
+                                        </div>
+                                        <Switch
+                                            checked={multiUserEnabled}
+                                            onCheckedChange={(checked: boolean) => {
+                                                if (checked) {
+                                                    setEnableMultiUserDialogOpen(true);
+                                                } else {
+                                                    setDisableMultiUserDialogOpen(true);
+                                                }
+                                            }}
+                                        />
+                                    </div>
+
+                                    {multiUserEnabled && (
+                                        <div className="pt-4">
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => router.push('/users')}
+                                            >
+                                                <Users className="w-4 h-4 mr-2" />
+                                                Manage Users
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
                             </CardContent>
                         </Card>
                     </CollapsibleContent>
                 </Collapsible>
+
+                {/* Enable Multi-User Dialog */}
+                <Dialog open={enableMultiUserDialogOpen} onOpenChange={setEnableMultiUserDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Enable Multi-User Mode</DialogTitle>
+                            <DialogDescription>
+                                Set an admin password for the default user. Login will be required after enabling.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label>Admin Password (min 6 characters)</Label>
+                                <Input
+                                    type="password"
+                                    value={adminPassword}
+                                    onChange={(e) => setAdminPassword(e.target.value)}
+                                    placeholder="Enter password"
+                                    minLength={6}
+                                />
+                            </div>
+                            <div className="flex justify-end gap-2">
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => {
+                                        setEnableMultiUserDialogOpen(false);
+                                        setAdminPassword('');
+                                    }}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    disabled={adminPassword.length < 6 || actionLoading}
+                                    onClick={async () => {
+                                        setActionLoading(true);
+                                        const success = await enableMultiUser(adminPassword);
+                                        if (success) {
+                                            toast.success('Multi-user mode enabled');
+                                            setEnableMultiUserDialogOpen(false);
+                                            setAdminPassword('');
+                                            refresh();
+                                        } else {
+                                            toast.error('Failed to enable');
+                                        }
+                                        setActionLoading(false);
+                                    }}
+                                >
+                                    {actionLoading ? 'Enabling...' : 'Enable'}
+                                </Button>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Disable Multi-User Dialog */}
+                <Dialog open={disableMultiUserDialogOpen} onOpenChange={setDisableMultiUserDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Disable Multi-User Mode</DialogTitle>
+                            <DialogDescription>
+                                Revert to single-user mode. Data from other users will be preserved but inaccessible.
+                                Please enter your admin password to confirm.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label>Admin Password</Label>
+                                <Input
+                                    type="password"
+                                    value={adminPassword}
+                                    onChange={(e) => setAdminPassword(e.target.value)}
+                                    placeholder="Enter password"
+                                />
+                            </div>
+                            <div className="flex justify-end gap-2">
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => {
+                                        setDisableMultiUserDialogOpen(false);
+                                        setAdminPassword('');
+                                    }}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    disabled={adminPassword.length < 6 || actionLoading}
+                                    onClick={async () => {
+                                        setActionLoading(true);
+                                        const success = await disableMultiUser(adminPassword);
+                                        if (success) {
+                                            toast.success('Multi-user mode disabled');
+                                            setDisableMultiUserDialogOpen(false);
+                                            setAdminPassword('');
+                                            refresh();
+                                            router.push('/');
+                                        } else {
+                                            toast.error('Failed to disable, please check your password');
+                                        }
+                                        setActionLoading(false);
+                                    }}
+                                >
+                                    {actionLoading ? 'Disabling...' : 'Disable'}
+                                </Button>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
 
                 <Button
                     className="w-full h-12 text-lg"

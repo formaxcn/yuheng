@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
         const commonVariables = {
             energy_unit: unitPrefs.energy === 'kj' ? 'kJ' : 'kcal',
-            weight_unit: unitPrefs.weight === 'oz' ? 'oz' : '克',
+            weight_unit: unitPrefs.weight === 'oz' ? 'oz' : 'g',
             lang_instruction: langInstruction,
         };
 

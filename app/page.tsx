@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, Settings, RefreshCw, Flame, Shield, Wheat, Droplets, Calendar, Loader2 as Loader } from 'lucide-react';
+import { UserSwitcher } from '@/components/user-switcher';
 import Link from 'next/link';
 import { api } from '@/lib/api-client';
 import { displayEnergy, displayWeight, type EnergyUnit, type WeightUnit } from '@/lib/units';
@@ -321,6 +322,7 @@ export default function HomePage() {
           </h1>
         </div>
         <div className="flex items-center gap-2">
+          <UserSwitcher />
           <Link href="/settings">
             <Button variant="ghost" size="icon" className="rounded-full hover:bg-muted/10 transition-colors">
               <Settings className="w-5 h-5 text-muted-foreground/60" />

@@ -2,16 +2,56 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Next.js: debug server-side",
+            "name": "Docker: Start Database",
             "type": "node-terminal",
             "request": "launch",
-            "command": "bun run dev"
+            "command": "docker compose -f docker-compose.local.yml up -d postgres",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
         },
         {
-            "name": "Next.js: debug client-side",
+            "name": "Next.js: Server-side (Backend)",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "bun run dev",
+            "env": {
+                "DATABASE_URL": "postgresql://yuheng:yuheng123@localhost:5432/yuheng"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "name": "Chrome: Client-side (Frontend)",
             "type": "chrome",
             "request": "launch",
-            "url": "http://localhost:3000"
+            "url": "http://localhost:3000",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Full Stack: DB + Backend + Frontend",
+            "configurations": [
+                "Docker: Start Database",
+                "Next.js: Server-side (Backend)",
+                "Chrome: Client-side (Frontend)"
+            ],
+            "stopAll": true
+        },
+        {
+            "name": "Dev: Backend + Frontend",
+            "configurations": [
+                "Next.js: Server-side (Backend)",
+                "Chrome: Client-side (Frontend)"
+            ],
+            "stopAll": true
         }
     ]
 }

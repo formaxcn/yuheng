@@ -4,34 +4,6 @@
 
 ---
 
-## ✅ 已完成 - 代码质量优化
-
-### 1. 消除重复常量定义
-- 创建 `lib/constants.ts` 集中管理配置
-- 移除 `lib/db.ts` 和 `lib/db/index.ts` 中重复的默认配置
-- 提交：`refactor: eliminate duplicate constants`
-
-### 2. 删除废弃代码
-- 移除标记为 `@deprecated` 的 `processRecognition` 函数
-- 提交：`refactor: remove deprecated processRecognition`
-
-### 3. 类型安全改进
-- 新增 `RecognizedDish` 类型用于 LLM 识别结果
-- 替换关键路径的 `any` 类型（18+ 处）
-- 修复 postgres adapter 返回类型
-- 提交：`refactor: replace 'any' types in critical paths`
-
-### 4. 导入路径标准化
-- 统一 lib 目录内使用相对路径
-- 提交：`refactor: standardize import paths`
-
-### 5. 提取魔法数字
-- 轮询间隔、重试延迟、单位换算系数全部具名化
-- 新增 `lib/unit-conversion.ts` 单位转换工具函数
-- 提交：`refactor: extract magic numbers and unit conversion`
-
----
-
 ## 📊 功能评估矩阵
 
 已评估的功能优先级和可行性：

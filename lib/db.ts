@@ -1,25 +1,30 @@
 import { getAdapter, ensureInit } from './db/index';
-export { ensureInit };
+export { getAdapter, ensureInit };
 import {
     DEFAULT_MEAL_CONFIG,
     DEFAULT_DAILY_TARGETS,
     DEFAULT_UNIT_PREFERENCES
 } from './constants';
 import {
-    Recipe, Entry, Dish, RecognitionTask, DailyTargets, UnitPreferences, RecognizedDish
+    Recipe, Entry, Dish, RecognitionTask, DailyTargets, UnitPreferences, RecognizedDish, User
 } from './db/types';
 
-export type { Recipe, Entry, Dish, RecognitionTask, DailyTargets, UnitPreferences, RecognizedDish };
+export type { Recipe, Entry, Dish, RecognitionTask, DailyTargets, UnitPreferences, RecognizedDish, User };
 
 // --- Settings ---
-export async function getSetting(key: string): Promise<string | undefined> {
+export async function getSetting(key: string, userId?: string): Promise<string | undefined> {
     await ensureInit();
-    return getAdapter().getSetting(key);
+    return getAdapter().getSetting(key, userId);
 }
 
-export async function saveSetting(key: string, value: string) {
+export async function saveSetting(key: string, value: string, userId?: string): Promise<void> {
     await ensureInit();
-    return getAdapter().saveSetting(key, value);
+    return getAdapter().saveSetting(key, value, userId);
+}
+
+export async function isMultiUserEnabled(): Promise<boolean> {
+    await ensureInit();
+    return getAdapter().isMultiUserEnabled();
 }
 
 // Helper Wrappers
@@ -130,5 +135,41 @@ export async function updateRecognitionTask(id: string, updates: Partial<Pick<Re
 export async function getRecognitionTask(id: string): Promise<RecognitionTask | undefined> {
     await ensureInit();
     return getAdapter().getRecognitionTask(id);
+}
+
+// --- Users (Multi-User Mode) ---
+export async function getUser(id: string): Promise<User | undefined> {
+    await ensureInit();
+    return getAdapter().getUser(id);
+}
+
+export async function getUserByEmail(email: string): Promise<User | undefined> {
+    await ensureInit();
+    return getAdapter().getUserByEmail(email);
+}
+
+export async function listUsers(): Promise<User[]> {
+    await ensureInit();
+    return getAdapter().listUsers();
+}
+
+export async function createUser(user: Omit<User, 'id' | 'created_at'>): Promise<User> {
+    await ensureInit();
+    return getAdapter().createUser(user);
+}
+
+export async function updateUser(id: string, updates: Partial<Omit<User, 'id' | 'created_at'>>): Promise<void> {
+    await ensureInit();
+    return getAdapter().updateUser(id, updates);
+}
+
+export async function deleteUser(id: string): Promise<void> {
+    await ensureInit();
+    return getAdapter().deleteUser(id);
+}
+
+export async function updateLastLogin(id: string): Promise<void> {
+    await ensureInit();
+    return getAdapter().updateLastLogin(id);
 }
 
