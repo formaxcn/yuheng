@@ -21,7 +21,8 @@
       "Bash(netstat -ano)",
       "Bash(findstr :5432)",
       "Bash(psql -U yuheng -d yuheng -c \"SELECT * FROM users;\")",
-      "Bash(bun *)"
+      "Bash(bun *)",
+      "Bash(docker volume *)"
     ]
   }
 }
