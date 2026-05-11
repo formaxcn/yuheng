@@ -36,6 +36,16 @@ export interface Settings {
     llm_provider?: string;
     llm_model?: string;
     llm_base_url?: string;
+    image_compression_enabled?: boolean;
+    image_compression_quality?: number;
+    body_data?: {
+        height: number;
+        weight: number;
+        age: number;
+        sex: 'male' | 'female';
+        activity_level: number;
+    };
+    nutrition_standard?: 'CN' | 'US' | 'Balanced';
 }
 
 export interface NutritionStats {
@@ -79,7 +89,7 @@ export const api = {
         return res.json();
     },
 
-    async smartAdd(data: { dishes: Dish[]; date?: string; time?: string; type?: string }): Promise<{ success: boolean; results: any[] }> {
+    async smartAdd(data: { dishes: Dish[]; date?: string; time?: string; type?: string }): Promise<{ success: boolean; results: unknown[] }> {
         const res = await fetch('/api/nutrition/smart-add', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

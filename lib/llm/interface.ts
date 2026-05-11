@@ -1,3 +1,5 @@
+import { RecognizedDish } from '../db/types';
+
 export interface LLMImagePart {
     inlineData: {
         data: string;
@@ -6,6 +8,6 @@ export interface LLMImagePart {
 }
 
 export interface ILLMProvider {
-    analyzeImage(imagePart: LLMImagePart, promptText: string): Promise<any>;
+    analyzeImage(imagePart: LLMImagePart, promptText: string): Promise<RecognizedDish[]>;
     generateContent(promptText: string): Promise<string>;
 }

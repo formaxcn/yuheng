@@ -1,13 +1,23 @@
 import {
-    Recipe, Entry, Dish, RecognitionTask, DailyTargets, UnitPreferences
+    Recipe, Entry, Dish, RecognitionTask, DailyTargets, UnitPreferences, User
 } from './types';
 
 export interface IDatabaseAdapter {
     init(): Promise<void>;
 
-    // Settings
-    getSetting(key: string): Promise<string | undefined>;
-    saveSetting(key: string, value: string): Promise<void>;
+    // Settings (user-scoped with fallback to global)
+    getSetting(key: string, userId?: string): Promise<string | undefined>;
+    saveSetting(key: string, value: string, userId?: string): Promise<void>;
+    isMultiUserEnabled(): Promise<boolean>;
+
+    // Users
+    getUser(id: string): Promise<User | undefined>;
+    getUserByEmail(email: string): Promise<User | undefined>;
+    listUsers(): Promise<User[]>;
+    createUser(user: Omit<User, 'id' | 'created_at'>): Promise<User>;
+    updateUser(id: string, updates: Partial<Omit<User, 'id' | 'created_at'>>): Promise<void>;
+    deleteUser(id: string): Promise<void>;
+    updateLastLogin(id: string): Promise<void>;
 
     // Recipes
     getRecipe(name: string): Promise<Recipe | undefined>;

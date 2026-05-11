@@ -11,6 +11,7 @@ In the Settings page, you can choose between major regions (e.g., China or Unite
 | **Energy Unit** | kcal | kcal |
 | **Time Format** | 24-hour | 12-hour (AM/PM) |
 | **AI Language** | 中文 (Chinese) | English |
+| **Nutrition Std** | CN Guidelines | US Guidelines |
 
 ## AI Context Awareness
 The selected region also provides context to the AI during recognition. For example, it might prioritize local units or food naming conventions common in that region.

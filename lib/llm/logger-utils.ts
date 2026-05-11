@@ -1,4 +1,4 @@
-import { logger } from "@/lib/logger";
+import { logger } from '../logger';
 import { LLMImagePart } from "./interface";
 
 export function logLLMRequest(provider: string, model: string, prompt: string, imagePart?: LLMImagePart) {

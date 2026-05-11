@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Save, Loader2, Plus, Trash2, X, Sparkles, Bot, Globe, ChevronDown, Check, Brain } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Plus, Trash2, X, Sparkles, Bot, Globe, ChevronDown, Check, Brain, Settings as SettingsIcon, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -15,6 +15,9 @@ import { setLocale } from '@/app/actions';
 import { api, Settings } from '@/lib/api-client';
 import { kcalToKj, kjToKcal, gramsToOz, ozToGrams, EnergyUnit, WeightUnit } from '@/lib/units';
 import { Slider } from '@/components/ui/slider';
+import { calculateNutritionTargets } from '@/lib/nutrition-calc';
+import { BodyData, NutritionStandard } from '@/lib/db/types';
+import { useAuth } from '@/lib/auth/auth-context';
 import {
     Select,
     SelectContent,
@@ -29,13 +32,28 @@ import {
 } from "@/components/ui/popover"
 import { SmartTimeInput } from './SmartTimeInput';
 import { cn } from "@/lib/utils"
+import { Switch } from "@/components/ui/switch"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
 
 export default function SettingsPage() {
     const t = useTranslations('Settings');
     const tCommon = useTranslations('Common');
     const router = useRouter();
+    const { multiUserEnabled, user, enableMultiUser, disableMultiUser, refresh } = useAuth();
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [advancedOpen, setAdvancedOpen] = useState(false);
+    const [enableMultiUserDialogOpen, setEnableMultiUserDialogOpen] = useState(false);
+    const [disableMultiUserDialogOpen, setDisableMultiUserDialogOpen] = useState(false);
+    const [adminPassword, setAdminPassword] = useState('');
+    const [actionLoading, setActionLoading] = useState(false);
 
     const [config, setConfig] = useState<Settings>({
         meal_times: [],
@@ -56,7 +74,17 @@ export default function SettingsPage() {
         llm_model: 'gemini-2.5-flash',
         llm_base_url: '',
         other_meal_name: 'Snack',
-        time_format: '24h'
+        time_format: '24h',
+        image_compression_enabled: true,
+        image_compression_quality: 0.85,
+        body_data: {
+            height: 170,
+            weight: 65,
+            age: 30,
+            sex: 'male',
+            activity_level: 1.375
+        },
+        nutrition_standard: 'CN'
     });
 
     const [version, setVersion] = useState<string>('');
@@ -95,6 +123,24 @@ export default function SettingsPage() {
             }
             if (!data.time_format) {
                 data.time_format = '24h';
+            }
+            if (data.image_compression_enabled === undefined) {
+                data.image_compression_enabled = true;
+            }
+            if (data.image_compression_quality === undefined) {
+                data.image_compression_quality = 0.85;
+            }
+            if (!data.body_data) {
+                data.body_data = {
+                    height: 170,
+                    weight: 65,
+                    age: 30,
+                    sex: 'male',
+                    activity_level: 1.375
+                };
+            }
+            if (!data.nutrition_standard) {
+                data.nutrition_standard = 'CN';
             }
             setConfig(data);
         } catch (error) {
@@ -408,7 +454,145 @@ export default function SettingsPage() {
                     <CardHeader>
                         <CardTitle>{t('dailyNutritionTargets')}</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-6">
+                        <div className="space-y-6 p-5 border rounded-xl bg-accent/5">
+                            <h3 className="text-sm font-medium flex items-center gap-2 text-primary">
+                                <Bot className="w-4 h-4" />
+                                {t('bodyInfo')}
+                            </h3>
+
+                            {/* Row 1: Basic Stats (3 cols) */}
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs text-muted-foreground">{t('height')}</Label>
+                                    <div className="relative">
+                                        <Input
+                                            type="number"
+                                            className="h-9 pr-8"
+                                            value={config.body_data?.height}
+                                            onChange={(e) => setConfig(prev => ({
+                                                ...prev,
+                                                body_data: { ...prev.body_data!, height: Number(e.target.value) }
+                                            }))}
+                                        />
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">cm</span>
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs text-muted-foreground">{t('weight')}</Label>
+                                    <div className="relative">
+                                        <Input
+                                            type="number"
+                                            className="h-9 pr-6"
+                                            value={config.body_data?.weight}
+                                            onChange={(e) => setConfig(prev => ({
+                                                ...prev,
+                                                body_data: { ...prev.body_data!, weight: Number(e.target.value) }
+                                            }))}
+                                        />
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">kg</span>
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs text-muted-foreground">{t('age')}</Label>
+                                    <Input
+                                        type="number"
+                                        className="h-9"
+                                        value={config.body_data?.age}
+                                        onChange={(e) => setConfig(prev => ({
+                                            ...prev,
+                                            body_data: { ...prev.body_data!, age: Number(e.target.value) }
+                                        }))}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Row 2: Sex & Activity (Grid with different spans) */}
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="col-span-1 space-y-1.5">
+                                    <Label className="text-xs text-muted-foreground">{t('sex')}</Label>
+                                    <Select
+                                        value={config.body_data?.sex}
+                                        onValueChange={(val: 'male' | 'female') => setConfig(prev => ({
+                                            ...prev,
+                                            body_data: { ...prev.body_data!, sex: val }
+                                        }))}
+                                    >
+                                        <SelectTrigger className="h-9">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="male">{t('male')}</SelectItem>
+                                            <SelectItem value="female">{t('female')}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="col-span-2 space-y-1.5">
+                                    <Label className="text-xs text-muted-foreground">{t('activityLevel')}</Label>
+                                    <Select
+                                        value={String(config.body_data?.activity_level)}
+                                        onValueChange={(val) => setConfig(prev => ({
+                                            ...prev,
+                                            body_data: { ...prev.body_data!, activity_level: Number(val) }
+                                        }))}
+                                    >
+                                        <SelectTrigger className="h-9">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="1.2">{t('activity1')}</SelectItem>
+                                            <SelectItem value="1.375">{t('activity2')}</SelectItem>
+                                            <SelectItem value="1.55">{t('activity3')}</SelectItem>
+                                            <SelectItem value="1.725">{t('activity4')}</SelectItem>
+                                            <SelectItem value="1.9">{t('activity5')}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            {/* Row 3: Standard & Action */}
+                            <div className="space-y-3">
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs text-muted-foreground">{t('nutritionStandard')}</Label>
+                                    <Select
+                                        value={config.nutrition_standard}
+                                        onValueChange={(val: NutritionStandard) => setConfig(prev => ({
+                                            ...prev,
+                                            nutrition_standard: val
+                                        }))}
+                                    >
+                                        <SelectTrigger className="h-9">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="CN">{t('standardCN')}</SelectItem>
+                                            <SelectItem value="US">{t('standardUS')}</SelectItem>
+                                            <SelectItem value="Balanced">{t('standardBalanced')}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <Button
+                                    className="w-full gap-2 h-9 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 shadow-none mt-1"
+                                    onClick={() => {
+                                        if (config.body_data) {
+                                            const targets = calculateNutritionTargets(config.body_data as BodyData, config.nutrition_standard as NutritionStandard);
+                                            setConfig(prev => ({
+                                                ...prev,
+                                                daily_targets: targets
+                                            }));
+                                            toast.success(t('calculateSuggestions'));
+                                        }
+                                    }}
+                                >
+                                    <Sparkles className="w-3.5 h-3.5" />
+                                    {t('calculateSuggestions')}
+                                </Button>
+                            </div>
+                        </div>
+
+                        <Separator />
+
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label>{t('energy')} ({config.unit_preferences.energy})</Label>
@@ -590,7 +774,7 @@ export default function SettingsPage() {
                                             onChange={() => updateRecognitionLanguage('zh')}
                                             className="w-4 h-4 text-primary"
                                         />
-                                        <span className="text-sm whitespace-nowrap">中文</span>
+                                        <span className="text-sm whitespace-nowrap">Chinese</span>
                                     </label>
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input
@@ -781,6 +965,201 @@ export default function SettingsPage() {
                         </div>
                     </CardContent>
                 </Card>
+
+                <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen} className="space-y-2">
+                    <CollapsibleTrigger asChild>
+                        <Button variant="ghost" className="flex items-center gap-2 w-full justify-between p-4 hover:bg-accent/50 rounded-xl border border-dashed border-muted-foreground/20">
+                            <div className="flex items-center gap-2">
+                                <SettingsIcon className="w-4 h-4 text-muted-foreground" />
+                                <span className="font-semibold">{t('advancedOptions')}</span>
+                            </div>
+                            <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", advancedOpen && "rotate-180")} />
+                        </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-4">
+                        <Card>
+                            <CardContent className="pt-6 space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                        <Label className="text-base">{t('imageCompression')}</Label>
+                                        <p className="text-sm text-muted-foreground">
+                                            {t('compressionQualityNote')}
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        checked={config.image_compression_enabled}
+                                        onCheckedChange={(checked: boolean) => setConfig(prev => ({ ...prev, image_compression_enabled: checked }))}
+                                    />
+                                </div>
+
+                                {config.image_compression_enabled && (
+                                    <div className="space-y-4 pt-2">
+                                        <div className="flex justify-between items-center">
+                                            <Label>{t('compressionQuality')}</Label>
+                                            <span className="text-sm font-mono font-bold text-primary">
+                                                {Math.round((config.image_compression_quality || 0.85) * 100)}%
+                                            </span>
+                                        </div>
+                                        <Slider
+                                            value={[config.image_compression_quality || 0.85]}
+                                            min={0.1}
+                                            max={1.0}
+                                            step={0.05}
+                                            onValueChange={([val]) => setConfig(prev => ({ ...prev, image_compression_quality: val }))}
+                                            className="py-2"
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Multi-User Mode - inside Advanced Options */}
+                                <div className="pt-6 border-t mt-6">
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-0.5">
+                                            <Label className="text-base flex items-center gap-2">
+                                                <Users className="w-4 h-4" />
+                                                Multi-User Mode
+                                            </Label>
+                                            <p className="text-sm text-muted-foreground">
+                                                {multiUserEnabled
+                                                    ? "Enable multiple independent user accounts"
+                                                    : "Create an admin password for the default user to enable multi-user mode"}
+                                            </p>
+                                        </div>
+                                        <Switch
+                                            checked={multiUserEnabled}
+                                            onCheckedChange={(checked: boolean) => {
+                                                if (checked) {
+                                                    setEnableMultiUserDialogOpen(true);
+                                                } else {
+                                                    setDisableMultiUserDialogOpen(true);
+                                                }
+                                            }}
+                                        />
+                                    </div>
+
+                                    {multiUserEnabled && (
+                                        <div className="pt-4">
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => router.push('/users')}
+                                            >
+                                                <Users className="w-4 h-4 mr-2" />
+                                                Manage Users
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </CollapsibleContent>
+                </Collapsible>
+
+                {/* Enable Multi-User Dialog */}
+                <Dialog open={enableMultiUserDialogOpen} onOpenChange={setEnableMultiUserDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Enable Multi-User Mode</DialogTitle>
+                            <DialogDescription>
+                                Set an admin password for the default user. Login will be required after enabling.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label>Admin Password (min 6 characters)</Label>
+                                <Input
+                                    type="password"
+                                    value={adminPassword}
+                                    onChange={(e) => setAdminPassword(e.target.value)}
+                                    placeholder="Enter password"
+                                    minLength={6}
+                                />
+                            </div>
+                            <div className="flex justify-end gap-2">
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => {
+                                        setEnableMultiUserDialogOpen(false);
+                                        setAdminPassword('');
+                                    }}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    disabled={adminPassword.length < 6 || actionLoading}
+                                    onClick={async () => {
+                                        setActionLoading(true);
+                                        const success = await enableMultiUser(adminPassword);
+                                        if (success) {
+                                            toast.success('Multi-user mode enabled');
+                                            setEnableMultiUserDialogOpen(false);
+                                            setAdminPassword('');
+                                            refresh();
+                                        } else {
+                                            toast.error('Failed to enable');
+                                        }
+                                        setActionLoading(false);
+                                    }}
+                                >
+                                    {actionLoading ? 'Enabling...' : 'Enable'}
+                                </Button>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Disable Multi-User Dialog */}
+                <Dialog open={disableMultiUserDialogOpen} onOpenChange={setDisableMultiUserDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Disable Multi-User Mode</DialogTitle>
+                            <DialogDescription>
+                                Revert to single-user mode. Data from other users will be preserved but inaccessible.
+                                Please enter your admin password to confirm.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label>Admin Password</Label>
+                                <Input
+                                    type="password"
+                                    value={adminPassword}
+                                    onChange={(e) => setAdminPassword(e.target.value)}
+                                    placeholder="Enter password"
+                                />
+                            </div>
+                            <div className="flex justify-end gap-2">
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => {
+                                        setDisableMultiUserDialogOpen(false);
+                                        setAdminPassword('');
+                                    }}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    disabled={adminPassword.length < 6 || actionLoading}
+                                    onClick={async () => {
+                                        setActionLoading(true);
+                                        const success = await disableMultiUser(adminPassword);
+                                        if (success) {
+                                            toast.success('Multi-user mode disabled');
+                                            setDisableMultiUserDialogOpen(false);
+                                            setAdminPassword('');
+                                            refresh();
+                                            router.push('/');
+                                        } else {
+                                            toast.error('Failed to disable, please check your password');
+                                        }
+                                        setActionLoading(false);
+                                    }}
+                                >
+                                    {actionLoading ? 'Disabling...' : 'Disable'}
+                                </Button>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
 
                 <Button
                     className="w-full h-12 text-lg"

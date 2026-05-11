@@ -1,30 +1,36 @@
 import { getAdapter, ensureInit } from './db/index';
+export { getAdapter, ensureInit };
 import {
-    Recipe, Entry, Dish, RecognitionTask, DailyTargets, UnitPreferences
+    DEFAULT_MEAL_CONFIG,
+    DEFAULT_DAILY_TARGETS,
+    DEFAULT_UNIT_PREFERENCES
+} from './constants';
+import {
+    Recipe, Entry, Dish, RecognitionTask, DailyTargets, UnitPreferences, RecognizedDish, User
 } from './db/types';
 
-export type { Recipe, Entry, Dish, RecognitionTask, DailyTargets, UnitPreferences };
+export type { Recipe, Entry, Dish, RecognitionTask, DailyTargets, UnitPreferences, RecognizedDish, User };
 
 // --- Settings ---
-export async function getSetting(key: string): Promise<string | undefined> {
+export async function getSetting(key: string, userId?: string): Promise<string | undefined> {
     await ensureInit();
-    return getAdapter().getSetting(key);
+    return getAdapter().getSetting(key, userId);
 }
 
-export async function saveSetting(key: string, value: string) {
+export async function saveSetting(key: string, value: string, userId?: string): Promise<void> {
     await ensureInit();
-    return getAdapter().saveSetting(key, value);
+    return getAdapter().saveSetting(key, value, userId);
+}
+
+export async function isMultiUserEnabled(): Promise<boolean> {
+    await ensureInit();
+    return getAdapter().isMultiUserEnabled();
 }
 
 // Helper Wrappers
 export async function getMealConfig() {
     const configStr = await getSetting('meal_times');
     try {
-        const DEFAULT_MEAL_CONFIG = [
-            { name: "Breakfast", start: 6, end: 10, default: "08:00" },
-            { name: "Lunch", start: 10, end: 14, default: "12:00" },
-            { name: "Dinner", start: 17, end: 19, default: "18:00" }
-        ];
         return configStr ? JSON.parse(configStr) : DEFAULT_MEAL_CONFIG;
     } catch (e) {
         return [];
@@ -33,7 +39,6 @@ export async function getMealConfig() {
 
 export async function getDailyTargets(): Promise<DailyTargets> {
     const targetStr = await getSetting('daily_targets');
-    const DEFAULT_DAILY_TARGETS = { energy: 2000, protein: 150, carbs: 200, fat: 65 };
     try {
         return targetStr ? JSON.parse(targetStr) : DEFAULT_DAILY_TARGETS;
     } catch (e) {
@@ -47,11 +52,10 @@ export async function saveDailyTargets(targets: DailyTargets) {
 
 export async function getUnitPreferences(): Promise<UnitPreferences> {
     const prefStr = await getSetting('unit_preferences');
-    const DEFAULT_UNIT_PREFS: UnitPreferences = { energy: 'kcal', weight: 'g' };
     try {
-        return prefStr ? JSON.parse(prefStr) : DEFAULT_UNIT_PREFS;
+        return prefStr ? JSON.parse(prefStr) : DEFAULT_UNIT_PREFERENCES;
     } catch (e) {
-        return DEFAULT_UNIT_PREFS;
+        return DEFAULT_UNIT_PREFERENCES;
     }
 }
 
@@ -131,5 +135,41 @@ export async function updateRecognitionTask(id: string, updates: Partial<Pick<Re
 export async function getRecognitionTask(id: string): Promise<RecognitionTask | undefined> {
     await ensureInit();
     return getAdapter().getRecognitionTask(id);
+}
+
+// --- Users (Multi-User Mode) ---
+export async function getUser(id: string): Promise<User | undefined> {
+    await ensureInit();
+    return getAdapter().getUser(id);
+}
+
+export async function getUserByEmail(email: string): Promise<User | undefined> {
+    await ensureInit();
+    return getAdapter().getUserByEmail(email);
+}
+
+export async function listUsers(): Promise<User[]> {
+    await ensureInit();
+    return getAdapter().listUsers();
+}
+
+export async function createUser(user: Omit<User, 'id' | 'created_at'>): Promise<User> {
+    await ensureInit();
+    return getAdapter().createUser(user);
+}
+
+export async function updateUser(id: string, updates: Partial<Omit<User, 'id' | 'created_at'>>): Promise<void> {
+    await ensureInit();
+    return getAdapter().updateUser(id, updates);
+}
+
+export async function deleteUser(id: string): Promise<void> {
+    await ensureInit();
+    return getAdapter().deleteUser(id);
+}
+
+export async function updateLastLogin(id: string): Promise<void> {
+    await ensureInit();
+    return getAdapter().updateLastLogin(id);
 }
 

@@ -1,20 +1,21 @@
 import { ILLMProvider, LLMImagePart } from "../interface";
-import { logger } from "@/lib/logger";
+import { logger } from '../../logger';
 import { logLLMError, logLLMRequest, logLLMResponse } from "../logger-utils";
+import { ZHIPU_POLL_INTERVAL_MS, ZHIPU_MAX_POLL_TIME_MS } from '../../constants';
 
 export class ZhipuProvider implements ILLMProvider {
     private apiKey: string;
     private modelName: string;
     private baseUrl = 'https://open.bigmodel.cn/api/paas/v4';
-    private pollInterval = 2000; // 2 seconds
-    private maxPollTime = 300000; // 5 minutes
+    private pollInterval = ZHIPU_POLL_INTERVAL_MS;
+    private maxPollTime = ZHIPU_MAX_POLL_TIME_MS;
 
     constructor(apiKey: string, modelName: string) {
         this.apiKey = apiKey;
         this.modelName = modelName;
     }
 
-    private async pollResult(taskId: string): Promise<any> {
+    private async pollResult(taskId: string): Promise<unknown> {
         const startTime = Date.now();
 
         while (Date.now() - startTime < this.maxPollTime) {
@@ -45,7 +46,7 @@ export class ZhipuProvider implements ILLMProvider {
         throw new Error('Zhipu task timed out during polling');
     }
 
-    async analyzeImage(imagePart: LLMImagePart, promptText: string): Promise<any> {
+    async analyzeImage(imagePart: LLMImagePart, promptText: string) {
         logLLMRequest("Zhipu", this.modelName, promptText, imagePart);
 
         try {
@@ -91,7 +92,7 @@ export class ZhipuProvider implements ILLMProvider {
 
             logger.debug({ taskId }, "Zhipu async task created, polling...");
 
-            const data = await this.pollResult(taskId);
+            const data = await this.pollResult(taskId) as { choices?: { message?: { content?: string } }[] };
             logLLMResponse("Zhipu", data);
 
             const text = data.choices?.[0]?.message?.content || "";
@@ -133,7 +134,7 @@ export class ZhipuProvider implements ILLMProvider {
                 throw new Error("No task ID returned from Zhipu async call");
             }
 
-            const data = await this.pollResult(taskId);
+            const data = await this.pollResult(taskId) as { choices?: { message?: { content?: string } }[] };
             return data.choices?.[0]?.message?.content || "";
         } catch (e: any) {
             logLLMError("Zhipu", e);

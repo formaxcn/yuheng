@@ -1,6 +1,7 @@
 import { RecognitionTask } from './api-client';
 import { Dish } from '@/types';
 import { UploadManager } from './upload-manager';
+import { POLLING_INTERVAL_MS, NETWORK_RECOVERY_DELAY_MS } from './constants';
 
 export interface QueuedTask extends RecognitionTask {
     imageData: string; // Base64
@@ -52,7 +53,7 @@ class RecognitionStore {
                         this.startPolling(task.id);
                     }
                 });
-            }, 1000);
+            }, NETWORK_RECOVERY_DELAY_MS);
         });
     }
 
@@ -152,7 +153,7 @@ class RecognitionStore {
             } catch (error) {
                 console.error(`Polling error for task ${id}:`, error);
             }
-        }, 3000);
+        }, POLLING_INTERVAL_MS);
 
         this.pollingIntervals.set(id, interval);
     }

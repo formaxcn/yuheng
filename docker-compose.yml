@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: yuheng
-      POSTGRES_PASSWORD: yuheng
+      POSTGRES_PASSWORD: yuheng123
       POSTGRES_DB: yuheng
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -22,7 +22,11 @@ services:
     ports:
       - "3123:3000"
     environment:
-      - DATABASE_URL=postgresql://yuheng:yuheng@postgres:5432/yuheng
+      - DATABASE_URL=postgresql://yuheng:yuheng123@postgres:5432/yuheng
+      # Optional: Set API keys here if you don't want to set them in the UI
+      # - GEMINI_API_KEY=your_api_key_here
+      # - OPENAI_API_KEY=your_api_key_here
+      # - ANTHROPIC_API_KEY=your_api_key_here
     depends_on:
       postgres:
         condition: service_healthy

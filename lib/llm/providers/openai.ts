@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { ILLMProvider, LLMImagePart } from "../interface";
-import { logger } from "@/lib/logger";
+import { logger } from '../../logger';
 import { logLLMError, logLLMRequest, logLLMResponse } from "../logger-utils";
 
 export class OpenAIProvider implements ILLMProvider {
@@ -15,7 +15,7 @@ export class OpenAIProvider implements ILLMProvider {
         this.modelName = modelName;
     }
 
-    async analyzeImage(imagePart: LLMImagePart, promptText: string): Promise<any> {
+    async analyzeImage(imagePart: LLMImagePart, promptText: string) {
         logLLMRequest("OpenAI", this.modelName, promptText, imagePart);
 
         try {

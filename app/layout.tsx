@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
-// import { AppProvider } from "@/components/app-provider";
+import { AuthProvider } from "@/lib/auth/auth-context";
+import { AuthGuard } from "@/components/auth-guard";
 import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
@@ -22,10 +23,13 @@ export default async function RootLayout({
   return (
     <html lang={locale} className="dark" suppressHydrationWarning>
       <body suppressHydrationWarning>
-        {/* <AppProvider> */}
         <NextIntlClientProvider messages={messages}>
-          {children}
-          <Toaster />
+          <AuthProvider>
+            <AuthGuard>
+              {children}
+            </AuthGuard>
+            <Toaster />
+          </AuthProvider>
         </NextIntlClientProvider>
       </body>
     </html>

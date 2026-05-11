@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createRecognitionTask, updateRecognitionTask, getUnitPreferences, getSetting } from '@/lib/db';
-import { LLMFactory } from '@/lib/llm/factory';
-import { promptManager } from '@/lib/prompts';
+import { createRecognitionTask } from '@/lib/db';
 import { logger } from '@/lib/logger';
-import { processRecognition } from '@/lib/recognition';
+import { queueManager } from '@/lib/queue';
 
 export async function POST(req: NextRequest) {
     try {
@@ -21,7 +19,11 @@ export async function POST(req: NextRequest) {
         // The image data in the body is likely a Data URI (data:image/jpeg;base64,...), we need to extract the base64 part just like before
         const base64Data = image.split(',')[1] || image;
 
-        processRecognition(taskId, base64Data, userPrompt);
+        await queueManager.enqueueRecognition({
+            taskId,
+            imageBase64: base64Data,
+            userPrompt
+        });
 
 
         return NextResponse.json({ taskId });

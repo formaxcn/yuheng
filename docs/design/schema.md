@@ -78,6 +78,8 @@ A simple key-value store for user configurations:
 -   `meal_times`: JSON object defining meal time windows.
 -   `daily_targets`: JSON object for energy and macro goals.
 -   `unit_preferences`: User choice for energy (kcal/kj) and weight (g/oz).
+-   `queue_concurrency`: (System) Number of parallel AI recognition tasks.
+-   `queue_retry_limit`: (System) Number of retries for failed recognition jobs.
 
 ### `recognition_tasks`
 Tracks the status of AI-powered image analysis tasks, allowing for asynchronous processing and error handling.

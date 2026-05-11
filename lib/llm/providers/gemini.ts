@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ILLMProvider, LLMImagePart } from "../interface";
-import { logger } from "@/lib/logger";
+import { logger } from '../../logger';
 import { logLLMError, logLLMRequest, logLLMResponse } from "../logger-utils";
 
 export class GeminiProvider implements ILLMProvider {
@@ -12,7 +12,7 @@ export class GeminiProvider implements ILLMProvider {
         this.modelName = modelName;
     }
 
-    async analyzeImage(imagePart: LLMImagePart, promptText: string): Promise<any> {
+    async analyzeImage(imagePart: LLMImagePart, promptText: string) {
         logLLMRequest("Gemini", this.modelName, promptText, imagePart);
         const model = this.genAI.getGenerativeModel({ model: this.modelName });
 
