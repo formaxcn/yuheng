@@ -41,6 +41,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
+import { VERSION } from '@/lib/version'
 
 export default function SettingsPage() {
     const t = useTranslations('Settings');
@@ -87,7 +88,7 @@ export default function SettingsPage() {
         nutrition_standard: 'CN'
     });
 
-    const [version, setVersion] = useState<string>('');
+    const [backendVersion, setBackendVersion] = useState<string>('');
 
     const [models, setModels] = useState<{ id: string; name: string }[]>([]);
     const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
@@ -152,7 +153,7 @@ export default function SettingsPage() {
 
         try {
             const health = await api.checkHealth();
-            setVersion(health.version);
+            setBackendVersion(health.version);
         } catch (error) {
             console.error('Failed to fetch version:', error);
         }
@@ -1170,13 +1171,16 @@ export default function SettingsPage() {
                     {t('saveSettings')}
                 </Button>
 
-                {version && (
-                    <div className="pt-8 pb-4 text-center">
+                <div className="pt-8 pb-4 text-center space-y-1">
+                    <p className="text-xs text-muted-foreground opacity-50">
+                        Frontend: v{VERSION}
+                    </p>
+                    {backendVersion && (
                         <p className="text-xs text-muted-foreground opacity-50">
-                            YuHeng v{version}
+                            Backend: v{backendVersion}
                         </p>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
         </div >
     );
