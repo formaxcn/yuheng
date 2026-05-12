@@ -1,4 +1,4 @@
-import { RecognizedDish } from '../db/types';
+import { RecognizedDish } from '../recognition/types';
 
 export interface LLMImagePart {
     inlineData: {

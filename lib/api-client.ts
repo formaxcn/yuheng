@@ -1,4 +1,4 @@
-import { Dish } from '@/types';
+import { Dish } from './recognition/types';
 import { EnergyUnit, WeightUnit } from './units';
 
 export interface RecognitionTask {
