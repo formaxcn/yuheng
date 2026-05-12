@@ -2,7 +2,7 @@ name: Build Native Multi-Arch Docker Image
 
 on:
   push:
-    branches: [main]
+    branches: [main,build]
   workflow_dispatch:
 
 permissions:
