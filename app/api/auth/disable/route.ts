@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ensureInit } from '@/lib/db/index';
-import { PostgresAdapter } from '@/lib/db/postgres';
+import { ensureInit, getAdapter } from '@/lib/db/index';
 import { AuthService } from '@/lib/auth/auth-service';
 import { SessionManager } from '@/lib/auth/session';
 import { z } from 'zod';
 
-const db = new PostgresAdapter();
 const disableSchema = z.object({
     password: z.string()
 });
 
 export async function POST(req: NextRequest) {
     await ensureInit();
+    const db = getAdapter();
 
     const session = await SessionManager.get();
     if (!session || session.role !== 'admin') {

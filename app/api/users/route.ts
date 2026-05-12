@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ensureInit } from '@/lib/db/index';
-import { PostgresAdapter } from '@/lib/db/postgres';
+import { ensureInit, getAdapter } from '@/lib/db/index';
 import { AuthService } from '@/lib/auth/auth-service';
 import { SessionManager } from '@/lib/auth/session';
 import { z } from 'zod';
 
-const db = new PostgresAdapter();
 const createUserSchema = z.object({
     name: z.string().min(1),
     email: z.string().email().optional().nullable(),
@@ -15,6 +13,7 @@ const createUserSchema = z.object({
 
 export async function GET(req: NextRequest) {
     await ensureInit();
+    const db = getAdapter();
 
     const multiUserEnabled = await db.isMultiUserEnabled();
     if (!multiUserEnabled) {
@@ -45,6 +44,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
     await ensureInit();
+    const db = getAdapter();
 
     const multiUserEnabled = await db.isMultiUserEnabled();
     if (!multiUserEnabled) {

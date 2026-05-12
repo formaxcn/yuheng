@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ensureInit, DEFAULT_USER_ID } from '@/lib/db/index';
-import { PostgresAdapter } from '@/lib/db/postgres';
+import { ensureInit, DEFAULT_USER_ID, getAdapter } from '@/lib/db/index';
 import { UserContext } from '@/lib/db/user-context';
 import { SessionManager, setUserContextFromSession } from '@/lib/auth/session';
 
-const db = new PostgresAdapter();
-
 export async function GET(req: NextRequest) {
     await ensureInit();
+    const db = getAdapter();
 
     const multiUserEnabled = await db.isMultiUserEnabled();
     const session = await SessionManager.get();
