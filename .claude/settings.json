@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(git rm *)",
-      "Bash(BUILD=true bun run scripts/version.ts)"
+      "Bash(BUILD=true bun run scripts/version.ts)",
+      "Bash(mkdir -p drizzle/pg drizzle/sqlite)",
+      "Bash(mv drizzle/*.sql drizzle/meta drizzle/pg/)"
     ]
   }
 }

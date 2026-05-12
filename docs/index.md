@@ -105,6 +105,7 @@ User-centric guides on what YuHeng can do and how it works.
 - [**Regional Adaption**](features/regional_adaption.md): One-click setup for CN/US regions.
 - [**Unit Preferences**](features/unit_preferences.md): Switching between kcal/kJ and g/oz.
 - [**Backend Status**](features/backend_status.md): Real-time health monitoring and version display.
+- [**Pre/Post Meal Comparison**](features/comparison_analysis.md): Extensible framework for nutrition, blood glucose, and biometric comparison analysis.
 
 ### 🛠️ System Design
 Technical details for developers and contributors.

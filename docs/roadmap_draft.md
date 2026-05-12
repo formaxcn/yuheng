@@ -74,9 +74,20 @@ User clicks "Share" → html2canvas generates image → User saves/shares → Im
 - [ ] Watermark and branding
 
 #### Pre/Post Meal Comparison
-- [ ] "Before meal" flag when taking photos
-- [ ] Post-meal feedback / blood sugar data
-- [ ] Comparison reports (predicted vs actual)
+- [x] Architecture and data model designed (✅ 2026-05-12)
+- [ ] Measurement records table (dual DB support: PostgreSQL + SQLite)
+- [ ] Pluggable metric analyzer framework
+- [ ] Nutrition comparison analyzer (Phase 1)
+- [ ] Blood glucose analyzer skeleton (Phase 2)
+- [ ] Comparison API endpoints
+- [ ] ComparisonCard UI component
+- [ ] Comparison analysis page
+
+**Architecture Design:**
+- Pluggable metric system: nutrition → glucose → uric acid → lipid
+- Dual database adapter pattern (PostgreSQL JSONB + SQLite TEXT)
+- Comparison result caching for performance
+- See: [features/comparison_analysis.md](features/comparison_analysis.md)
 
 ---
 
