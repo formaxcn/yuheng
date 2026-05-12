@@ -7,17 +7,20 @@ import {
 import { UserContext, DEFAULT_USER_ID } from './user-context';
 
 export class PostgresAdapter implements IDatabaseAdapter {
-    private sql: postgres.Sql<{}>;
+    private sql: postgres.Sql<{}> | null = null;
 
-    constructor() {
-        const url = process.env.DATABASE_URL!;
-        this.sql = postgres(url);
-        logger.info("PostgreSQL initialized");
+    private getSql(): postgres.Sql<{}> {
+        if (!this.sql) {
+            const url = process.env.DATABASE_URL!;
+            this.sql = postgres(url);
+            logger.info("PostgreSQL initialized");
+        }
+        return this.sql;
     }
 
     async init(): Promise<void> {
         try {
-            await this.sql`SELECT 1`;
+            await this.getSql()`SELECT 1`;
             logger.info("PostgreSQL connection verified");
         } catch (error) {
             logger.error(error, "PostgreSQL initialization failed");
@@ -33,7 +36,7 @@ export class PostgresAdapter implements IDatabaseAdapter {
         const targetUserId = userId ?? UserContext.get();
 
         // First try user-specific setting
-        const rows = await this.sql`
+        const rows = await this.getSql()`
             SELECT value FROM settings
             WHERE key = ${key}
             AND user_id = ${targetUserId}
@@ -42,7 +45,7 @@ export class PostgresAdapter implements IDatabaseAdapter {
 
         // Fallback to default user (global settings)
         if (targetUserId !== DEFAULT_USER_ID) {
-            const fallback = await this.sql`
+            const fallback = await this.getSql()`
                 SELECT value FROM settings
                 WHERE key = ${key}
                 AND user_id = ${DEFAULT_USER_ID}
@@ -55,7 +58,7 @@ export class PostgresAdapter implements IDatabaseAdapter {
 
     async saveSetting(key: string, value: string, userId?: string): Promise<void> {
         const targetUserId = userId ?? UserContext.get();
-        await this.sql`
+        await this.getSql()`
             INSERT INTO settings (user_id, key, value)
             VALUES (${targetUserId}, ${key}, ${value})
             ON CONFLICT (user_id, key) DO UPDATE SET value = EXCLUDED.value
@@ -72,17 +75,17 @@ export class PostgresAdapter implements IDatabaseAdapter {
     // ========================================================================
 
     async getUser(id: string): Promise<User | undefined> {
-        const rows = await this.sql`SELECT * FROM users WHERE id = ${id}`;
+        const rows = await this.getSql()`SELECT * FROM users WHERE id = ${id}`;
         return rows[0] as User | undefined;
     }
 
     async getUserByEmail(email: string): Promise<User | undefined> {
-        const rows = await this.sql`SELECT * FROM users WHERE email = ${email}`;
+        const rows = await this.getSql()`SELECT * FROM users WHERE email = ${email}`;
         return rows[0] as User | undefined;
     }
 
     async listUsers(): Promise<User[]> {
-        const rows = await this.sql`
+        const rows = await this.getSql()`
             SELECT id, name, email, avatar, is_active, is_default, role, created_at, last_login_at
             FROM users
             WHERE is_active = true
@@ -92,15 +95,15 @@ export class PostgresAdapter implements IDatabaseAdapter {
     }
 
     async createUser(user: Omit<User, 'id' | 'created_at'>): Promise<User> {
-        const rows = await this.sql`
-            INSERT INTO users ${this.sql(user as any)}
+        const rows = await this.getSql()`
+            INSERT INTO users ${this.getSql()(user as any)}
             RETURNING id
         `;
         return { ...user, id: rows[0].id } as User;
     }
 
     async createDefaultUser(): Promise<void> {
-        await this.sql`
+        await this.getSql()`
             INSERT INTO users (id, name, is_default)
             VALUES (${DEFAULT_USER_ID}, 'Default', true)
             ON CONFLICT DO NOTHING
@@ -109,19 +112,19 @@ export class PostgresAdapter implements IDatabaseAdapter {
     }
 
     async updateUser(id: string, updates: Partial<Omit<User, 'id' | 'created_at'>>): Promise<void> {
-        await this.sql`
+        await this.getSql()`
             UPDATE users
-            SET ${this.sql(updates as any)}
+            SET ${this.getSql()(updates as any)}
             WHERE id = ${id}
         `;
     }
 
     async deleteUser(id: string): Promise<void> {
-        await this.sql`DELETE FROM users WHERE id = ${id}`;
+        await this.getSql()`DELETE FROM users WHERE id = ${id}`;
     }
 
     async updateLastLogin(id: string): Promise<void> {
-        await this.sql`
+        await this.getSql()`
             UPDATE users
             SET last_login_at = NOW()
             WHERE id = ${id}
@@ -133,7 +136,7 @@ export class PostgresAdapter implements IDatabaseAdapter {
     // ========================================================================
 
     async getRecipe(name: string): Promise<Recipe | undefined> {
-        const rows = await this.sql`
+        const rows = await this.getSql()`
             SELECT * FROM recipes
             WHERE name = ${name}
             AND user_id = ${UserContext.get()}
@@ -142,8 +145,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
     }
 
     async createRecipe(recipe: Omit<Recipe, 'id' | 'created_at'>): Promise<Recipe> {
-        const rows = await this.sql`
-            INSERT INTO recipes ${this.sql({ ...recipe, user_id: UserContext.get() } as any)}
+        const rows = await this.getSql()`
+            INSERT INTO recipes ${this.getSql()({ ...recipe, user_id: UserContext.get() } as any)}
             RETURNING id
         `;
         return { ...recipe, id: rows[0].id } as Recipe;
@@ -154,7 +157,7 @@ export class PostgresAdapter implements IDatabaseAdapter {
     // ========================================================================
 
     async getEntries(date: string): Promise<Entry[]> {
-        return await this.sql`
+        return await this.getSql()`
             SELECT * FROM entries
             WHERE date = ${date}
             AND user_id = ${UserContext.get()}
@@ -163,7 +166,7 @@ export class PostgresAdapter implements IDatabaseAdapter {
     }
 
     async createEntry(date: string, time: string, type?: string): Promise<Entry> {
-        const rows = await this.sql`
+        const rows = await this.getSql()`
             INSERT INTO entries (date, time, type, user_id)
             VALUES (${date}, ${time}, ${type || null}, ${UserContext.get()})
             RETURNING id
@@ -172,7 +175,7 @@ export class PostgresAdapter implements IDatabaseAdapter {
     }
 
     async getEntryByDateTime(date: string, time: string): Promise<Entry | undefined> {
-        const rows = await this.sql`
+        const rows = await this.getSql()`
             SELECT * FROM entries
             WHERE date = ${date}
             AND time = ${time}
@@ -199,15 +202,15 @@ export class PostgresAdapter implements IDatabaseAdapter {
             fat: recipe.fat,
             weight_unit: recipe.weight_unit
         };
-        const rows = await this.sql`
-            INSERT INTO dishes ${this.sql(dishData as any)}
+        const rows = await this.getSql()`
+            INSERT INTO dishes ${this.getSql()(dishData as any)}
             RETURNING id
         `;
         return { id: rows[0].id, ...dishData } as Dish;
     }
 
     async getDishesForEntry(entryId: number): Promise<Dish[]> {
-        return await this.sql`
+        return await this.getSql()`
             SELECT *,
                    ((CASE WHEN energy_unit = 'kj' THEN energy / 4.184 ELSE energy END) *
                     (CASE WHEN weight_unit = 'oz' THEN amount * 28.3495 ELSE amount END) / 100) as total_energy,
@@ -225,7 +228,7 @@ export class PostgresAdapter implements IDatabaseAdapter {
     // ========================================================================
 
     async getHistory(startDate: string, endDate: string): Promise<{ date: string; calories: number; }[]> {
-        return await this.sql`
+        return await this.getSql()`
             SELECT
                 e.date,
                 SUM(
@@ -246,7 +249,7 @@ export class PostgresAdapter implements IDatabaseAdapter {
     // ========================================================================
 
     async createRecognitionTask(id: string, imagePath?: string): Promise<RecognitionTask> {
-        await this.sql`
+        await this.getSql()`
             INSERT INTO recognition_tasks (id, status, image_path, user_id)
             VALUES (${id}, 'pending', ${imagePath || null}, ${UserContext.get()})
         `;
@@ -261,9 +264,9 @@ export class PostgresAdapter implements IDatabaseAdapter {
 
         if (Object.keys(validUpdates).length === 0) return;
 
-        await this.sql`
+        await this.getSql()`
             UPDATE recognition_tasks
-            SET ${this.sql(validUpdates as any)},
+            SET ${this.getSql()(validUpdates as any)},
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ${id}
             AND user_id = ${UserContext.get()}
@@ -271,7 +274,7 @@ export class PostgresAdapter implements IDatabaseAdapter {
     }
 
     async getRecognitionTask(id: string): Promise<RecognitionTask | undefined> {
-        const rows = await this.sql`
+        const rows = await this.getSql()`
             SELECT * FROM recognition_tasks
             WHERE id = ${id}
             AND user_id = ${UserContext.get()}

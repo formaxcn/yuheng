@@ -1,5 +1,5 @@
 import { RecognitionTask } from './api-client';
-import { Dish } from '@/types';
+import { Dish } from './recognition/types';
 import { UploadManager } from './upload-manager';
 import { POLLING_INTERVAL_MS, NETWORK_RECOVERY_DELAY_MS } from './constants';
 

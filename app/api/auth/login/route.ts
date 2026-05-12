@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ensureInit } from '@/lib/db/index';
-import { PostgresAdapter } from '@/lib/db/postgres';
+import { ensureInit, getAdapter } from '@/lib/db/index';
 import { AuthService } from '@/lib/auth/auth-service';
 import { SessionManager } from '@/lib/auth/session';
 import { z } from 'zod';
 
-const db = new PostgresAdapter();
 const loginSchema = z.object({
     userId: z.string(),
     password: z.string()
@@ -13,6 +11,7 @@ const loginSchema = z.object({
 
 export async function POST(req: NextRequest) {
     await ensureInit();
+    const db = getAdapter();
 
     const multiUserEnabled = await db.isMultiUserEnabled();
     if (!multiUserEnabled) {

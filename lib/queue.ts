@@ -1,7 +1,14 @@
-import { PgBoss } from 'pg-boss';
+import Queue from 'better-queue';
+import SQLStore from 'better-queue-sql';
+import knex from 'knex';
 import { getSetting } from './db';
 import { logger } from './logger';
 import { QUEUE_RETRY_DELAY_SECONDS } from './constants';
+
+function isSqlite(): boolean {
+    const url = process.env.DATABASE_URL || '';
+    return url.startsWith('file:');
+}
 
 export interface RecognitionJob {
     taskId: string;
@@ -10,7 +17,7 @@ export interface RecognitionJob {
 }
 
 class QueueManager {
-    private boss: PgBoss | null = null;
+    private queue: Queue | null = null;
     private static instance: QueueManager;
     private initialized = false;
 
@@ -23,67 +30,111 @@ class QueueManager {
         return QueueManager.instance;
     }
 
-    async init() {
-        if (this.initialized) return;
-
-        const connectionString = process.env.DATABASE_URL;
-        if (!connectionString) {
-            throw new Error('DATABASE_URL is not defined');
+    private getKnexConfig() {
+        const url = process.env.DATABASE_URL || '';
+        if (isSqlite()) {
+            const dbPath = url.replace('file:', '');
+            return {
+                client: 'better-sqlite3',
+                connection: { filename: dbPath },
+                useNullAsDefault: true
+            };
         }
-
-        this.boss = new PgBoss(connectionString);
-
-        this.boss.on('error', (error: Error) => logger.error(error, 'PgBoss error'));
-
-        await this.boss.start();
-
-        // Ensure the queue exists before workers try to pull from it
-        await this.boss.createQueue('recognition-task');
-
-        this.initialized = true;
-        logger.info('QueueManager (pg-boss) started and recognition-task queue ensured');
+        return {
+            client: 'pg',
+            connection: url
+        };
     }
 
-    async enqueueRecognition(data: RecognitionJob) {
-        if (!this.boss) await this.init();
+    private async createQueue(handler?: (data: RecognitionJob) => Promise<void>): Promise<Queue> {
+        const dbConfig = this.getKnexConfig();
+        const db = knex(dbConfig);
 
         const retryLimit = parseInt((await getSetting('queue_retry_limit')) || '3', 10);
+        const concurrency = parseInt((await getSetting('queue_concurrency')) || '5', 10);
 
-        const id = await this.boss!.send('recognition-task', data, {
-            retryLimit,
-            retryDelay: QUEUE_RETRY_DELAY_SECONDS,
-            retryBackoff: true
+        const queue = new Queue('recognition-task', {
+            store: new SQLStore({
+                dialect: isSqlite() ? 'sqlite' : 'postgres',
+                knex: db,
+                tableName: 'queue_jobs'
+            }),
+            concurrent: concurrency,
+            maxRetries: retryLimit,
+            retryDelay: QUEUE_RETRY_DELAY_SECONDS * 1000,
+            backoff: 'exponential',
+            id: 'taskId',
+            process: handler ? async (job: RecognitionJob, cb: (err?: Error | null) => void) => {
+                try {
+                    await handler(job);
+                    cb(null);
+                } catch (error) {
+                    cb(error as Error);
+                }
+            } : undefined
         });
 
-        return id;
+        queue.on('task_queued', (taskId: string) => {
+            logger.info(`Job queued: ${taskId}`);
+        });
+
+        queue.on('task_failed', (taskId: string, error: Error) => {
+            logger.error(error, `Job failed: ${taskId}`);
+        });
+
+        queue.on('task_finish', (taskId: string) => {
+            logger.info(`Job finished: ${taskId}`);
+        });
+
+        queue.on('error', (error: Error) => {
+            logger.error(error, 'Queue error');
+        });
+
+        logger.info(`QueueManager (better-queue-sql) started with ${concurrency} workers`, {
+            db: isSqlite() ? 'SQLite' : 'PostgreSQL'
+        });
+
+        return queue;
+    }
+
+    async enqueueRecognition(data: RecognitionJob): Promise<string> {
+        if (!this.queue) {
+            throw new Error('Queue not initialized - call registerWorker first');
+        }
+
+        return new Promise((resolve, reject) => {
+            this.queue!.push(data, (err: Error | null, result: any) => {
+                if (err) reject(err);
+                else resolve(result?.taskId || data.taskId);
+            });
+        });
     }
 
     async registerWorker(handler: (data: RecognitionJob) => Promise<void>) {
-        if (!this.boss) await this.init();
-
-        const concurrency = parseInt((await getSetting('queue_concurrency')) || '5', 10);
-
-        // In pg-boss v12, we can start multiple workers to achieve concurrency
-        // or use batchSize. For individual job control and retries, multiple workers are safer.
-        for (let i = 0; i < concurrency; i++) {
-            await this.boss!.work<RecognitionJob, void>('recognition-task', async (jobs: { id: string, data: RecognitionJob }[]) => {
-                // By default without batchSize, we get an array of size 1
-                const job = jobs[0];
-                if (!job) return;
-
-                const { data } = job;
-                logger.info(`Processing job ${job.id} for task ${data.taskId} (Worker ${i + 1}/${concurrency})`);
-                await handler(data);
+        if (this.queue) {
+            this.queue.process(async (job: RecognitionJob, cb: (err?: Error | null) => void) => {
+                try {
+                    await handler(job);
+                    cb(null);
+                } catch (error) {
+                    cb(error as Error);
+                }
             });
+        } else {
+            this.queue = await this.createQueue(handler);
         }
 
-        logger.info(`Registered ${concurrency} parallel recognition workers`);
+        logger.info('Recognition worker registered');
     }
 
     async stop() {
-        if (this.boss) {
-            await this.boss.stop();
+        if (this.queue) {
+            await new Promise<void>((resolve) => {
+                this.queue!.pause();
+                this.queue!.destroy(() => resolve());
+            });
             this.initialized = false;
+            this.queue = null;
             logger.info('QueueManager stopped');
         }
     }

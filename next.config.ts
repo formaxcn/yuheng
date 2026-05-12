@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
   // 一行代码开启 React Compiler（全功能默认最优配置）
   reactCompiler: true,
 
+  serverExternalPackages: ['knex', 'better-queue', 'better-queue-sql'],
+
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',

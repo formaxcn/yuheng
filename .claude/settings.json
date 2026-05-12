@@ -4,7 +4,9 @@
       "Bash(git rm *)",
       "Bash(BUILD=true bun run scripts/version.ts)",
       "Bash(mkdir -p drizzle/pg drizzle/sqlite)",
-      "Bash(mv drizzle/*.sql drizzle/meta drizzle/pg/)"
+      "Bash(mv drizzle/*.sql drizzle/meta drizzle/pg/)",
+      "Bash(Remove-Item code-local.ps1, code-local.bat -Force)",
+      "Bash(DATABASE_URL=\"file:./data/yuheng.db\" bun run db:generate --config=drizzle.sqlite.config.ts)"
     ]
   }
 }

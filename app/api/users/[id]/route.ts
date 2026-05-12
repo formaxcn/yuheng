@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ensureInit } from '@/lib/db/index';
-import { PostgresAdapter } from '@/lib/db/postgres';
+import { ensureInit, getAdapter } from '@/lib/db/index';
 import { SessionManager } from '@/lib/auth/session';
 import { z } from 'zod';
 
-const db = new PostgresAdapter();
 const updateUserSchema = z.object({
     name: z.string().min(1).optional(),
     email: z.string().email().optional().nullable(),
@@ -14,6 +12,7 @@ const updateUserSchema = z.object({
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     await ensureInit();
     const { id } = await params;
+    const db = getAdapter();
 
     const multiUserEnabled = await db.isMultiUserEnabled();
     if (!multiUserEnabled) {
@@ -59,6 +58,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     await ensureInit();
     const { id } = await params;
+    const db = getAdapter();
 
     const multiUserEnabled = await db.isMultiUserEnabled();
     if (!multiUserEnabled) {

@@ -6,8 +6,9 @@ import {
     DEFAULT_UNIT_PREFERENCES
 } from './constants';
 import {
-    Recipe, Entry, Dish, RecognitionTask, DailyTargets, UnitPreferences, RecognizedDish, User
+    Recipe, Entry, Dish, RecognitionTask, DailyTargets, UnitPreferences, User
 } from './db/types';
+import { RecognizedDish } from './recognition/types';
 
 export type { Recipe, Entry, Dish, RecognitionTask, DailyTargets, UnitPreferences, RecognizedDish, User };
 

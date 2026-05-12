@@ -23,7 +23,9 @@
       "Bash(psql -U yuheng -d yuheng -c \"SELECT * FROM users;\")",
       "Bash(bun *)",
       "Bash(docker volume *)",
-      "Bash(docker build *)"
+      "Bash(docker build *)",
+      "Bash(wsl -l -v)",
+      "Bash(wsl -d Ubuntu-18.04 -- docker --version)"
     ]
   }
 }

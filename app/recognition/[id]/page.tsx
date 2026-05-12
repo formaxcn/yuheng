@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Dish } from '@/types';
+import { Dish } from '@/lib/recognition/types';
 import { Loader2, Trash2, Check, Edit2, Clock, Users, ChevronLeft, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';

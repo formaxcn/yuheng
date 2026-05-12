@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ensureInit } from '@/lib/db/index';
-import { PostgresAdapter } from '@/lib/db/postgres';
+import { ensureInit, getAdapter } from '@/lib/db/index';
 import { AuthService } from '@/lib/auth/auth-service';
 import { SessionManager } from '@/lib/auth/session';
 import { z } from 'zod';
 
-const db = new PostgresAdapter();
 const changePasswordSchema = z.object({
     oldPassword: z.string(),
     newPassword: z.string().min(6)
@@ -14,6 +12,7 @@ const changePasswordSchema = z.object({
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     await ensureInit();
     const { id } = await params;
+    const db = getAdapter();
 
     const multiUserEnabled = await db.isMultiUserEnabled();
     if (!multiUserEnabled) {

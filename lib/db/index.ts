@@ -34,6 +34,14 @@ export function getAdapter(): IDatabaseAdapter {
     return adapter;
 }
 
+export async function getSetting(key: string, userId?: string): Promise<string | undefined> {
+    return getAdapter().getSetting(key, userId);
+}
+
+export async function saveSetting(key: string, value: string, userId?: string): Promise<void> {
+    return getAdapter().saveSetting(key, value, userId);
+}
+
 async function runMigrations(): Promise<void> {
     if (!process.env.DATABASE_URL) {
         logger.warn('DATABASE_URL not set, skipping migrations');
@@ -119,7 +127,10 @@ export async function ensureInit() {
     await initPromise;
 }
 
-export const db = getAdapter();
+export const db = {
+    getSetting: (key: string, userId?: string) => getAdapter().getSetting(key, userId),
+    saveSetting: (key: string, value: string, userId?: string) => getAdapter().saveSetting(key, value, userId),
+} as any;
 export * from './types';
 export * from './interface';
 export * from './user-context';
