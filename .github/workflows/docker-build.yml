@@ -43,12 +43,7 @@ jobs:
       - name: Set docker tag
         id: vars
         run: |
-          if [ "${GITHUB_REF_NAME}" = "main" ]; then
-            echo "base_tag=sha-${GITHUB_SHA}" >> $GITHUB_OUTPUT
-          else
-            TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-            echo "base_tag=${TIMESTAMP}" >> $GITHUB_OUTPUT
-          fi
+          echo "base_tag=sha-${GITHUB_SHA}" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
         run: |
@@ -72,15 +67,13 @@ jobs:
 
       - name: Create and push multi-arch manifest
         run: |
-          BASE_TAG=${{ needs.build.outputs.base_tag }}
+          BASE_TAG="sha-${GITHUB_SHA}"
 
-          # Determine target tags
+          # Determine target tag
           if [ "${GITHUB_REF_NAME}" = "main" ]; then
-            # Main branch: push :latest tag
             TARGET_TAG="latest"
           else
-            # Build branch: push timestamp tag
-            TARGET_TAG=${BASE_TAG}
+            TARGET_TAG=$(date +%Y%m%d-%H%M%S)
           fi
 
           docker manifest create $REGISTRY/$IMAGE_NAME:${TARGET_TAG} \
