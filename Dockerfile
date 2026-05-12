@@ -68,11 +68,14 @@ COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nextjs /app/public ./public
 
 # 为迁移脚本准备运行环境
-# standalone 模式下依赖在 node_modules，但迁移脚本需要 drizzle-orm 和 postgres
+# standalone 模式下依赖在 node_modules，但迁移脚本需要 drizzle-orm, postgres, better-sqlite3
 # 我们直接从 deps 阶段复制这几个必要的包
 COPY --from=deps /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
 COPY --from=deps /app/node_modules/postgres ./node_modules/postgres
 COPY --from=deps /app/node_modules/drizzle-kit ./node_modules/drizzle-kit
+COPY --from=deps /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
+COPY --from=deps /app/node_modules/bindings ./node_modules/bindings
+COPY --from=deps /app/node_modules/file-uri-to-path ./node_modules/file-uri-to-path
 
 COPY --from=builder --chown=nextjs:nextjs /app/drizzle ./drizzle
 COPY --from=builder --chown=nextjs:nextjs /app/scripts/migrate.ts ./scripts/migrate.ts
