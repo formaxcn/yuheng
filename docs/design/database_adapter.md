@@ -1,67 +1,52 @@
 # Database Adapter
 
-YuHeng uses PostgreSQL as its primary database, with schema versioning managed by node-pg-migrate.
+YuHeng uses an adapter pattern to support both SQLite and PostgreSQL databases. The appropriate adapter is automatically selected based on the `DATABASE_URL` environment variable.
 
 ## Architecture
 
 The database layer is located in `lib/db/`:
-- `interface.ts`: Defines the `DatabaseAdapter` interface.
-- `index.ts`: The main entry point that initializes the PostgreSQL adapter.
-- `postgres.ts`: Implementation of the `DatabaseAdapter` using `postgres` (via `pg`).
+- `interface.ts`: Defines the `IDatabaseAdapter` interface.
+- `index.ts`: Factory that selects and initializes the appropriate adapter.
+- `postgres.ts`: PostgreSQL implementation of the adapter.
+- `sqlite.ts`: SQLite implementation of the adapter.
+- `schema.ts`: Drizzle schema shared between both databases.
 
-## Database Configuration
+## Database Selection
 
-YuHeng requires a PostgreSQL connection string to be set via environment variables:
-- `DATABASE_URL`: PostgreSQL connection string (required)
-
-Example connection string:
-```bash
-DATABASE_URL=postgresql://user:password@localhost:5432/yuheng
-```
+| Database | Connection String Format | Use Case |
+|----------|-------------------------|----------|
+| SQLite | `file:/app/data/yuheng.db` | Single container, personal use, simple setup |
+| PostgreSQL | `postgresql://user:password@host:5432/yuheng` | Docker Compose, multi-user, scalable deployments |
 
 ## Features
 
-- **Automated Initialization**: The adapter verifies database connection on startup.
-- **Unified Interface**: The application code (API routes, etc.) interacts with a single `db` object.
-- **Asynchronous Operations**: All database methods are asynchronous to ensure non-blocking execution in the Next.js environment.
+- **Unified Interface**: Application code interacts with a single `db` object, database-agnostic.
+- **Automated Initialization**: Adapter verifies connection on startup.
+- **Asynchronous Operations**: All database methods are async for non-blocking Next.js execution.
+- **Schema Consistency**: Same schema for both databases, Drizzle ORM handles dialect differences.
+- **Multi-User Ready**: Full support for users, authentication, and data isolation in both databases.
 
 ## Schema Versioning
 
-YuHeng uses [node-pg-migrate](https://github.com/salsita/node-pg-migrate) for database schema version management. This allows for:
-- Versioned database schema changes
-- Easy rollback of migrations
+YuHeng uses [Drizzle Kit](https://orm.drizzle.team/kit-docs/overview) for database schema version management:
+- Shared schema definition
+- Dialect-specific migrations generated automatically
 - Consistent database state across environments
-
-### Running Migrations
-
-```bash
-# Run pending migrations
-npm run db:migrate
-
-# Rollback last migration
-npm run db:migrate:down
-
-# Create a new migration
-npm run db:migrate:create migration-name
-```
 
 ## Local Development
 
-To set up PostgreSQL for local development:
-
-1. Start PostgreSQL using Docker Compose:
+**With PostgreSQL (Docker Compose):**
 ```bash
-docker-compose up -d
+docker compose up -d
+bun run db:migrate
+bun run dev
 ```
 
-2. Run database migrations:
+**With SQLite:**
 ```bash
-npm run db:migrate
+# set in .env: DATABASE_URL=file:./data/yuheng.db
+bun run db:migrate:sqlite
+bun run dev
 ```
 
-3. Start the development server:
-```bash
-npm run dev
-```
-
-The application will automatically connect to the PostgreSQL database using the connection string from `.env`.
+The application automatically connects using the connection string from `.env`.

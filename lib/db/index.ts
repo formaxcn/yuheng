@@ -1,7 +1,11 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
-import { migrate } from 'drizzle-orm/postgres-js/migrator';
+import { drizzle as drizzlePg } from 'drizzle-orm/postgres-js';
+import { migrate as migratePg } from 'drizzle-orm/postgres-js/migrator';
+import { drizzle as drizzleSqlite } from 'drizzle-orm/better-sqlite3';
+import { migrate as migrateSqlite } from 'drizzle-orm/better-sqlite3/migrator';
+import Database from 'better-sqlite3';
 import { IDatabaseAdapter } from './interface';
 import { PostgresAdapter } from './postgres';
+import { SqliteAdapter } from './sqlite';
 import { logger } from '../logger';
 import {
     DEFAULT_MEAL_CONFIG,
@@ -14,10 +18,19 @@ import { DEFAULT_USER_ID } from './user-context';
 let adapter: IDatabaseAdapter | null = null;
 let initPromise: Promise<void> | null = null;
 
+export function isSqlite(): boolean {
+    const url = process.env.DATABASE_URL || '';
+    return url.startsWith('file:');
+}
+
 export function getAdapter(): IDatabaseAdapter {
     if (adapter) return adapter;
 
-    adapter = new PostgresAdapter();
+    if (isSqlite()) {
+        adapter = new SqliteAdapter();
+    } else {
+        adapter = new PostgresAdapter();
+    }
     return adapter;
 }
 
@@ -28,16 +41,37 @@ async function runMigrations(): Promise<void> {
     }
 
     try {
-        // Use a separate connection for migrations
-        const { default: postgres } = await import('postgres');
-        const migrationClient = postgres(process.env.DATABASE_URL, { max: 1 });
-        const db = drizzle(migrationClient);
+        if (isSqlite()) {
+            // SQLite migrations
+            const dbPath = process.env.DATABASE_URL.replace('file:', '');
 
-        logger.info('Running database migrations...');
-        await migrate(db, { migrationsFolder: 'drizzle' });
-        logger.info('Migrations completed successfully');
+            // Ensure directory exists
+            const fs = require('fs');
+            const path = require('path');
+            const dbDir = path.dirname(dbPath);
+            if (!fs.existsSync(dbDir)) {
+                fs.mkdirSync(dbDir, { recursive: true });
+            }
 
-        await migrationClient.end();
+            const sqlite = new Database(dbPath);
+            const db = drizzleSqlite(sqlite);
+
+            logger.info('Running SQLite migrations...');
+            await migrateSqlite(db, { migrationsFolder: 'drizzle/sqlite' });
+            logger.info('SQLite migrations completed successfully');
+            sqlite.close();
+        } else {
+            // PostgreSQL migrations
+            const { default: postgres } = await import('postgres');
+            const migrationClient = postgres(process.env.DATABASE_URL, { max: 1 });
+            const db = drizzlePg(migrationClient);
+
+            logger.info('Running PostgreSQL migrations...');
+            await migratePg(db, { migrationsFolder: 'drizzle/pg' });
+            logger.info('PostgreSQL migrations completed successfully');
+
+            await migrationClient.end();
+        }
     } catch (error) {
         logger.error(error, 'Failed to run migrations');
         throw error;
@@ -54,7 +88,7 @@ export async function ensureInit() {
                 const defaultUser = await activeAdapter.getUser(DEFAULT_USER_ID);
                 if (!defaultUser) {
                     logger.info('Creating default user...');
-                    await (activeAdapter as PostgresAdapter).createDefaultUser();
+                    await (activeAdapter as any).createDefaultUser();
                 }
 
                 const existingMealConfig = await activeAdapter.getSetting('meal_times', DEFAULT_USER_ID);
@@ -62,25 +96,25 @@ export async function ensureInit() {
                     await activeAdapter.saveSetting('meal_times', JSON.stringify(DEFAULT_MEAL_CONFIG), DEFAULT_USER_ID);
                 }
 
-            const existingTargets = await activeAdapter.getSetting('daily_targets', DEFAULT_USER_ID);
-            if (!existingTargets) {
-                await activeAdapter.saveSetting('daily_targets', JSON.stringify(DEFAULT_DAILY_TARGETS), DEFAULT_USER_ID);
-            }
+                const existingTargets = await activeAdapter.getSetting('daily_targets', DEFAULT_USER_ID);
+                if (!existingTargets) {
+                    await activeAdapter.saveSetting('daily_targets', JSON.stringify(DEFAULT_DAILY_TARGETS), DEFAULT_USER_ID);
+                }
 
-            const existingUnitPrefs = await activeAdapter.getSetting('unit_preferences', DEFAULT_USER_ID);
-            if (!existingUnitPrefs) {
-                await activeAdapter.saveSetting('unit_preferences', JSON.stringify(DEFAULT_UNIT_PREFERENCES), DEFAULT_USER_ID);
-            }
+                const existingUnitPrefs = await activeAdapter.getSetting('unit_preferences', DEFAULT_USER_ID);
+                if (!existingUnitPrefs) {
+                    await activeAdapter.saveSetting('unit_preferences', JSON.stringify(DEFAULT_UNIT_PREFERENCES), DEFAULT_USER_ID);
+                }
 
-            for (const item of DEFAULT_SETTINGS) {
-                const existing = await activeAdapter.getSetting(item.key, DEFAULT_USER_ID);
-                if (!existing) await activeAdapter.saveSetting(item.key, item.val, DEFAULT_USER_ID);
-            }
-        }).catch((error) => {
-            logger.error(error, 'Database initialization failed');
-            initPromise = null;
-            throw error;
-        });
+                for (const item of DEFAULT_SETTINGS) {
+                    const existing = await activeAdapter.getSetting(item.key, DEFAULT_USER_ID);
+                    if (!existing) await activeAdapter.saveSetting(item.key, item.val, DEFAULT_USER_ID);
+                }
+            }).catch((error) => {
+                logger.error(error, 'Database initialization failed');
+                initPromise = null;
+                throw error;
+            });
     }
     await initPromise;
 }

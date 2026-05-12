@@ -1,5 +1,7 @@
 # Portion Management & Sharing
 
+> ✅ **Implementation Status: Completed & Stable**
+
 YuHeng makes it easy to log meals that are shared with family or friends without needing complex mental math.
 
 ## Meal Sharing

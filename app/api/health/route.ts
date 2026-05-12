@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import pkg from '@/package.json';
+import { VERSION } from '@/lib/version';
 
 /**
  * @swagger
@@ -25,6 +25,6 @@ import pkg from '@/package.json';
 export async function GET() {
     return NextResponse.json({
         status: 'ok',
-        version: pkg.version
+        version: VERSION
     });
 }

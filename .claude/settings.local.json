@@ -22,7 +22,8 @@
       "Bash(findstr :5432)",
       "Bash(psql -U yuheng -d yuheng -c \"SELECT * FROM users;\")",
       "Bash(bun *)",
-      "Bash(docker volume *)"
+      "Bash(docker volume *)",
+      "Bash(docker build *)"
     ]
   }
 }

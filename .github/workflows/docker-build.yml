@@ -48,6 +48,7 @@ jobs:
       - name: Build and push Docker image
         run: |
           docker build --platform ${{ matrix.platform }} \
+            --build-arg GITHUB_SHA=${GITHUB_SHA} \
             -t $REGISTRY/$IMAGE_NAME:${{ steps.vars.outputs.tag }} .
           docker push $REGISTRY/$IMAGE_NAME:${{ steps.vars.outputs.tag }}
 
