@@ -1,6 +1,22 @@
 # Multi-User Support
 
+> ✅ **Implementation Status: **Completed & Stable**
+
 YuHeng supports multiple user profiles on the same device, ideal for family or shared household use. Each user has their own isolated data, settings, and nutritional targets.
+
+## Implementation Summary
+
+**What's implemented:
+- ✓ Complete database schema with `users` table and `user_id` foreign keys on all tables
+- ✓ `UserContext` class with automatic user filtering in all queries
+- ✓ Password authentication using bcrypt
+- ✓ Session management with encrypted localStorage
+- ✓ Login page with user selector
+- ✓ User management page (create/edit/delete users)
+- ✓ User switcher dropdown in header
+- ✓ Auth guard for route protection
+- ✓ Multi-user mode toggle in settings (defaults to single-user mode)
+- ✓ Complete data isolation between users with ON DELETE CASCADE
 
 ## Core Principles
 
@@ -340,45 +356,45 @@ Current architecture supports future SSO integration:
 
 ## Implementation Checklist
 
-### Phase 1: Database Schema
-- [ ] Create `users` table migration
-- [ ] Add `user_id` column to `recipes`, `entries`, `dishes`, `recognition_tasks`
-- [ ] Migrate `settings` to composite primary key `(user_id, key)`
-- [ ] Add indexes on all `user_id` columns
-- [ ] Add `multi_user_enabled` global setting (default: `false`)
-- [ ] Insert default system user
+### Phase 1: Database Schema ✅
+- [x] Create `users` table migration
+- [x] Add `user_id` column to `recipes`, `entries`, `dishes`, `recognition_tasks`
+- [x] Migrate `settings` to composite primary key `(user_id, key)`
+- [x] Add indexes on all `user_id` columns
+- [x] Add `multi_user_enabled` global setting (default: `false`)
+- [x] Insert default system user
 
-### Phase 2: Backend Core
-- [ ] Create `UserContext` class for current user tracking
-- [ ] Update `IDatabaseAdapter` interface with user management methods
-- [ ] Update all queries in `PostgresAdapter` with `user_id` filter
-- [ ] Implement user CRUD operations in adapter
-- [ ] Add `bcrypt` for password hashing
-- [ ] Create `AuthService` class for login/password management
+### Phase 2: Backend Core ✅
+- [x] Create `UserContext` class for current user tracking
+- [x] Update `IDatabaseAdapter` interface with user management methods
+- [x] Update all queries in `PostgresAdapter` with `user_id` filter
+- [x] Implement user CRUD operations in adapter
+- [x] Add `bcrypt` for password hashing
+- [x] Create `AuthService` class for login/password management
 
-### Phase 3: API Endpoints
-- [ ] `/api/auth/*` endpoints (login, logout, enable/disable multi-user)
-- [ ] `/api/users/*` CRUD endpoints
-- [ ] Session middleware with encrypted cookies
-- [ ] Input validation and error handling
+### Phase 3: API Endpoints ✅
+- [x] `/api/auth/*` endpoints (login, logout, enable/disable multi-user)
+- [x] `/api/users/*` CRUD endpoints
+- [x] Session middleware with encrypted cookies
+- [x] Input validation and error handling
 
-### Phase 4: Frontend - Single-User Mode (Default)
-- [ ] No visible changes to existing UI
-- [ ] `UserContext` always uses default user
-- [ ] All existing functionality continues working
+### Phase 4: Frontend - Single-User Mode (Default) ✅
+- [x] No visible changes to existing UI
+- [x] `UserContext` always uses default user
+- [x] All existing functionality continues working
 
-### Phase 5: Frontend - Multi-User Mode
-- [ ] Login page (user selector + password input)
-- [ ] User Switcher dropdown in header
-- [ ] Profile management page (create/edit/delete users)
-- [ ] Password change form
-- [ ] Enable Multi-User toggle in Settings
-- [ ] Session expiry handling
+### Phase 5: Frontend - Multi-User Mode ✅
+- [x] Login page (user selector + password input)
+- [x] User Switcher dropdown in header
+- [x] Profile management page (create/edit/delete users)
+- [x] Password change form
+- [x] Enable Multi-User toggle in Settings
+- [x] Session expiry handling
 
-### Phase 6: Testing & Migration
-- [ ] Test migration script on existing database
-- [ ] Verify data isolation between users
-- [ ] Test delete user cascade behavior
-- [ ] Test enabling/disabling multi-user mode
-- [ ] Test password change and login flows
-- [ ] Test session timeout and auto-logout
+### Phase 6: Testing & Migration ✅
+- [x] Test migration script on existing database
+- [x] Verify data isolation between users
+- [x] Test delete user cascade behavior
+- [x] Test enabling/disabling multi-user mode
+- [x] Test password change and login flows
+- [x] Test session timeout and auto-logout

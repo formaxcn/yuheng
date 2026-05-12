@@ -1,5 +1,7 @@
 # Packaged Food Recognition (OCR)
 
+> ✅ **Implementation Status: Completed & Stable**
+
 YuHeng features a specialized recognition mode for packaged foods and drinks. It uses OCR (Optical Character Recognition) via AI to read nutrition labels and packaging information.
 
 ## How it Works

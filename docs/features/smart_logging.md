@@ -1,5 +1,7 @@
 # Smart Food Logging
 
+> ✅ **Implementation Status: Completed & Stable**
+
 YuHeng provides an intelligent way to log your meals using Large Language Models (LLMs). It can transform unstructured text or photos into detailed nutritional entries.
 
 ## Photo-Based Logging

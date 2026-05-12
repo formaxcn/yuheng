@@ -3,16 +3,18 @@
 YuHeng(玉衡 Jade Balance) - A local nutrition tracking app named after the fifth and brightest star in the Big Dipper constellation in traditional Chinese astronomy. Just as this star serves as a guiding and balancing force, YuHeng aims to help users in tracking their nutrition effectively.
 
 ## Features
+- 👥 **Multi-User Support**: Multiple user profiles with password authentication, complete data isolation
 - 📸 Photo-based food logging
 - 🤖 Auto-recognition of dishes using Gemini/OpenAI/Compatible LLMs
 - 📊 Daily nutrition stats & weekly history
 - 🍽️ Support for backfilling meals (Breakfast, Lunch, Dinner, Snack)
-- 🐳 Docker support with persistent DB (SQLite & PostgreSQL)
+- 🐳 Docker support with SQLite or PostgreSQL persistence
 - ⚡ Asynchronous image recognition queue
 - ⚖️ Unit conversion (kcal/kJ, g/oz)
 - ⏰ Custom meal times configuration
 - 👥 Meal sharing & portion splitting
 - 🔍 Packaged food scanning & recognition
+- 🖥️ **Backend Status Monitor**: Real-time health status and version display
 
 ## Supported LLM Providers
 
@@ -85,9 +87,14 @@ You can import this into Postman or explore via Swagger UI.
 
 Detailed technical and user-facing documentation for YuHeng:
 
+### 🗺️ Roadmap
+- [**Release History**](roadmap.md): Completed versions and feature log (v0.1, v0.2, v0.3)
+- [**Future Plans**](roadmap_draft.md): Upcoming features, priorities, and implementation plans
+
 ### ✨ Features
 User-centric guides on what YuHeng can do and how it works.
 
+- [**Multi-User Support**](features/multi_user.md): User profiles, password authentication, and complete data isolation.
 - [**Smart Food Logging**](features/smart_logging.md): AI-powered dish and text recognition.
 - [**Recognition Queue**](features/recognition_queue.md): Asynchronous processing and guided AI retry.
 - [**Packaged Food (OCR)**](features/packaged_food.md): Specialized recognition for nutrition labels.
@@ -118,10 +125,17 @@ Settings like meal times, daily targets, and API keys can be configured directly
 
 ## Roadmap
 
-- [ ] Support for multiple users
-- [x] Migrate database to Postgres (Stable)
-- [x] Packaged food scanning & recognition
-- [x] Multi-provider LLM support (Gemini, OpenAI, Compatible)
+See [Release History](roadmap.md) for completed versions and [Future Plans](roadmap_draft.md) for upcoming features.
+
+### Completed
+- [x] v0.1: Core nutrition tracking, photo recognition, PostgreSQL migration
+- [x] v0.2: Packaged food OCR, multi-provider LLM, recognition queue, unit preferences
+- [x] v0.3: Multi-user support, backend status monitoring
+
+### Upcoming
+- [ ] Calendar view for nutrition history
+- [ ] Meal plan presets
+- [ ] PWA support
 - [ ] Mobile app version
  
  ## Screenshots

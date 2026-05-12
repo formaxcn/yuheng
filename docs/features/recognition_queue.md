@@ -1,5 +1,7 @@
 # Recognition Queue & Guided Retry
 
+> ✅ **Implementation Status: Completed & Stable**
+
 YuHeng implements a sophisticated client-side queue for image recognition tasks. This allows users to upload multiple photos in quick succession and handle recognition results asychronously.
 
 ## Core Architecture

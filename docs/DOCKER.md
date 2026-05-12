@@ -1,13 +1,48 @@
 # Docker Deployment
 
+YuHeng supports two deployment modes:
+
+| Mode | Database | Complexity | Best For | Future Extensions |
+|------|----------|------------|----------|-------------------|
+| **Single Container** | SQLite | Very Low | Personal use, simple setup | - |
+| **Docker Compose** | PostgreSQL | Medium | Family/team, scalability | S3/MinIO for image storage, multi-user |
+
+---
+
 ## Quick Start
 
 ### Prerequisites
 - Docker and Docker Compose installed
 - At least 2GB of RAM available
-- An API key from one of the supported AI providers (Gemini, OpenAI, Claude, etc.)
+- An API key from one of the supported AI providers (Gemini, OpenAI, Zhipu, or OpenAI-compatible APIs)
 
-### Run with Docker Compose
+---
+
+### Option 1: Single Container (Simplest, SQLite)
+
+For personal use or quick evaluation, a single container with SQLite is recommended.
+Just mount a single data directory and you're done.
+
+```bash
+# Create data directory
+mkdir -p ./data
+
+# Run the container
+docker run -d \
+  --name yuheng \
+  -p 3000:3000 \
+  -v "$(pwd)/data:/app/data" \
+  -e DATABASE_URL=file:/app/data/yuheng.db \
+  ghcr.io/formaxcn/yuheng
+```
+
+**Access**: http://localhost:3000
+
+**Backup**: Just copy the `./data` directory.
+
+---
+
+### Option 2: Docker Compose (PostgreSQL, Scalable)
 
 1. **Clone the repository**
    ```bash
@@ -54,28 +89,43 @@ For local development with hot-reload:
 
 ### Environment Variables
 
-Only `DATABASE_URL` is strictly required. All other settings can be configured
-in the application's Settings UI after starting.
-
+**Database Selection**
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `DATABASE_URL` | Yes | Database connection string.<br>SQLite: `file:/app/data/yuheng.db`<br>PostgreSQL: `postgresql://user:password@postgres:5432/yuheng` |
+
+**AI Provider Keys (at least one required)**
+| Variable | Required | Description |
+|----------|----------|-------------|
 | `GEMINI_API_KEY` | No* | Google Gemini API key |
-| `OPENAI_API_KEY` | No* | OpenAI API key |
-| `ANTHROPIC_API_KEY` | No* | Anthropic Claude API key |
-| `DASHSCOPE_API_KEY` | No* | Alibaba Qwen API key |
-| `DOUBAO_API_KEY` | No* | ByteDance Doubao API key |
-| `DEEPSEEK_API_KEY` | No* | DeepSeek API key |
-| `ZHIPU_API_KEY` | No* | Zhipu AI API key |
+| `OPENAI_API_KEY` | No* | OpenAI API key (also works for OpenAI-compatible APIs like DeepSeek, Qwen, Doubao) |
+| `ZHIPU_API_KEY` | No* | Zhipu AI GLM-4V API key |
 
 *At least one API key is required for food recognition to work.
 You can set this either via environment variable or directly in the Settings UI.
 
+**S3/MinIO (Future)**
+These variables are reserved for future S3-compatible object storage support:
+| Variable | Description |
+|----------|-------------|
+| `S3_ENDPOINT` | S3/MinIO endpoint (e.g., `http://minio:9000`) |
+| `S3_ACCESS_KEY` | S3/MinIO access key |
+| `S3_SECRET_KEY` | S3/MinIO secret key |
+| `S3_BUCKET` | S3/MinIO bucket name |
+
 ### Volumes
 
-The Docker setup creates persistent volumes:
-- `postgres_data` - Database data
-- `app_data` - Application data (uploaded images, etc.)
+#### Single Container (SQLite)
+```
+./data/                     # Mounted as /app/data inside container
+├── yuheng.db              # SQLite database
+└── images/                # Uploaded images
+```
+
+#### Docker Compose (PostgreSQL)
+- `postgres_data` - PostgreSQL database volume
+- `app_data` - Application data volume (uploaded images, etc.)
+- `minio_data` - *(Future)* S3/MinIO object storage volume
 
 ## Database Migration
 
