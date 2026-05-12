@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real, primaryKey } from 'drizzle-orm/sqlite-core';
 
 export const DEFAULT_USER_ID = '00000000-0000-0000-0000-000000000000';
 
@@ -75,9 +75,9 @@ export const settings = sqliteTable('settings', {
         .references(() => users.id, { onDelete: 'cascade' }),
     key: text('key').notNull(),
     value: text('value'),
-}, (table) => ({
-    pk: { primaryKey: [table.user_id, table.key] },
-}));
+}, (table) => [
+    primaryKey({ columns: [table.user_id, table.key] }),
+]);
 
 export const recognition_tasks = sqliteTable('recognition_tasks', {
     id: text('id').primaryKey(),

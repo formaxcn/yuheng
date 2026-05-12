@@ -2,7 +2,7 @@ name: Build Native Multi-Arch Docker Image
 
 on:
   push:
-    branches: [main,build]
+    branches: [main, build]
   workflow_dispatch:
 
 permissions:
@@ -28,7 +28,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
 
     outputs:
-      tag: ${{ steps.vars.outputs.tag }}
+      base_tag: ${{ steps.vars.outputs.base_tag }}
 
     steps:
       - uses: actions/checkout@v4
@@ -43,14 +43,20 @@ jobs:
       - name: Set docker tag
         id: vars
         run: |
-          echo "tag=sha-${GITHUB_SHA}-${{ matrix.platform_id }}" >> $GITHUB_OUTPUT
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then
+            echo "base_tag=sha-${GITHUB_SHA}" >> $GITHUB_OUTPUT
+          else
+            TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+            echo "base_tag=${TIMESTAMP}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Build and push Docker image
         run: |
+          FULL_TAG=${{ steps.vars.outputs.base_tag }}-${{ matrix.platform_id }}
           docker build --platform ${{ matrix.platform }} \
             --build-arg GITHUB_SHA=${GITHUB_SHA} \
-            -t $REGISTRY/$IMAGE_NAME:${{ steps.vars.outputs.tag }} .
-          docker push $REGISTRY/$IMAGE_NAME:${{ steps.vars.outputs.tag }}
+            -t $REGISTRY/$IMAGE_NAME:${FULL_TAG} .
+          docker push $REGISTRY/$IMAGE_NAME:${FULL_TAG}
 
   manifest:
     needs: build
@@ -64,20 +70,31 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create and push multi-arch :latest manifest
+      - name: Create and push multi-arch manifest
         run: |
-          docker manifest create $REGISTRY/$IMAGE_NAME:latest \
-            $REGISTRY/$IMAGE_NAME:sha-${GITHUB_SHA}-linux-amd64 \
-            $REGISTRY/$IMAGE_NAME:sha-${GITHUB_SHA}-linux-arm64
+          BASE_TAG=${{ needs.build.outputs.base_tag }}
+
+          # Determine target tags
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then
+            # Main branch: push :latest tag
+            TARGET_TAG="latest"
+          else
+            # Build branch: push timestamp tag
+            TARGET_TAG=${BASE_TAG}
+          fi
+
+          docker manifest create $REGISTRY/$IMAGE_NAME:${TARGET_TAG} \
+            $REGISTRY/$IMAGE_NAME:${BASE_TAG}-linux-amd64 \
+            $REGISTRY/$IMAGE_NAME:${BASE_TAG}-linux-arm64
 
           docker manifest annotate \
-            $REGISTRY/$IMAGE_NAME:latest \
-            $REGISTRY/$IMAGE_NAME:sha-${GITHUB_SHA}-linux-amd64 \
+            $REGISTRY/$IMAGE_NAME:${TARGET_TAG} \
+            $REGISTRY/$IMAGE_NAME:${BASE_TAG}-linux-amd64 \
             --os linux --arch amd64
 
           docker manifest annotate \
-            $REGISTRY/$IMAGE_NAME:latest \
-            $REGISTRY/$IMAGE_NAME:sha-${GITHUB_SHA}-linux-arm64 \
+            $REGISTRY/$IMAGE_NAME:${TARGET_TAG} \
+            $REGISTRY/$IMAGE_NAME:${BASE_TAG}-linux-arm64 \
             --os linux --arch arm64
 
-          docker manifest push $REGISTRY/$IMAGE_NAME:latest
+          docker manifest push $REGISTRY/$IMAGE_NAME:${TARGET_TAG}

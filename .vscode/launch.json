@@ -33,6 +33,20 @@
                 "reveal": "always",
                 "panel": "shared"
             }
+        },
+        {
+            "name": "Local: Next.js (SQLite)",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "bun run dev",
+            "env": {
+                "DATABASE_URL": "file:./data/yuheng.db",
+                "DB_TYPE": "sqlite"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
         }
     ],
     "compounds": [
