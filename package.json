@@ -3,8 +3,9 @@
   "version": "0.2.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "bun run scripts/version.ts && next dev",
+    "build": "bun run scripts/version.ts --build && next build",
+    "version": "bun run scripts/version.ts",
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",

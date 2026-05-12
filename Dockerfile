@@ -25,8 +25,11 @@ RUN --mount=type=cache,id=bun-cache,target=/root/.bun \
 # ============================================================================
 FROM oven/bun:1-slim AS builder
 
+ARG GITHUB_SHA
 ENV NODE_ENV=production \
-    NEXT_TELEMETRY_DISABLED=1
+    NEXT_TELEMETRY_DISABLED=1 \
+    GITHUB_SHA=${GITHUB_SHA} \
+    BUILD=true
 
 WORKDIR /app
 
