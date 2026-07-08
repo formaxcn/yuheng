@@ -548,5 +548,5 @@ async getMeasurements(filters) {
 ## Related Documents
 
 - [Database Adapter Design](../design/database_adapter.md)
-- [Roadmap Draft](../roadmap_draft.md)
+- [Roadmap](../roadmap.md)
 - [Architecture Overview](../design/architecture.md)

@@ -88,8 +88,7 @@ You can import this into Postman or explore via Swagger UI.
 Detailed technical and user-facing documentation for YuHeng:
 
 ### 🗺️ Roadmap
-- [**Release History**](roadmap.md): Completed versions and feature log (v0.1, v0.2, v0.3)
-- [**Future Plans**](roadmap_draft.md): Upcoming features, priorities, and implementation plans
+- [**Roadmap**](roadmap.md): Release history (v0.1–v0.3) and future feature plans
 
 ### ✨ Features
 User-centric guides on what YuHeng can do and how it works.
@@ -118,7 +117,7 @@ Technical details for developers and contributors.
 - [**LLM Integration**](design/llm_integration.md): Multi-provider support and factory logic.
 - [**Docker & Deployment**](design/deployment.md): Standalone builds and container orchestration.
 - [**Resumable Uploads**](design/resumable_uploads.md): Fault-tolerant image uploads for mobile networks.
-- [**Page Implementation**](page_implementations.md): Breakdown of the frontend application.
+- [**Page Implementation**](design/page_implementations.md): Breakdown of the frontend application.
 
 ## Configuration
 
@@ -126,7 +125,7 @@ Settings like meal times, daily targets, and API keys can be configured directly
 
 ## Roadmap
 
-See [Release History](roadmap.md) for completed versions and [Future Plans](roadmap_draft.md) for upcoming features.
+See [Roadmap](roadmap.md) for release history and future plans.
 
 ### Completed
 - [x] v0.1: Core nutrition tracking, photo recognition, PostgreSQL migration
@@ -134,10 +133,13 @@ See [Release History](roadmap.md) for completed versions and [Future Plans](road
 - [x] v0.3: Multi-user support, backend status monitoring
 
 ### Upcoming
-- [ ] Calendar view for nutrition history
-- [ ] Meal plan presets
+- [ ] Device-based auth (TOTP + device approval)
+- [ ] Food calendar view
+- [ ] Dietary reference intakes (DRI)
+- [ ] Health mode switch
+- [ ] Pre/post meal comparison
+- [ ] Smart recipe recommendation
 - [ ] PWA support
-- [ ] Mobile app version
  
  ## Screenshots
  
