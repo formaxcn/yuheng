@@ -131,7 +131,7 @@ async function runTests() {
 
         assert(result.success, 'Session creation succeeded');
         assert(!!result.session, 'Session object returned');
-        assert(result.session?.id > 0, `Session ID: ${result.session?.id}`);
+        assert(!!result.session && result.session.id > 0, `Session ID: ${result.session?.id}`);
         assert(result.session?.fingerprint === fingerprint, 'Fingerprint matches');
         assert(result.session?.device_name === deviceName, `Device name: ${result.session?.device_name}`);
 

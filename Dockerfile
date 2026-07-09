@@ -5,13 +5,13 @@ FROM oven/bun:1-slim AS deps
 
 WORKDIR /app
 
-# 安装构建必需的系统包
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# 安装构建必需的系统包（添加重试以应对网络不稳定）
+RUN apt-get -o Acquire::Retries=10 update && apt-get -o Acquire::Retries=10 install -y --no-install-recommends \
     build-essential \
     python3 \
     nodejs \
     npm \
-    && npm install -g node-gyp \
+    && npm install -g node-gyp@10.2.0 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY package.json bun.lock ./
