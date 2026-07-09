@@ -90,3 +90,23 @@ export interface AuthMode {
     multiUserEnabled: boolean;
     currentUserId?: string;
 }
+
+export interface DeviceRequest {
+    id: number;
+    user_id: string;
+    request_code: string;
+    device_name: string | null;
+    status: 'pending' | 'approved' | 'denied' | 'expired';
+    created_at: string;
+    resolved_at: string | null;
+}
+
+export interface SessionRecord {
+    id: number;
+    user_id: string;
+    device_name: string | null;
+    fingerprint: string;
+    created_at: string;
+    last_active_at: string;
+    expires_at: string;
+}

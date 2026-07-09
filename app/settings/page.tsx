@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Save, Loader2, Plus, Trash2, X, Sparkles, Bot, Globe, ChevronDown, Check, Brain, Settings as SettingsIcon, Users } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Plus, Trash2, X, Sparkles, Bot, Globe, ChevronDown, Check, Brain, Settings as SettingsIcon, Users, ShieldCheck, KeyRound } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -42,12 +42,14 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { VERSION } from '@/lib/version'
+import { TotpSetup } from '@/components/auth/totp-setup'
+import { SessionManager } from '@/components/auth/session-manager'
 
 export default function SettingsPage() {
     const t = useTranslations('Settings');
     const tCommon = useTranslations('Common');
     const router = useRouter();
-    const { multiUserEnabled, user, enableMultiUser, disableMultiUser, refresh } = useAuth();
+    const { multiUserEnabled, deviceAuthEnabled, totpBound, user, enableMultiUser, disableMultiUser, enableDeviceAuth, disableDeviceAuth, totpDisable, refresh } = useAuth();
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -55,6 +57,8 @@ export default function SettingsPage() {
     const [disableMultiUserDialogOpen, setDisableMultiUserDialogOpen] = useState(false);
     const [adminPassword, setAdminPassword] = useState('');
     const [actionLoading, setActionLoading] = useState(false);
+    const [showTotpSetup, setShowTotpSetup] = useState(false);
+    const [deviceActionLoading, setDeviceActionLoading] = useState(false);
 
     const [config, setConfig] = useState<Settings>({
         meal_times: [],
@@ -1050,6 +1054,110 @@ export default function SettingsPage() {
                                         </div>
                                     )}
                                 </div>
+
+                                {/* Device Auth - inside Advanced Options */}
+                                {!multiUserEnabled && (
+                                    <div className="pt-6 border-t mt-6">
+                                        <div className="flex items-center justify-between">
+                                            <div className="space-y-0.5">
+                                                <Label className="text-base flex items-center gap-2">
+                                                    <ShieldCheck className="w-4 h-4" />
+                                                    Device Authorization
+                                                </Label>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {deviceAuthEnabled
+                                                        ? "Require TOTP or device approval for new devices"
+                                                        : "Add a security layer - new devices need TOTP or approval"}
+                                                </p>
+                                            </div>
+                                            <Switch
+                                                checked={deviceAuthEnabled}
+                                                disabled={deviceActionLoading}
+                                                onCheckedChange={async (checked: boolean) => {
+                                                    setDeviceActionLoading(true);
+                                                    if (checked) {
+                                                        const success = await enableDeviceAuth();
+                                                        if (success) {
+                                                            toast.success('Device authorization enabled');
+                                                            refresh();
+                                                        } else {
+                                                            toast.error('Failed to enable');
+                                                        }
+                                                    } else {
+                                                        const success = await disableDeviceAuth();
+                                                        if (success) {
+                                                            toast.success('Device authorization disabled');
+                                                            refresh();
+                                                        } else {
+                                                            toast.error('Failed to disable');
+                                                        }
+                                                    }
+                                                    setDeviceActionLoading(false);
+                                                }}
+                                            />
+                                        </div>
+
+                                        {deviceAuthEnabled && (
+                                            <div className="pt-4 space-y-4">
+                                                {/* TOTP Section */}
+                                                <div className="p-4 border rounded-lg space-y-3">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-2">
+                                                            <KeyRound className="w-4 h-4 text-primary" />
+                                                            <span className="text-sm font-medium">TOTP (2FA)</span>
+                                                            {totpBound && (
+                                                                <span className="text-xs bg-green-500/10 text-green-600 px-2 py-0.5 rounded">
+                                                                    Active
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {totpBound ? (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                disabled={deviceActionLoading}
+                                                                onClick={async () => {
+                                                                    setDeviceActionLoading(true);
+                                                                    const success = await totpDisable();
+                                                                    if (success) {
+                                                                        toast.success('TOTP disabled');
+                                                                        refresh();
+                                                                    } else {
+                                                                        toast.error('Failed to disable TOTP');
+                                                                    }
+                                                                    setDeviceActionLoading(false);
+                                                                }}
+                                                            >
+                                                                Disable TOTP
+                                                            </Button>
+                                                        ) : (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => setShowTotpSetup(true)}
+                                                            >
+                                                                Setup TOTP
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                    {showTotpSetup && !totpBound && (
+                                                        <div className="pt-3 border-t">
+                                                            <TotpSetup onDone={() => { setShowTotpSetup(false); refresh(); }} />
+                                                        </div>
+                                                    )}
+                                                    {!totpBound && !showTotpSetup && (
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Without TOTP, new devices can only be authorized via device approval.
+                                                        </p>
+                                                    )}
+                                                </div>
+
+                                                {/* Session Management */}
+                                                <SessionManager />
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     </CollapsibleContent>

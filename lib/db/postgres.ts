@@ -2,7 +2,8 @@ import postgres from 'postgres';
 import { logger } from '../logger';
 import { IDatabaseAdapter } from './interface';
 import {
-    Recipe, Entry, Dish, RecognitionTask, User
+    Recipe, Entry, Dish, RecognitionTask, User,
+    DeviceRequest, SessionRecord
 } from './types';
 import { UserContext, DEFAULT_USER_ID } from './user-context';
 
@@ -280,5 +281,115 @@ export class PostgresAdapter implements IDatabaseAdapter {
             AND user_id = ${UserContext.get()}
         `;
         return rows[0] as RecognitionTask | undefined;
+    }
+
+    // ========================================================================
+    // Device Auth - Sessions
+    // ========================================================================
+
+    async createSession(userId: string, fingerprint: string, deviceName: string | null, expiresAt: Date): Promise<SessionRecord> {
+        const rows = await this.getSql()`
+            INSERT INTO sessions (user_id, fingerprint, device_name, expires_at)
+            VALUES (${userId}, ${fingerprint}, ${deviceName}, ${expiresAt})
+            RETURNING *
+        `;
+        return rows[0] as SessionRecord;
+    }
+
+    async getSession(id: number): Promise<SessionRecord | undefined> {
+        const rows = await this.getSql()`
+            SELECT * FROM sessions WHERE id = ${id}
+        `;
+        return rows[0] as SessionRecord | undefined;
+    }
+
+    async getSessionByFingerprint(userId: string, fingerprint: string): Promise<SessionRecord | undefined> {
+        const rows = await this.getSql()`
+            SELECT * FROM sessions
+            WHERE user_id = ${userId}
+            AND fingerprint = ${fingerprint}
+            ORDER BY created_at DESC
+            LIMIT 1
+        `;
+        return rows[0] as SessionRecord | undefined;
+    }
+
+    async updateSessionActivity(id: number): Promise<void> {
+        await this.getSql()`
+            UPDATE sessions
+            SET last_active_at = NOW()
+            WHERE id = ${id}
+        `;
+    }
+
+    async deleteSession(id: number): Promise<void> {
+        await this.getSql()`DELETE FROM sessions WHERE id = ${id}`;
+    }
+
+    async listSessions(userId: string): Promise<SessionRecord[]> {
+        return await this.getSql()`
+            SELECT * FROM sessions
+            WHERE user_id = ${userId}
+            ORDER BY last_active_at DESC
+        ` as unknown as SessionRecord[];
+    }
+
+    // ========================================================================
+    // Device Auth - Device Requests
+    // ========================================================================
+
+    async createDeviceRequest(userId: string, requestCode: string, deviceName: string | null): Promise<DeviceRequest> {
+        const rows = await this.getSql()`
+            INSERT INTO device_requests (user_id, request_code, device_name)
+            VALUES (${userId}, ${requestCode}, ${deviceName})
+            RETURNING *
+        `;
+        return rows[0] as DeviceRequest;
+    }
+
+    async getDeviceRequestByCode(requestCode: string): Promise<DeviceRequest | undefined> {
+        const rows = await this.getSql()`
+            SELECT * FROM device_requests
+            WHERE request_code = ${requestCode}
+            AND status = 'pending'
+            ORDER BY created_at DESC
+            LIMIT 1
+        `;
+        return rows[0] as DeviceRequest | undefined;
+    }
+
+    async getDeviceRequest(id: number): Promise<DeviceRequest | undefined> {
+        const rows = await this.getSql()`
+            SELECT * FROM device_requests WHERE id = ${id}
+        `;
+        return rows[0] as DeviceRequest | undefined;
+    }
+
+    async updateDeviceRequestStatus(id: number, status: 'approved' | 'denied' | 'expired'): Promise<void> {
+        await this.getSql()`
+            UPDATE device_requests
+            SET status = ${status}, resolved_at = NOW()
+            WHERE id = ${id}
+        `;
+    }
+
+    async listPendingDeviceRequests(userId: string): Promise<DeviceRequest[]> {
+        return await this.getSql()`
+            SELECT * FROM device_requests
+            WHERE user_id = ${userId}
+            AND status = 'pending'
+            AND created_at > NOW() - INTERVAL '10 minutes'
+            ORDER BY created_at DESC
+        ` as unknown as DeviceRequest[];
+    }
+
+    async expireOldDeviceRequests(userId: string, olderThanMinutes: number): Promise<void> {
+        await this.getSql()`
+            UPDATE device_requests
+            SET status = 'expired', resolved_at = NOW()
+            WHERE user_id = ${userId}
+            AND status = 'pending'
+            AND created_at < NOW() - make_interval(mins => ${olderThanMinutes})
+        `;
     }
 }

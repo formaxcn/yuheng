@@ -1,5 +1,6 @@
 import {
-    Recipe, Entry, Dish, RecognitionTask, DailyTargets, UnitPreferences, User
+    Recipe, Entry, Dish, RecognitionTask, DailyTargets, UnitPreferences, User,
+    DeviceRequest, SessionRecord
 } from './types';
 
 export interface IDatabaseAdapter {
@@ -39,4 +40,20 @@ export interface IDatabaseAdapter {
     createRecognitionTask(id: string, imagePath?: string): Promise<RecognitionTask>;
     updateRecognitionTask(id: string, updates: Partial<Pick<RecognitionTask, 'status' | 'result' | 'error'>>): Promise<void>;
     getRecognitionTask(id: string): Promise<RecognitionTask | undefined>;
+
+    // Device Auth - Sessions
+    createSession(userId: string, fingerprint: string, deviceName: string | null, expiresAt: Date): Promise<SessionRecord>;
+    getSession(id: number): Promise<SessionRecord | undefined>;
+    getSessionByFingerprint(userId: string, fingerprint: string): Promise<SessionRecord | undefined>;
+    updateSessionActivity(id: number): Promise<void>;
+    deleteSession(id: number): Promise<void>;
+    listSessions(userId: string): Promise<SessionRecord[]>;
+
+    // Device Auth - Device Requests
+    createDeviceRequest(userId: string, requestCode: string, deviceName: string | null): Promise<DeviceRequest>;
+    getDeviceRequestByCode(requestCode: string): Promise<DeviceRequest | undefined>;
+    getDeviceRequest(id: number): Promise<DeviceRequest | undefined>;
+    updateDeviceRequestStatus(id: number, status: 'approved' | 'denied' | 'expired'): Promise<void>;
+    listPendingDeviceRequests(userId: string): Promise<DeviceRequest[]>;
+    expireOldDeviceRequests(userId: string, olderThanMinutes: number): Promise<void>;
 }

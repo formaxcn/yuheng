@@ -92,3 +92,29 @@ export const recognition_tasks = pgTable('recognition_tasks', {
     created_at: timestamp('created_at').defaultNow(),
     updated_at: timestamp('created_at').defaultNow().$onUpdate(() => new Date()),
 });
+
+export const device_requests = pgTable('device_requests', {
+    id: serial('id').primaryKey(),
+    user_id: uuid('user_id')
+        .notNull()
+        .default(DEFAULT_USER_ID)
+        .references(() => users.id, { onDelete: 'cascade' }),
+    request_code: text('request_code').notNull(),
+    device_name: text('device_name'),
+    status: text('status').notNull().default('pending'),
+    created_at: timestamp('created_at').defaultNow(),
+    resolved_at: timestamp('resolved_at'),
+});
+
+export const sessions = pgTable('sessions', {
+    id: serial('id').primaryKey(),
+    user_id: uuid('user_id')
+        .notNull()
+        .default(DEFAULT_USER_ID)
+        .references(() => users.id, { onDelete: 'cascade' }),
+    device_name: text('device_name'),
+    fingerprint: text('fingerprint').notNull(),
+    created_at: timestamp('created_at').defaultNow(),
+    last_active_at: timestamp('last_active_at').defaultNow(),
+    expires_at: timestamp('expires_at').notNull(),
+});

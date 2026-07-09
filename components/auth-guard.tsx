@@ -5,15 +5,17 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth/auth-context';
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-    const { multiUserEnabled, authenticated, loading } = useAuth();
+    const { multiUserEnabled, deviceAuthEnabled, authenticated, loading } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
+
+    const needsAuth = multiUserEnabled || deviceAuthEnabled;
 
     useEffect(() => {
         if (loading) return;
 
-        // In multi-user mode, require authentication for all pages except login
-        if (multiUserEnabled && !authenticated && pathname !== '/login') {
+        // If auth is required and not authenticated, redirect to login
+        if (needsAuth && !authenticated && pathname !== '/login') {
             router.push('/login');
         }
 
@@ -21,7 +23,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         if (authenticated && pathname === '/login') {
             router.push('/');
         }
-    }, [multiUserEnabled, authenticated, loading, pathname, router]);
+    }, [needsAuth, authenticated, loading, pathname, router]);
 
     if (loading) {
         return (
@@ -31,8 +33,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         );
     }
 
-    // In multi-user mode, show login page only if not authenticated
-    if (multiUserEnabled && !authenticated && pathname !== '/login') {
+    // If auth is required and not authenticated, only show login page
+    if (needsAuth && !authenticated && pathname !== '/login') {
         return null; // Will redirect via useEffect
     }
 

@@ -92,3 +92,29 @@ export const recognition_tasks = sqliteTable('recognition_tasks', {
     created_at: text('created_at').default('CURRENT_TIMESTAMP'),
     updated_at: text('updated_at').default('CURRENT_TIMESTAMP'),
 });
+
+export const device_requests = sqliteTable('device_requests', {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    user_id: text('user_id')
+        .notNull()
+        .default(DEFAULT_USER_ID)
+        .references(() => users.id, { onDelete: 'cascade' }),
+    request_code: text('request_code').notNull(),
+    device_name: text('device_name'),
+    status: text('status').notNull().default('pending'),
+    created_at: text('created_at').default('CURRENT_TIMESTAMP'),
+    resolved_at: text('resolved_at'),
+});
+
+export const sessions = sqliteTable('sessions', {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    user_id: text('user_id')
+        .notNull()
+        .default(DEFAULT_USER_ID)
+        .references(() => users.id, { onDelete: 'cascade' }),
+    device_name: text('device_name'),
+    fingerprint: text('fingerprint').notNull(),
+    created_at: text('created_at').default('CURRENT_TIMESTAMP'),
+    last_active_at: text('last_active_at').default('CURRENT_TIMESTAMP'),
+    expires_at: text('expires_at').notNull(),
+});

@@ -2,7 +2,8 @@ import Database from 'better-sqlite3';
 import { logger } from '../logger';
 import { IDatabaseAdapter } from './interface';
 import {
-    Recipe, Entry, Dish, RecognitionTask, User
+    Recipe, Entry, Dish, RecognitionTask, User,
+    DeviceRequest, SessionRecord
 } from './types';
 import { UserContext, DEFAULT_USER_ID } from './user-context';
 
@@ -383,5 +384,140 @@ export class SqliteAdapter implements IDatabaseAdapter {
         `);
         const rows = stmt.all(id, UserContext.get()) as any[];
         return rows[0] as RecognitionTask | undefined;
+    }
+
+    // ========================================================================
+    // Device Auth - Sessions
+    // ========================================================================
+
+    async createSession(userId: string, fingerprint: string, deviceName: string | null, expiresAt: Date): Promise<SessionRecord> {
+        const createdAt = this.getCurrentTimestamp();
+        const expiresAtStr = expiresAt.toISOString();
+        const stmt = this.db.prepare(`
+            INSERT INTO sessions (user_id, fingerprint, device_name, created_at, last_active_at, expires_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `);
+        const result = stmt.run(userId, fingerprint, deviceName, createdAt, createdAt, expiresAtStr);
+        return {
+            id: Number(result.lastInsertRowid),
+            user_id: userId,
+            fingerprint,
+            device_name: deviceName,
+            created_at: createdAt,
+            last_active_at: createdAt,
+            expires_at: expiresAtStr
+        } as SessionRecord;
+    }
+
+    async getSession(id: number): Promise<SessionRecord | undefined> {
+        const stmt = this.db.prepare(`SELECT * FROM sessions WHERE id = ?`);
+        const rows = stmt.all(id) as any[];
+        return rows[0] as SessionRecord | undefined;
+    }
+
+    async getSessionByFingerprint(userId: string, fingerprint: string): Promise<SessionRecord | undefined> {
+        const stmt = this.db.prepare(`
+            SELECT * FROM sessions
+            WHERE user_id = ?
+            AND fingerprint = ?
+            ORDER BY created_at DESC
+            LIMIT 1
+        `);
+        const rows = stmt.all(userId, fingerprint) as any[];
+        return rows[0] as SessionRecord | undefined;
+    }
+
+    async updateSessionActivity(id: number): Promise<void> {
+        const stmt = this.db.prepare(`
+            UPDATE sessions SET last_active_at = ? WHERE id = ?
+        `);
+        stmt.run(this.getCurrentTimestamp(), id);
+    }
+
+    async deleteSession(id: number): Promise<void> {
+        const stmt = this.db.prepare(`DELETE FROM sessions WHERE id = ?`);
+        stmt.run(id);
+    }
+
+    async listSessions(userId: string): Promise<SessionRecord[]> {
+        const stmt = this.db.prepare(`
+            SELECT * FROM sessions
+            WHERE user_id = ?
+            ORDER BY last_active_at DESC
+        `);
+        return stmt.all(userId) as SessionRecord[];
+    }
+
+    // ========================================================================
+    // Device Auth - Device Requests
+    // ========================================================================
+
+    async createDeviceRequest(userId: string, requestCode: string, deviceName: string | null): Promise<DeviceRequest> {
+        const createdAt = this.getCurrentTimestamp();
+        const stmt = this.db.prepare(`
+            INSERT INTO device_requests (user_id, request_code, device_name, status, created_at)
+            VALUES (?, ?, ?, 'pending', ?)
+        `);
+        const result = stmt.run(userId, requestCode, deviceName, createdAt);
+        return {
+            id: Number(result.lastInsertRowid),
+            user_id: userId,
+            request_code: requestCode,
+            device_name: deviceName,
+            status: 'pending',
+            created_at: createdAt,
+            resolved_at: null
+        } as DeviceRequest;
+    }
+
+    async getDeviceRequestByCode(requestCode: string): Promise<DeviceRequest | undefined> {
+        const stmt = this.db.prepare(`
+            SELECT * FROM device_requests
+            WHERE request_code = ?
+            AND status = 'pending'
+            ORDER BY created_at DESC
+            LIMIT 1
+        `);
+        const rows = stmt.all(requestCode) as any[];
+        return rows[0] as DeviceRequest | undefined;
+    }
+
+    async getDeviceRequest(id: number): Promise<DeviceRequest | undefined> {
+        const stmt = this.db.prepare(`SELECT * FROM device_requests WHERE id = ?`);
+        const rows = stmt.all(id) as any[];
+        return rows[0] as DeviceRequest | undefined;
+    }
+
+    async updateDeviceRequestStatus(id: number, status: 'approved' | 'denied' | 'expired'): Promise<void> {
+        const stmt = this.db.prepare(`
+            UPDATE device_requests
+            SET status = ?, resolved_at = ?
+            WHERE id = ?
+        `);
+        stmt.run(status, this.getCurrentTimestamp(), id);
+    }
+
+    async listPendingDeviceRequests(userId: string): Promise<DeviceRequest[]> {
+        const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        const stmt = this.db.prepare(`
+            SELECT * FROM device_requests
+            WHERE user_id = ?
+            AND status = 'pending'
+            AND created_at > ?
+            ORDER BY created_at DESC
+        `);
+        return stmt.all(userId, tenMinsAgo) as DeviceRequest[];
+    }
+
+    async expireOldDeviceRequests(userId: string, olderThanMinutes: number): Promise<void> {
+        const cutoff = new Date(Date.now() - olderThanMinutes * 60 * 1000).toISOString();
+        const stmt = this.db.prepare(`
+            UPDATE device_requests
+            SET status = 'expired', resolved_at = ?
+            WHERE user_id = ?
+            AND status = 'pending'
+            AND created_at < ?
+        `);
+        stmt.run(this.getCurrentTimestamp(), userId, cutoff);
     }
 }
