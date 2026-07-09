@@ -58,6 +58,7 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.base_tag }}-${{ matrix.platform_id }}
           cache-from: type=gha,scope=${{ matrix.platform_id }}
           cache-to: type=gha,scope=${{ matrix.platform_id }},mode=max
+          provenance: false
 
   manifest:
     needs: build
