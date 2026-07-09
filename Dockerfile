@@ -5,20 +5,19 @@ FROM oven/bun:1-slim AS deps
 
 WORKDIR /app
 
-# 安装构建必需的系统包（添加重试以应对网络不稳定）
-RUN apt-get -o Acquire::Retries=10 update && apt-get -o Acquire::Retries=10 install -y --no-install-recommends \
-    build-essential \
-    python3 \
-    nodejs \
-    npm \
-    && npm install -g node-gyp@10.2.0 \
-    && rm -rf /var/lib/apt/lists/*
-
 COPY package.json bun.lock ./
 
-# 使用 Bun 缓存加速安装
+# 快速路径:优先使用预编译二进制(better-sqlite3 v12 提供 node-v137 的 linux x64/arm64 预编译)
+# 失败时回退到安装编译工具链并从源码编译
 RUN --mount=type=cache,id=bun-cache,target=/root/.bun \
-    bun install --frozen-lockfile
+    bun install --frozen-lockfile || \
+    (echo ">> Prebuilt download failed, falling back to source compilation..." && \
+     apt-get -o Acquire::Retries=10 update && \
+     apt-get -o Acquire::Retries=10 install -y --no-install-recommends \
+       build-essential python3 nodejs npm && \
+     npm install -g node-gyp@10.2.0 && \
+     rm -rf /var/lib/apt/lists/* && \
+     bun install --frozen-lockfile)
 
 # ============================================================================
 # 2. 构建阶段

@@ -45,13 +45,19 @@ jobs:
         run: |
           echo "base_tag=sha-${GITHUB_SHA}" >> $GITHUB_OUTPUT
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build and push Docker image
-        run: |
-          FULL_TAG=${{ steps.vars.outputs.base_tag }}-${{ matrix.platform_id }}
-          docker build --platform ${{ matrix.platform }} \
-            --build-arg GITHUB_SHA=${GITHUB_SHA} \
-            -t $REGISTRY/$IMAGE_NAME:${FULL_TAG} .
-          docker push $REGISTRY/$IMAGE_NAME:${FULL_TAG}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          build-args: GITHUB_SHA=${{ github.sha }}
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.base_tag }}-${{ matrix.platform_id }}
+          cache-from: type=gha,scope=${{ matrix.platform_id }}
+          cache-to: type=gha,scope=${{ matrix.platform_id }},mode=max
 
   manifest:
     needs: build
