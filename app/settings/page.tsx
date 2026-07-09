@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Save, Loader2, Plus, Trash2, X, Sparkles, Bot, Globe, ChevronDown, Check, Brain, Settings as SettingsIcon, Users, ShieldCheck, KeyRound } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Plus, Trash2, X, Sparkles, Bot, Globe, ChevronDown, Check, Brain, Users, ShieldCheck, KeyRound } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -33,7 +34,6 @@ import {
 import { SmartTimeInput } from './SmartTimeInput';
 import { cn } from "@/lib/utils"
 import { Switch } from "@/components/ui/switch"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
     Dialog,
     DialogContent,
@@ -52,7 +52,6 @@ export default function SettingsPage() {
     const { multiUserEnabled, deviceAuthEnabled, totpBound, user, enableMultiUser, disableMultiUser, enableDeviceAuth, disableDeviceAuth, totpDisable, refresh } = useAuth();
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [advancedOpen, setAdvancedOpen] = useState(false);
     const [enableMultiUserDialogOpen, setEnableMultiUserDialogOpen] = useState(false);
     const [disableMultiUserDialogOpen, setDisableMultiUserDialogOpen] = useState(false);
     const [adminPassword, setAdminPassword] = useState('');
@@ -413,6 +412,15 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-6 max-w-2xl mx-auto">
+                <Tabs defaultValue="general" className="w-full">
+                    <TabsList className="grid w-full grid-cols-5">
+                        <TabsTrigger value="general">{t('tabGeneral')}</TabsTrigger>
+                        <TabsTrigger value="nutrition">{t('tabNutrition')}</TabsTrigger>
+                        <TabsTrigger value="ai">{t('tabAI')}</TabsTrigger>
+                        <TabsTrigger value="meals">{t('tabMeals')}</TabsTrigger>
+                        <TabsTrigger value="advanced">{t('tabAdvanced')}</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="general" className="space-y-6">
                 <Card className="border-primary/50 bg-primary/5">
                     <CardHeader>
                         <CardTitle className="text-primary flex items-center gap-2">
@@ -458,6 +466,98 @@ export default function SettingsPage() {
                         </div>
                     </CardContent>
                 </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>{t('unitPreferences')}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>{t('energyUnit')}</Label>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                                        <input
+                                            type="radio"
+                                            name="energyUnit"
+                                            value="kcal"
+                                            checked={config.unit_preferences.energy === 'kcal'}
+                                            onChange={() => updateEnergyUnit('kcal')}
+                                            className="w-4 h-4 text-primary"
+                                        />
+                                        <span>kcal</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                                        <input
+                                            type="radio"
+                                            name="energyUnit"
+                                            value="kj"
+                                            checked={config.unit_preferences.energy === 'kj'}
+                                            onChange={() => updateEnergyUnit('kj')}
+                                            className="w-4 h-4 text-primary"
+                                        />
+                                        <span>kJ</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>{t('weightUnit')}</Label>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                                        <input
+                                            type="radio"
+                                            name="weightUnit"
+                                            value="g"
+                                            checked={config.unit_preferences.weight === 'g'}
+                                            onChange={() => updateWeightUnit('g')}
+                                            className="w-4 h-4 text-primary"
+                                        />
+                                        <span>g</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                                        <input
+                                            type="radio"
+                                            name="weightUnit"
+                                            value="oz"
+                                            checked={config.unit_preferences.weight === 'oz'}
+                                            onChange={() => updateWeightUnit('oz')}
+                                            className="w-4 h-4 text-primary"
+                                        />
+                                        <span>oz</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>{t('timeFormat')}</Label>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                                        <input
+                                            type="radio"
+                                            name="timeFormat"
+                                            value="24h"
+                                            checked={config.time_format === '24h'}
+                                            onChange={() => setConfig(prev => ({ ...prev, time_format: '24h' }))}
+                                            className="w-4 h-4 text-primary"
+                                        />
+                                        <span>24h</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                                        <input
+                                            type="radio"
+                                            name="timeFormat"
+                                            value="12h"
+                                            checked={config.time_format === '12h'}
+                                            onChange={() => setConfig(prev => ({ ...prev, time_format: '12h' }))}
+                                            className="w-4 h-4 text-primary"
+                                        />
+                                        <span>12h (AM/PM)</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+                    </TabsContent>
+                    <TabsContent value="nutrition" className="space-y-6">
                 <Card>
                     <CardHeader>
                         <CardTitle>{t('dailyNutritionTargets')}</CardTitle>
@@ -637,98 +737,8 @@ export default function SettingsPage() {
                         </div>
                     </CardContent>
                 </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>{t('unitPreferences')}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>{t('energyUnit')}</Label>
-                                <div className="flex gap-4">
-                                    <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
-                                        <input
-                                            type="radio"
-                                            name="energyUnit"
-                                            value="kcal"
-                                            checked={config.unit_preferences.energy === 'kcal'}
-                                            onChange={() => updateEnergyUnit('kcal')}
-                                            className="w-4 h-4 text-primary"
-                                        />
-                                        <span>kcal</span>
-                                    </label>
-                                    <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
-                                        <input
-                                            type="radio"
-                                            name="energyUnit"
-                                            value="kj"
-                                            checked={config.unit_preferences.energy === 'kj'}
-                                            onChange={() => updateEnergyUnit('kj')}
-                                            className="w-4 h-4 text-primary"
-                                        />
-                                        <span>kJ</span>
-                                    </label>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>{t('weightUnit')}</Label>
-                                <div className="flex gap-4">
-                                    <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
-                                        <input
-                                            type="radio"
-                                            name="weightUnit"
-                                            value="g"
-                                            checked={config.unit_preferences.weight === 'g'}
-                                            onChange={() => updateWeightUnit('g')}
-                                            className="w-4 h-4 text-primary"
-                                        />
-                                        <span>g</span>
-                                    </label>
-                                    <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
-                                        <input
-                                            type="radio"
-                                            name="weightUnit"
-                                            value="oz"
-                                            checked={config.unit_preferences.weight === 'oz'}
-                                            onChange={() => updateWeightUnit('oz')}
-                                            className="w-4 h-4 text-primary"
-                                        />
-                                        <span>oz</span>
-                                    </label>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>{t('timeFormat')}</Label>
-                                <div className="flex gap-4">
-                                    <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
-                                        <input
-                                            type="radio"
-                                            name="timeFormat"
-                                            value="24h"
-                                            checked={config.time_format === '24h'}
-                                            onChange={() => setConfig(prev => ({ ...prev, time_format: '24h' }))}
-                                            className="w-4 h-4 text-primary"
-                                        />
-                                        <span>24h</span>
-                                    </label>
-                                    <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
-                                        <input
-                                            type="radio"
-                                            name="timeFormat"
-                                            value="12h"
-                                            checked={config.time_format === '12h'}
-                                            onChange={() => setConfig(prev => ({ ...prev, time_format: '12h' }))}
-                                            className="w-4 h-4 text-primary"
-                                        />
-                                        <span>12h (AM/PM)</span>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
+                    </TabsContent>
+                    <TabsContent value="ai" className="space-y-6">
                 <Card>
                     <CardHeader>
                         <CardTitle>{t('aiSetup')}</CardTitle>
@@ -883,8 +893,8 @@ export default function SettingsPage() {
                         </div>
                     </CardContent>
                 </Card>
-
-
+                    </TabsContent>
+                    <TabsContent value="meals" className="space-y-6">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle>{t('mealTimes')}</CardTitle>
@@ -973,20 +983,10 @@ export default function SettingsPage() {
                         </div>
                     </CardContent>
                 </Card>
-
-                <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen} className="space-y-2">
-                    <CollapsibleTrigger asChild>
-                        <Button variant="ghost" className="flex items-center gap-2 w-full justify-between p-4 hover:bg-accent/50 rounded-xl border border-dashed border-muted-foreground/20">
-                            <div className="flex items-center gap-2">
-                                <SettingsIcon className="w-4 h-4 text-muted-foreground" />
-                                <span className="font-semibold">{t('advancedOptions')}</span>
-                            </div>
-                            <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", advancedOpen && "rotate-180")} />
-                        </Button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="space-y-4">
-                        <Card>
-                            <CardContent className="pt-6 space-y-6">
+                    </TabsContent>
+                    <TabsContent value="advanced" className="space-y-6">
+                <Card>
+                    <CardContent className="pt-6 space-y-6">
                                 <div className="flex items-center justify-between">
                                     <div className="space-y-0.5">
                                         <Label className="text-base">{t('imageCompression')}</Label>
@@ -1154,8 +1154,8 @@ export default function SettingsPage() {
                                 )}
                             </CardContent>
                         </Card>
-                    </CollapsibleContent>
-                </Collapsible>
+                    </TabsContent>
+                </Tabs>
 
                 {/* Enable Multi-User Dialog */}
                 <Dialog open={enableMultiUserDialogOpen} onOpenChange={setEnableMultiUserDialogOpen}>

@@ -1,6 +1,11 @@
 {
     "Settings": {
         "title": "Settings",
+        "tabGeneral": "General",
+        "tabNutrition": "Nutrition",
+        "tabAI": "AI",
+        "tabMeals": "Meals",
+        "tabAdvanced": "Advanced",
         "globalRegionSettings": "Global Region Settings",
         "globalRegionDescription": "Global Region (Quickly adapt units and language)",
         "regionCN": "China (中国)",
