@@ -8,9 +8,11 @@ import { randomBytes } from 'crypto';
 const BACKUP_CODE_COUNT = 8;
 
 // Create a shared TOTP instance with plugins
+// step: 60s means each code is valid for ~2min (with default tolerance window)
 const totp = new TOTP({
     crypto: new NobleCryptoPlugin(),
     base32: new ScureBase32Plugin(),
+    step: 60,
 });
 
 export interface TotpSetupResult {

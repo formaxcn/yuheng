@@ -24,7 +24,7 @@ interface ActiveSession {
 }
 
 export function SessionManager() {
-    const { listDevices, approveDeviceRequest, denyDeviceRequest, revokeSession } = useAuth();
+    const { listDevices, approveDeviceRequest, denyDeviceRequest, revokeSession, deviceFingerprint } = useAuth();
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState<number | null>(null);
     const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
@@ -152,30 +152,38 @@ export function SessionManager() {
                             No active sessions
                         </div>
                     )}
-                    {sessions.map((session) => (
-                        <div key={session.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border">
-                            <div className="flex items-center gap-3">
-                                <Monitor className="w-5 h-5 text-muted-foreground" />
-                                <div>
-                                    <div className="text-sm font-medium">
-                                        {session.device_name || 'Unknown Device'}
-                                    </div>
-                                    <div className="text-xs text-muted-foreground">
-                                        Last active: {formatDistanceToNow(new Date(session.last_active_at))} ago
+                    {sessions.map((session) => {
+                        const isCurrent = session.fingerprint === deviceFingerprint;
+                        return (
+                            <div key={session.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border">
+                                <div className="flex items-center gap-3">
+                                    <Monitor className="w-5 h-5 text-muted-foreground" />
+                                    <div>
+                                        <div className="text-sm font-medium flex items-center gap-2">
+                                            {session.device_name || 'Unknown Device'}
+                                            {isCurrent && (
+                                                <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                                    It's me
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">
+                                            Last active: {formatDistanceToNow(new Date(session.last_active_at))} ago
+                                        </div>
                                     </div>
                                 </div>
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-8 w-8 p-0 text-red-500 hover:text-red-500"
+                                    onClick={() => handleRevoke(session.id)}
+                                    disabled={actionLoading === session.id || isCurrent}
+                                >
+                                    {actionLoading === session.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                </Button>
                             </div>
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0 text-red-500 hover:text-red-500"
-                                onClick={() => handleRevoke(session.id)}
-                                disabled={actionLoading === session.id}
-                            >
-                                {actionLoading === session.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                            </Button>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </CardContent>
             </Card>
 

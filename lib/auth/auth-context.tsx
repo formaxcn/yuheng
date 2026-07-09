@@ -22,12 +22,12 @@ export interface AuthContextType {
     logout: () => Promise<void>;
     enableMultiUser: (adminPassword: string) => Promise<boolean>;
     disableMultiUser: (password: string) => Promise<boolean>;
-    enableDeviceAuth: () => Promise<boolean>;
-    disableDeviceAuth: () => Promise<boolean>;
+    enableDeviceAuth: () => Promise<{ secret: string; qrCodeUrl: string; backupCodes: string[] } | null>;
+    disableDeviceAuth: (token: string) => Promise<boolean>;
     totpLogin: (token: string, deviceName?: string) => Promise<boolean>;
     totpSetup: (label: string) => Promise<{ secret: string; qrCodeUrl: string; backupCodes: string[] } | null>;
     totpConfirm: (secret: string, backupCodes: string[], token: string) => Promise<boolean>;
-    totpDisable: () => Promise<boolean>;
+    totpDisable: (token: string) => Promise<boolean>;
     createDeviceRequest: (deviceName?: string) => Promise<{ requestId: number } | null>;
     pollDeviceStatus: (requestId: number) => Promise<{ status: string } | null>;
     approveDeviceRequest: (requestId: number) => Promise<boolean>;
@@ -131,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return false;
     };
 
-    const enableDeviceAuth = async (): Promise<boolean> => {
+    const enableDeviceAuth = async (): Promise<{ secret: string; qrCodeUrl: string; backupCodes: string[] } | null> => {
         const res = await fetch('/api/auth/device/enable', {
             method: 'POST',
             headers: {
@@ -141,17 +141,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             body: JSON.stringify({})
         });
         if (res.ok) {
-            await refresh();
-            return true;
+            return res.json();
         }
-        return false;
+        return null;
     };
 
-    const disableDeviceAuth = async (): Promise<boolean> => {
+    const disableDeviceAuth = async (token: string): Promise<boolean> => {
         const res = await fetch('/api/auth/device/disable', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({})
+            body: JSON.stringify({ token })
         });
         if (res.ok) {
             await refresh();
@@ -191,7 +190,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const totpConfirm = async (secret: string, backupCodes: string[], token: string): Promise<boolean> => {
         const res = await fetch('/api/auth/totp/confirm', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Device-FP': deviceFingerprint || ''
+            },
             body: JSON.stringify({ secret, backupCodes, token })
         });
         if (res.ok) {
@@ -201,11 +203,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return false;
     };
 
-    const totpDisable = async (): Promise<boolean> => {
+    const totpDisable = async (token: string): Promise<boolean> => {
         const res = await fetch('/api/auth/totp/disable', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({})
+            body: JSON.stringify({ token })
         });
         if (res.ok) {
             await refresh();

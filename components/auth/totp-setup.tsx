@@ -3,23 +3,29 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/lib/auth/auth-context';
 import { toast } from 'sonner';
-import { Loader2, QrCode, Copy, Check, ShieldAlert } from 'lucide-react';
+import { Loader2, Copy, Check, ShieldAlert } from 'lucide-react';
+
+interface TotpSetupData {
+    secret: string;
+    qrCodeUrl: string;
+    backupCodes: string[];
+}
 
 interface TotpSetupProps {
     onDone?: () => void;
+    initialData?: TotpSetupData;
 }
 
-export function TotpSetup({ onDone }: TotpSetupProps) {
+export function TotpSetup({ onDone, initialData }: TotpSetupProps) {
     const { totpSetup, totpConfirm, user } = useAuth();
-    const [step, setStep] = useState<'idle' | 'qr' | 'verify' | 'done'>('idle');
+    const [step, setStep] = useState<'idle' | 'qr' | 'verify' | 'done'>(initialData ? 'qr' : 'idle');
     const [loading, setLoading] = useState(false);
-    const [secret, setSecret] = useState('');
-    const [qrCodeUrl, setQrCodeUrl] = useState('');
-    const [backupCodes, setBackupCodes] = useState<string[]>([]);
+    const [secret, setSecret] = useState(initialData?.secret || '');
+    const [qrCodeUrl, setQrCodeUrl] = useState(initialData?.qrCodeUrl || '');
+    const [backupCodes, setBackupCodes] = useState<string[]>(initialData?.backupCodes || []);
     const [verifyCode, setVerifyCode] = useState('');
     const [copied, setCopied] = useState(false);
 
@@ -64,7 +70,7 @@ export function TotpSetup({ onDone }: TotpSetupProps) {
                     to enable TOTP-based device authorization.
                 </p>
                 <Button onClick={handleSetup} disabled={loading} className="w-full">
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <QrCode className="w-4 h-4 mr-2" />}
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                     Setup TOTP
                 </Button>
             </div>

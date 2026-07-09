@@ -59,6 +59,9 @@ export default function SettingsPage() {
     const [actionLoading, setActionLoading] = useState(false);
     const [showTotpSetup, setShowTotpSetup] = useState(false);
     const [deviceActionLoading, setDeviceActionLoading] = useState(false);
+    const [totpSetupData, setTotpSetupData] = useState<{ secret: string; qrCodeUrl: string; backupCodes: string[] } | null>(null);
+    const [disableTotpDialogOpen, setDisableTotpDialogOpen] = useState(false);
+    const [disableTotpCode, setDisableTotpCode] = useState('');
 
     const [config, setConfig] = useState<Settings>({
         meal_times: [],
@@ -1076,21 +1079,17 @@ export default function SettingsPage() {
                                                 onCheckedChange={async (checked: boolean) => {
                                                     setDeviceActionLoading(true);
                                                     if (checked) {
-                                                        const success = await enableDeviceAuth();
-                                                        if (success) {
-                                                            toast.success('Device authorization enabled');
-                                                            refresh();
+                                                        // Enable: generate TOTP setup data, show QR code
+                                                        const data = await enableDeviceAuth();
+                                                        if (data) {
+                                                            setTotpSetupData(data);
+                                                            setShowTotpSetup(true);
                                                         } else {
                                                             toast.error('Failed to enable');
                                                         }
                                                     } else {
-                                                        const success = await disableDeviceAuth();
-                                                        if (success) {
-                                                            toast.success('Device authorization disabled');
-                                                            refresh();
-                                                        } else {
-                                                            toast.error('Failed to disable');
-                                                        }
+                                                        // Disable: require TOTP code
+                                                        setDisableTotpDialogOpen(true);
                                                     }
                                                     setDeviceActionLoading(false);
                                                 }}
@@ -1105,55 +1104,50 @@ export default function SettingsPage() {
                                                         <div className="flex items-center gap-2">
                                                             <KeyRound className="w-4 h-4 text-primary" />
                                                             <span className="text-sm font-medium">TOTP (2FA)</span>
-                                                            {totpBound && (
-                                                                <span className="text-xs bg-green-500/10 text-green-600 px-2 py-0.5 rounded">
-                                                                    Active
-                                                                </span>
-                                                            )}
+                                                            <span className="text-xs bg-green-500/10 text-green-600 px-2 py-0.5 rounded">
+                                                                Active
+                                                            </span>
                                                         </div>
-                                                        {totpBound ? (
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                disabled={deviceActionLoading}
-                                                                onClick={async () => {
-                                                                    setDeviceActionLoading(true);
-                                                                    const success = await totpDisable();
-                                                                    if (success) {
-                                                                        toast.success('TOTP disabled');
-                                                                        refresh();
-                                                                    } else {
-                                                                        toast.error('Failed to disable TOTP');
-                                                                    }
-                                                                    setDeviceActionLoading(false);
-                                                                }}
-                                                            >
-                                                                Disable TOTP
-                                                            </Button>
-                                                        ) : (
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={() => setShowTotpSetup(true)}
-                                                            >
-                                                                Setup TOTP
-                                                            </Button>
-                                                        )}
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            disabled={deviceActionLoading}
+                                                            onClick={() => {
+                                                                setShowTotpSetup(true);
+                                                                setTotpSetupData(null);
+                                                            }}
+                                                        >
+                                                            Change TOTP
+                                                        </Button>
                                                     </div>
-                                                    {showTotpSetup && !totpBound && (
+                                                    {showTotpSetup && (
                                                         <div className="pt-3 border-t">
-                                                            <TotpSetup onDone={() => { setShowTotpSetup(false); refresh(); }} />
+                                                            <TotpSetup
+                                                                initialData={totpSetupData || undefined}
+                                                                onDone={() => { setShowTotpSetup(false); setTotpSetupData(null); refresh(); }}
+                                                            />
                                                         </div>
-                                                    )}
-                                                    {!totpBound && !showTotpSetup && (
-                                                        <p className="text-xs text-muted-foreground">
-                                                            Without TOTP, new devices can only be authorized via device approval.
-                                                        </p>
                                                     )}
                                                 </div>
 
                                                 {/* Session Management */}
                                                 <SessionManager />
+                                            </div>
+                                        )}
+
+                                        {/* TOTP setup during initial enable (device auth not yet enabled) */}
+                                        {showTotpSetup && totpSetupData && !deviceAuthEnabled && (
+                                            <div className="pt-4">
+                                                <div className="p-4 border rounded-lg">
+                                                    <div className="flex items-center gap-2 mb-3">
+                                                        <KeyRound className="w-4 h-4 text-primary" />
+                                                        <span className="text-sm font-medium">Setup TOTP to enable device authorization</span>
+                                                    </div>
+                                                    <TotpSetup
+                                                        initialData={totpSetupData}
+                                                        onDone={() => { setShowTotpSetup(false); setTotpSetupData(null); refresh(); }}
+                                                    />
+                                                </div>
                                             </div>
                                         )}
                                     </div>
@@ -1264,6 +1258,62 @@ export default function SettingsPage() {
                                     }}
                                 >
                                     {actionLoading ? 'Disabling...' : 'Disable'}
+                                </Button>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog open={disableTotpDialogOpen} onOpenChange={setDisableTotpDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Disable Device Authorization</DialogTitle>
+                            <DialogDescription>
+                                Enter your TOTP code to disable device authorization.
+                                All trusted sessions will be revoked.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label>TOTP Code</Label>
+                                <Input
+                                    type="text"
+                                    value={disableTotpCode}
+                                    onChange={(e) => setDisableTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                    placeholder="000000"
+                                    className="text-center text-xl tracking-widest font-mono"
+                                    maxLength={6}
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="flex justify-end gap-2">
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => {
+                                        setDisableTotpDialogOpen(false);
+                                        setDisableTotpCode('');
+                                    }}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    variant="destructive"
+                                    disabled={disableTotpCode.length !== 6 || deviceActionLoading}
+                                    onClick={async () => {
+                                        setDeviceActionLoading(true);
+                                        const success = await disableDeviceAuth(disableTotpCode);
+                                        if (success) {
+                                            toast.success('Device authorization disabled');
+                                            setDisableTotpDialogOpen(false);
+                                            setDisableTotpCode('');
+                                            refresh();
+                                        } else {
+                                            toast.error('Invalid TOTP code');
+                                        }
+                                        setDeviceActionLoading(false);
+                                    }}
+                                >
+                                    {deviceActionLoading ? 'Disabling...' : 'Disable'}
                                 </Button>
                             </div>
                         </div>
